@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"time"
+  "sync"
 )
 
 // Stock data type
@@ -18,17 +19,42 @@ type Stock struct {
 	ohlc []OHLC
 }
 
+type Strategy struct {}
+
+func (m Strategy) init() {
+  fmt.Printf("Init market\n")
+}
+
+func (m Strategy) tick(ohlc OHLC) {
+  fmt.Printf("Closen %f", ohlc.close)
+}
+
 //Market for this backtester
 type Market struct {
-	stocks []Stock
+  strategy Strategy
+  datamanager DataManager
+}
+
+func (m Market) setStrategy(strategy *Strategy) {
+  m.strategy = *strategy
+}
+
+func (m Market) setDatamanager(datamanager *DataManager) {
+  fmt.Printf("Datamanager: %d", len(datamanager.stock.ohlc))
+  m.datamanager = *datamanager
+  fmt.Printf("Datamanager set, len %d\n",len(m.datamanager.stock.ohlc))
 }
 
 //Run backtester
-func (s Market) Run() {
-
-	for i := range s.stocks {
-		for j := range s.stocks[i]
-	}
+func (m Market) Run(wg *sync.WaitGroup) {
+  defer wg.Done()
+  fmt.Printf("Defer done\n")
+  m.strategy.init()
+  fmt.Printf("Len: %d\n",len(m.datamanager.stock.ohlc))
+	for i,f := range m.datamanager.stock.ohlc {
+    fmt.Printf("tick: %d\n", i)
+    m.strategy.tick(f)
+  }
 }
 
 // OHLC data type
@@ -66,12 +92,11 @@ type Fill Event
 }*/
 
 type DataManager struct {
-
+  stock Stock
 }
 
-func (d DataManager) readCSVFile(file string) Stock {
-	var stock Stock
-	stock.name = filepath.Base(file)
+func (d DataManager) readCSVFile(file string) {
+	d.stock.name = filepath.Base(file)
 	csvfile, err := os.Open(file)
 
 	if err != nil {
@@ -116,25 +141,29 @@ func (d DataManager) readCSVFile(file string) Stock {
 		i++
 		//fmt.Printf("In addValue: s is %v\n", s)
 	}
-	stock.ohlc = s
-	return stock
+	d.stock.ohlc = s
+  fmt.Printf("%d\n", len(d.stock.ohlc))
 }
 
 func main() {
-	eventQueue := make(chan Event)
-	//folderPtr := flag.String("folder", "", "a path pointing to a folder with cvs files")
+  var wg sync.WaitGroup
+  //folderPtr := flag.String("folder", "", "a path pointing to a folder with cvs files")
 	filePtr := flag.String("file", "", "a path pointing to a cvs file")
 	//uniPtr := flag.String("universe", "", "abbreviation of a stock")
 	flag.Parse()
 	start := time.Now()
 	//universe := []string{*uniPtr}
 	//y := readCSV(universe)
-	s := readCSVFile(*filePtr)
-	fmt.Println(time.Since(start))
-	fmt.Printf("%v", s)
-	portfolio(eventQueue)
-}
+  var dataManager DataManager
+  var strategy Strategy
+  var market Market
 
-func portfolio(eventQueue chan Event) {
-	event := <-eventQueue
+  dataManager.readCSVFile(*filePtr)
+  fmt.Printf("len %d", len(dataManager.stock.ohlc))
+  market.setDatamanager(&dataManager)
+  market.setStrategy(&strategy)
+  wg.Add(1)
+  go market.Run(&wg)
+  wg.Wait()
+  fmt.Println(time.Since(start))
 }
