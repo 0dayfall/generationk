@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
   "sync"
+  "generationk/indicators/indicators"
 )
 
 // Stock data type
@@ -21,12 +22,13 @@ type Stock struct {
 
 type Strategy struct {}
 
-func (m Strategy) init() {
+func (m *Strategy) init() {
   fmt.Printf("Init market\n")
 }
 
-func (m Strategy) tick(ohlc OHLC) {
-  fmt.Printf("Closen %f", ohlc.close)
+func (m *Strategy) tick(ohlc OHLC) {
+  fmt.Printf("Close: %f", ohlc.close)
+  fmt.Printf("MA: %f", indicators.ma.Sma(ohlc.close))
 }
 
 //Market for this backtester
@@ -35,24 +37,19 @@ type Market struct {
   datamanager DataManager
 }
 
-func (m Market) setStrategy(strategy *Strategy) {
+func (m *Market) setStrategy(strategy *Strategy) {
   m.strategy = *strategy
 }
 
-func (m Market) setDatamanager(datamanager *DataManager) {
-  fmt.Printf("Datamanager: %d", len(datamanager.stock.ohlc))
+func (m *Market) setDatamanager(datamanager *DataManager) {
   m.datamanager = *datamanager
-  fmt.Printf("Datamanager set, len %d\n",len(m.datamanager.stock.ohlc))
 }
 
 //Run backtester
-func (m Market) Run(wg *sync.WaitGroup) {
+func (m *Market) Run(wg *sync.WaitGroup) {
   defer wg.Done()
-  fmt.Printf("Defer done\n")
   m.strategy.init()
-  fmt.Printf("Len: %d\n",len(m.datamanager.stock.ohlc))
-	for i,f := range m.datamanager.stock.ohlc {
-    fmt.Printf("tick: %d\n", i)
+	for _,f := range m.datamanager.stock.ohlc {
     m.strategy.tick(f)
   }
 }
@@ -95,7 +92,7 @@ type DataManager struct {
   stock Stock
 }
 
-func (d DataManager) readCSVFile(file string) {
+func (d *DataManager) readCSVFile(file string) {
 	d.stock.name = filepath.Base(file)
 	csvfile, err := os.Open(file)
 
@@ -142,7 +139,6 @@ func (d DataManager) readCSVFile(file string) {
 		//fmt.Printf("In addValue: s is %v\n", s)
 	}
 	d.stock.ohlc = s
-  fmt.Printf("%d\n", len(d.stock.ohlc))
 }
 
 func main() {
@@ -159,7 +155,6 @@ func main() {
   var market Market
 
   dataManager.readCSVFile(*filePtr)
-  fmt.Printf("len %d", len(dataManager.stock.ohlc))
   market.setDatamanager(&dataManager)
   market.setStrategy(&strategy)
   wg.Add(1)
