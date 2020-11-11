@@ -1,3 +1,3 @@
-module generationk/indicators
+module generationk
 
 go 1.15
