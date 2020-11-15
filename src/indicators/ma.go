@@ -1,7 +1,46 @@
 package indicators
 
+type DEFAULT int
+
 type Average struct {
-	Comparison
+	*IndicatorStruct
+}
+
+// Sma calculates simple moving average of a slice for a certain
+// number of time periods.
+func (slice mfloat) SMA(period int) []float64 {
+
+	var smaSlice []float64
+
+	for i := period; i <= len(slice); i++ {
+		smaSlice = append(smaSlice, Sum(slice[i-period:i])/float64(period))
+	}
+
+	return smaSlice
+}
+
+// Ema calculates exponential moving average of a slice for a certain
+// number of tiSmame periods.
+func (slice mfloat) EMA(period int) []float64 {
+
+	var emaSlice []float64
+
+	ak := period + 1
+	k := float64(2) / float64(ak)
+
+	emaSlice = append(emaSlice, slice[0])
+
+	for i := 1; i < len(slice); i++ {
+		emaSlice = append(emaSlice, (slice[i]*float64(k))+(emaSlice[i-1]*float64(1-k)))
+	}
+
+	return emaSlice
+}
+
+func SimpleMovingAverage(series []float64, period int) *Average {
+	ma := &Average{IndicatorStruct: &IndicatorStruct{}}
+	ma.Sma(series, period)
+	return ma
 }
 
 func (m *Average) sma(period int) func(float64) float64 {
@@ -30,5 +69,6 @@ func (m *Average) Sma(series []float64, period int) []float64 {
 	for _, x := range series {
 		result = append(result, ma(x))
 	}
+	m.IndicatorStruct.defaultValues = result
 	return result
 }

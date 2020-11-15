@@ -8,6 +8,13 @@ type Asset struct {
 	ohlc []OHLC
 }
 
+type Type struct {
+	Open  string
+	High  string
+	Low   string
+	close string
+}
+
 // OHLC data type
 type OHLC struct {
 	time                   time.Time
