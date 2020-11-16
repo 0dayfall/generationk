@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	var dm DataManager
+	dm := NewDataManager(nil)
 
 	asset := dm.ReadCSVFile("ABB.csv")
 	v := len(asset.GetCloseArray())
