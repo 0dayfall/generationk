@@ -60,7 +60,14 @@ func defaultFieldMapper(records [][]string) []OHLC {
 		}
 		//fmt.Printf("In addValue: s is %v\n", s)
 	}
-	return s
+	return reverseSlice(&s)
+}
+
+func reverseSlice(ohlc *[]OHLC) {
+	for i := len(*ohlc)/2 - 1; i >= 0; i-- {
+		opp := len(*ohlc) - 1 - i
+		(*ohlc)[i], (*ohlc)[opp] = (*ohlc)[opp], (*ohlc)[i]
+	}
 }
 
 //ReadCSVFile reads a CSV file
