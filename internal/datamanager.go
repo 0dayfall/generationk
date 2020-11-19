@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"encoding/csv"
@@ -18,14 +18,19 @@ type DataManager struct {
 func parseFloat(value string) float64 {
 	floatValue, err := strconv.ParseFloat(value, 64)
 	if err != nil {
-		log.Printf("Was not possible to parse float: %s", floatValue)
+		log.Printf("Was not possible to parse float: %s", value)
 		return 0.0
 	}
 	return floatValue
 }
 
+//NewDataManager creates a new data manager object
+func NewDataManager() DataManager {
+	return newDataManager(nil)
+}
+
 //NewDataManager is used to create a data manager. It uses a field mapper to map the field
-func NewDataManager(mapper func(records [][]string) []OHLC) DataManager {
+func newDataManager(mapper func(records [][]string) []OHLC) DataManager {
 	var dm DataManager
 	if mapper == nil {
 		dm.fieldMapper = defaultFieldMapper
@@ -60,7 +65,8 @@ func defaultFieldMapper(records [][]string) []OHLC {
 		}
 		//fmt.Printf("In addValue: s is %v\n", s)
 	}
-	return reverseSlice(&s)
+	reverseSlice(&s)
+	return s
 }
 
 func reverseSlice(ohlc *[]OHLC) {

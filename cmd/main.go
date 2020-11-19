@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"sync"
 	"time"
+	genk "generationk/internal"
 )
 
 //Run backtester
-func Run(m *Context, wg *sync.WaitGroup) {
+func Run(m *genk.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
-	m.strategy.init(m)
-	createGraph(m)
+	m.Strategy.Init(m)
+	//reateGraph(m)
 }
 
 func main() {
@@ -23,14 +24,14 @@ func main() {
 	start := time.Now()
 	//universe := []string{*uniPtr}
 	//y := readCSV(universe)
-	var dataManager DataManager
-	var strategy Strategy
-	var market Context
-	var asset Asset
+	dataManager := genk.NewDataManager()
+	var strategy genk.Strategy
+	var market genk.Context
+	var asset genk.Asset
 
-	asset = dataManager.readCSVFile(*filePtr)
-	market.setAsset(&asset)
-	market.setStrategy(&strategy)
+	asset = dataManager.ReadCSVFile(*filePtr)
+	market.SetAsset(&asset)
+	market.SetStrategy(&strategy)
 	wg.Add(1)
 	go Run(&market, &wg)
 	wg.Wait()

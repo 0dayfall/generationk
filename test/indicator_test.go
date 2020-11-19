@@ -1,12 +1,15 @@
-package main
+package generationk
 
 import (
+	"testing"
 	"fmt"
-	"indicators"
+	"generationk/indicators"
+	genk "generationk/internal"
 )
 
-func main() {
-	dm := NewDataManager(nil)
+func TestInidcator(t *testing.T) {
+	fmt.Printf("Running GENERATIONK")
+	dm := genk.NewDataManager()
 
 	asset := dm.ReadCSVFile("ABB.csv")
 	v := len(asset.GetCloseArray())
@@ -17,8 +20,6 @@ func main() {
 
 	//&Job{command, log.New(os.Stderr, "Job: ", log.Ldate)}
 	//ma50 := ma.Sma(asset.GetCloseArray(), 50)
-	fmt.Println("%v", ma50)
-
 	//ma200 := ma.Sma(asset.GetCloseArray(), 200)
 	//fmt.Println("%v", ma200)
 

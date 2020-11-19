@@ -1,4 +1,4 @@
-package main
+package internal
 
 import "time"
 
@@ -8,6 +8,7 @@ type Asset struct {
 	ohlc []OHLC
 }
 
+//Type is the type for ohlc
 type Type struct {
 	Open  string
 	High  string
@@ -22,6 +23,7 @@ type OHLC struct {
 	volume                 int
 }
 
+//GetCloseArray is used to get the close series
 func (a *Asset) GetCloseArray() []float64 {
 	s := make([]float64, len(a.ohlc))
 
@@ -31,6 +33,7 @@ func (a *Asset) GetCloseArray() []float64 {
 	return s
 }
 
+//GetClose is used to get the close value
 func (a *Asset) GetClose() float64 {
 	return a.ohlc[len(a.ohlc)-1].close
 }

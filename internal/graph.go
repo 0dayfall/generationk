@@ -1,4 +1,4 @@
-package examples
+package internal
 
 import (
 	"io"
@@ -292,8 +292,10 @@ func klineStyle() *charts.Kline {
 	return kline
 }
 
+//KlineExamples is a struct
 type KlineExamples struct{}
 
+//Examples generates examples
 func (KlineExamples) Examples() {
 	page := components.NewPage()
 	page.AddCharts(
