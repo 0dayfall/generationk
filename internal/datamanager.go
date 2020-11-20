@@ -56,7 +56,7 @@ func defaultFieldMapper(records [][]string) []OHLC {
 			log.Printf("Was not possible to parse the format on  line %d, %s", i, err)
 		}
 
-		ohlc := OHLC{time: record1, open: record2, high: record3, low: record4, close: record5, volume: record6}
+		ohlc := OHLC{Time: record1, Open: record2, High: record3, Low: record4, Close: record5, Volume: record6}
 
 		if i < len(s) {
 			s[i] = ohlc
@@ -79,7 +79,7 @@ func reverseSlice(ohlc *[]OHLC) {
 //ReadCSVFile reads a CSV file
 func (d *DataManager) ReadCSVFile(file string) Asset {
 	var stock Asset
-	stock.name = filepath.Base(file)
+	stock.Name = filepath.Base(file)
 	csvfile, err := os.Open(file)
 
 	if err != nil {
@@ -97,7 +97,7 @@ func (d *DataManager) ReadCSVFile(file string) Asset {
 	}
 
 	s := d.fieldMapper(records)
-	stock.ohlc = s
+	stock.Ohlc = s
 
 	return stock
 }

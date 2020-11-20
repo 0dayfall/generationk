@@ -1,4 +1,4 @@
-package generationk
+package internal
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestContext(t *testing.T) {
+func TestAddAsset(t *testing.T) {
 	var c genk.Context
 	dm := genk.NewDataManager()
 	
@@ -21,5 +21,18 @@ func TestContext(t *testing.T) {
 	
 	if got := v; got != want {
 		t.Errorf("ReadCSVFile(\"ABB.csv\") = %d, want %d", got, want)
+	}
+}
+
+func TestIncTime(t *testing.T) {
+	c := genk.NewContext()
+	startTime := time.Now()
+	c.setStartTime(startTime)
+	c.IncTime()
+	got := c.datePointer
+	want := startTime.AddDate(0,0,1)
+
+	if got := v; got != want {
+		t.Errorf("The days does not match")
 	}
 }

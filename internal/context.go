@@ -8,6 +8,21 @@ type Context struct {
 	Asset    []Asset
 	StartDate time.Time
 	EndDate time.Time
+	datePointer time.Time
+}
+
+//NewContext creates a new context
+func (m *Context) NewContext() *Context {
+	return &Context{Strategy: nil, Asset: nil, StartDate: time.Now(), EndDate: time.Now(), datePointer: time.Now()}
+}
+
+//IncTime is used to step time forward
+func (m *Context) IncTime() {
+	m.datePointer.AddDate(0,0,1)
+	for _, asset := range m.Asset {
+		//asset.Ohlc = asset.Ohlc.shift()
+		_, asset.Ohlc = asset.Ohlc[0], asset.Ohlc[1:]
+	}
 }
 
 //AddEndDate is used to set the strategy that will be run
@@ -18,6 +33,7 @@ func (m *Context) AddEndDate(endTime time.Time) {
 //AddStartDate is used to set the strategy that will be run
 func (m *Context) AddStartDate(startTime time.Time) {
 	m.StartDate = startTime
+	m.datePointer = startTime
 }
 
 //AddStrategy is used to set the strategy that will be run

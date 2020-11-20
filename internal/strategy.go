@@ -18,6 +18,6 @@ func (m *Strategy) Init(context *Context) {
 }
 
 //Tick gets called when new data is available
-func (m *Strategy) Tick(ohlc OHLC) {
-	fmt.Printf("Close: %f", ohlc.close)
+func (m *Strategy) Tick(c *Context) {
+	fmt.Printf("Close: %f", c.Asset[0].Ohlc[0].Close)
 }
