@@ -6,67 +6,76 @@ import (
 )
 
 //Event type
-type Event interface{
+type Event interface {
 	Handle()
 }
 
 //Tick event type
-type Tick struct {}
-func(t Tick) Handle() {}
+type Tick struct{}
+
+func (t Tick) Handle() {}
 
 //Signal event type
-type Signal struct {}
-func(s Signal) Handle() {}
+type Signal struct{}
+
+func (s Signal) Handle() {}
 
 //Order event type
-type Order struct {}
-func(o Order) Handle() {}
+type Order struct{}
+
+func (o Order) Handle() {}
 
 //Fill event type
-type Fill struct {}
-func(f Fill) Handle() {}
+type Fill struct{}
+
+func (f Fill) Handle() {}
 
 //Data event type
-type Data struct {}
-func(d Data) Handle() {}
+type Data struct{}
+
+func (d Data) Handle() {}
 
 //PutEvent starts a backtest with the information in context
 func PutEvent(c *internal.Context, data chan Event) {
 
 }
 
+func RunBacktest(ctx *internal.Context) {
+	eventChannel := make(chan Event, 1)
+	run(ctx, eventChannel)
+}
+
 //Run starts a backtest with the information in context
-func Run(c *internal.Context, data chan Event) {
-	select {
-	case event := <-data:
-		switch event.(type) {
-		case Tick:
-			fmt.Println("Processing tick data")
-			for _, strat := range c.Strategy {
-				strat.Tick(c)
+func run(ctx *internal.Context, data chan Event) {
+	for {
+		select {
+		case event := <-data:
+			switch event.(type) {
+			case Tick:
+				fmt.Println("Processing tick data")
+				for _, strat := range ctx.Strategy {
+					strat.Tick(ctx)
+				}
+			case Signal:
+				// here v has type S
+			case Order:
+				// here v has type S
+			case Fill:
+				// here v has type S
+			case Data:
+				// here v has type S
+			default:
+				// no match; here v has the same type as i
 			}
-		case Signal:
-			// here v has type S
-		case Order:
-			// here v has type S
-		case Fill:
-			// here v has type S
-		case Data:
-			// here v has type S
 		default:
-			// no match; here v has the same type as i
-		}		
-	default:
-		fmt.Println("Increase time")
-		c.IncTime()
-		var tick Tick 
-		data <- tick
-		fmt.Printf("Len channel %d", len(data))
+			ctx.IncTime()
+			data <- Tick{}
+		}
 	}
 }
 
 func typeOfEvent(tst interface{}) {
-	
+
 }
 
 //PutData starts a backtest with the information in context

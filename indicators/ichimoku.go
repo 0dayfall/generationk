@@ -1,5 +1,13 @@
 package indicators
 
+type IchimokuCloudStruct struct {
+	conversionLine []float64
+	baseLine       []float64
+	leadSpanA      []float64
+	leadSpanB      []float64
+	lagSpan        []float64
+}
+
 // Ichimoku Cloud.
 func IchimokuCloud(priceData, lowData, highData mfloat, configs []int) ([]float64, []float64, []float64, []float64, []float64) {
 

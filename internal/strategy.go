@@ -1,23 +1,6 @@
 package internal
 
-import (
-	"fmt"
-	"generationk/indicators"
-)
-
-//Strategy strategy
-type Strategy struct {
-}
-
-//Init is used to start the strategy
-func (m *Strategy) Init(context *Context) {
-	fmt.Printf("Init strategy\n")
-	var ma indicators.Average
-	floats := ma.Sma([]float64{1.0, 2.0, 3.0}, 7)
-	fmt.Printf("MA: %f", floats)
-}
-
-//Tick gets called when new data is available
-func (m *Strategy) Tick(c *Context) {
-	fmt.Printf("Close: %f", c.Asset[0].Ohlc[0].Close)
+type Strategy interface {
+	Init(ctx *Context)
+	Tick(ctx *Context)
 }

@@ -1,27 +1,32 @@
 package internal
 
-import ("time")
+import (
+	"fmt"
+	"time"
+)
 
 //Context for this backtester
 type Context struct {
-	Strategy []Strategy
-	Asset    []Asset
-	StartDate time.Time
-	EndDate time.Time
+	Strategy    []Strategy
+	Asset       []Asset
+	StartDate   time.Time
+	EndDate     time.Time
 	datePointer time.Time
 }
 
 //NewContext creates a new context
 func (m *Context) NewContext() *Context {
-	return &Context{Strategy: nil, Asset: nil, StartDate: time.Now(), EndDate: time.Now(), datePointer: time.Now()}
+	return &Context{}
 }
 
 //IncTime is used to step time forward
 func (m *Context) IncTime() {
-	m.datePointer.AddDate(0,0,1)
-	for _, asset := range m.Asset {
+	m.datePointer.AddDate(0, 0, 1)
+	for i := range m.Asset {
 		//asset.Ohlc = asset.Ohlc.shift()
-		_, asset.Ohlc = asset.Ohlc[0], asset.Ohlc[1:]
+		//_, asset.Ohlc = asset.Ohlc[0], asset.Ohlc[1:]
+		m.Asset[i].Ohlc = m.Asset[i].Ohlc[1:]
+		fmt.Printf("New value: %f\n", m.Asset[i].Ohlc[1:][0].Close)
 	}
 }
 

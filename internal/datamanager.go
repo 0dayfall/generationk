@@ -97,6 +97,7 @@ func (d *DataManager) ReadCSVFile(file string) Asset {
 	}
 
 	s := d.fieldMapper(records)
+	reverseSlice(&s)
 	stock.Ohlc = s
 
 	return stock

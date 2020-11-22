@@ -22,6 +22,7 @@ type Indicator interface {
 
 //Indicator struct
 type IndicatorStruct struct {
+	//ctx *genk.Context
 	defaultValues []float64
 }
 
