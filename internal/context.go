@@ -25,8 +25,12 @@ func (m *Context) IncTime() {
 	for i := range m.Asset {
 		//asset.Ohlc = asset.Ohlc.shift()
 		//_, asset.Ohlc = asset.Ohlc[0], asset.Ohlc[1:]
-		m.Asset[i].Ohlc = m.Asset[i].Ohlc[1:]
-		fmt.Printf("New value: %f\n", m.Asset[i].Ohlc[1:][0].Close)
+		fmt.Printf("Capacity: %d\n", cap(m.Asset[i].Ohlc))
+		fmt.Printf("Length: %d\n", len(m.Asset[i].Ohlc))
+		if (len(m.Asset[i].Ohlc) > 1) {
+			m.Asset[i].Ohlc = m.Asset[i].Ohlc[1:]
+			fmt.Printf("New value: %f\n", m.Asset[i].Ohlc[0].Close)
+		}
 	}
 }
 
