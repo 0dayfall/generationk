@@ -59,15 +59,11 @@ func defaultFieldMapper(records [][]string) []OHLC {
 		}
 
 		ohlc := OHLC{Time: record1, Open: record2, High: record3, Low: record4, Close: record5, Volume: record6}
-
-		if i < len(s) {
-			s[i] = ohlc
-		} else {
-			s = append(s, ohlc)
-		}
+		s[i] = ohlc
 		//fmt.Printf("In addValue: s is %v\n", s)
 	}
 	reverseSlice(&s)
+
 	return s
 }
 
@@ -80,8 +76,6 @@ func reverseSlice(ohlc *[]OHLC) {
 
 //ReadCSVFile reads a CSV file
 func (d *DataManager) ReadCSVFile(file string) Asset {
-	var stock Asset
-	stock.Name = strings.TrimSuffix(filepath.Base(file), path.Ext(file))
 	csvfile, err := os.Open(file)
 
 	if err != nil {
@@ -100,9 +94,11 @@ func (d *DataManager) ReadCSVFile(file string) Asset {
 
 	s := d.fieldMapper(records)
 	reverseSlice(&s)
-	stock.Ohlc = s
 
-	return stock
+	return Asset{
+		Name: strings.TrimSuffix(filepath.Base(file), path.Ext(file)),
+		Ohlc: s,
+	}
 }
 
 /*func readCSV(universe []string) []Stock {

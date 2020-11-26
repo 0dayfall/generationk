@@ -14,7 +14,7 @@ func TestEventQueue(t *testing.T) {
 
 	abb := dm.ReadCSVFile("Queue_test.csv")
 	c.AddAsset(&abb)
-	c.AddStrategy(&MACrossStrategy{})
+	c.AddStrategy(&genk.MACrossStrategy{})
 	c.AddStartDate(time.Now())
 	c.AddEndDate(time.Now())
 	channelSize := len(abb.GetCloseArray())

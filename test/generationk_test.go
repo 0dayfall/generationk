@@ -17,9 +17,7 @@ func TestRun(t *testing.T) {
 	c.AddStrategy(&strat)
 	c.AddStartDate(time.Now())
 	c.AddEndDate(time.Now())
-	eventChannel := make(chan genk.Event, 2)
 
-	genk.Run(&c, eventChannel)
-	genk.Run(&c, eventChannel)
-	genk.Run(&c, eventChannel)
+	genk.RunBacktest(&c)
+
 }

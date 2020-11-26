@@ -59,8 +59,8 @@ func run(ctx *internal.Context, data chan Event) {
 			switch event.(type) {
 			case Tick:
 				//fmt.Println("Processing tick data")
-				for _, strat := range ctx.Strategy {
-					strat.Tick(ctx)
+				for i := range ctx.Strategy {
+					ctx.Strategy[i].Tick(ctx)
 				}
 			case Signal:
 				// here v has type S
@@ -78,10 +78,10 @@ func run(ctx *internal.Context, data chan Event) {
 			}
 		default:
 			ctx.IncOneDay()
-			_, error := shiftData(ctx)
+			/*_, error := shiftData(ctx)
 			if error != nil {
 				data <- Quit{}
-			}
+			}*/
 			data <- Tick{}
 		}
 	}
@@ -95,24 +95,16 @@ func (e *EndOfDataError) Error() string {
 	return fmt.Sprintf("End of data: %s", e.Description)
 }
 
-func shiftData(ctx *internal.Context) (bool, error) {
+/*func shiftData(ctx *internal.Context) (bool, error) {
 	for i := range ctx.Asset {
-		//asset.Ohlc = asset.Ohlc.shift()
-		//_, asset.Ohlc = asset.Ohlc[0], asset.Ohlc[1:]
-		//fmt.Printf("Capacity: %d\n", cap(ctx.Asset[i].Ohlc))
-		//fmt.Printf("Length: %d\n", len(ctx.Asset[i].Ohlc))
-		if len(ctx.Asset[i].Ohlc) > 1 {
-			if ctx.Time().Equal(ctx.Asset[i].Ohlc[0].Time) {
-				ctx.Asset[i].Ohlc = ctx.Asset[i].Ohlc[1:]
-				//fmt.Printf("New value: %f\n", ctx.Asset[i].Ohlc[0].Close)
-				return true, nil
-			}
-		} else {
-			return false, &EndOfDataError{}
+		error := ctx.Asset[i].Shift(ctx.Time())
+		if error != nil {
+			fmt.Printf("Data error <==============")
+			return false, error
 		}
 	}
 	return true, nil
-}
+}*/
 
 func typeOfEvent(tst interface{}) {
 

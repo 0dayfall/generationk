@@ -1,7 +1,5 @@
 package indicators
 
-import "fmt"
-
 type DEFAULT int
 
 type Average struct {
@@ -75,7 +73,6 @@ func (m *Average) Sma(series []float64, period int) []float64 {
 		result[i] = ma(x) //append(result, ma(x))
 	}
 	m.IndicatorStruct.defaultValues = result
-	fmt.Printf("Indicatorstruct.defaultValue %v", result)
-	//fmt.Printf("Indicatorstruct.defaultValue %v", m.IndicatorStruct.defaultValues)
+
 	return result
 }

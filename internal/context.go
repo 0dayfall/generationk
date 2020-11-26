@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -28,7 +29,18 @@ func (m *Context) Time() time.Time {
 
 //IncOneDay is used to step time forward
 func (m *Context) IncOneDay() {
-	m.datePointer.AddDate(0, 0, 1)
+	m.datePointer = m.datePointer.AddDate(0, 0, 1)
+	fmt.Printf("IncOneDay: %v\n", m.datePointer)
+	m.shift()
+}
+
+func (m *Context) shift() {
+	for i := range m.Asset {
+		m.Asset[i].Shift(m.datePointer)
+	}
+	for _, element := range m.AssetMap {
+		element.Shift(m.datePointer)
+	}
 }
 
 //AddEndDate is used to set the strategy that will be run
