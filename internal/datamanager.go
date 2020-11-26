@@ -5,8 +5,10 @@ import (
 	"io"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -79,7 +81,7 @@ func reverseSlice(ohlc *[]OHLC) {
 //ReadCSVFile reads a CSV file
 func (d *DataManager) ReadCSVFile(file string) Asset {
 	var stock Asset
-	stock.Name = filepath.Base(file)
+	stock.Name = strings.TrimSuffix(filepath.Base(file), path.Ext(file))
 	csvfile, err := os.Open(file)
 
 	if err != nil {

@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -9,29 +8,27 @@ import (
 type Context struct {
 	Strategy    []Strategy
 	Asset       []Asset
+	AssetMap    map[string]*Asset
 	StartDate   time.Time
 	EndDate     time.Time
 	datePointer time.Time
 }
 
 //NewContext creates a new context
-func (m *Context) NewContext() *Context {
-	return &Context{}
+func NewContext() *Context {
+	return &Context{
+		AssetMap: make(map[string]*Asset),
+	}
 }
 
-//IncTime is used to step time forward
-func (m *Context) IncTime() {
+//Time returns the time
+func (m *Context) Time() time.Time {
+	return m.datePointer
+}
+
+//IncOneDay is used to step time forward
+func (m *Context) IncOneDay() {
 	m.datePointer.AddDate(0, 0, 1)
-	for i := range m.Asset {
-		//asset.Ohlc = asset.Ohlc.shift()
-		//_, asset.Ohlc = asset.Ohlc[0], asset.Ohlc[1:]
-		fmt.Printf("Capacity: %d\n", cap(m.Asset[i].Ohlc))
-		fmt.Printf("Length: %d\n", len(m.Asset[i].Ohlc))
-		if (len(m.Asset[i].Ohlc) > 1) {
-			m.Asset[i].Ohlc = m.Asset[i].Ohlc[1:]
-			fmt.Printf("New value: %f\n", m.Asset[i].Ohlc[0].Close)
-		}
-	}
 }
 
 //AddEndDate is used to set the strategy that will be run
@@ -53,4 +50,11 @@ func (m *Context) AddStrategy(strategy *Strategy) {
 //AddAsset is used to add assets that the strategy will use
 func (m *Context) AddAsset(asset *Asset) {
 	m.Asset = append(m.Asset, *asset)
+	m.AssetMap[asset.Name] = asset
+}
+
+//AddNamedAsset is used to add an asset and a reference
+func (m *Context) AddNamedAsset(asset *Asset, name string) {
+	m.Asset = append(m.Asset, *asset)
+	m.AssetMap[name] = asset
 }

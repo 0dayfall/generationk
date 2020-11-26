@@ -1,5 +1,7 @@
 package indicators
 
+import "fmt"
+
 type DEFAULT int
 
 type Average struct {
@@ -37,8 +39,11 @@ func (slice mfloat) EMA(period int) []float64 {
 	return emaSlice
 }
 
+//SimpleMovingAverage bla bla
 func SimpleMovingAverage(series []float64, period int) *Average {
-	ma := &Average{IndicatorStruct: &IndicatorStruct{}}
+	ma := &Average{
+		IndicatorStruct: &IndicatorStruct{},
+	}
 	ma.Sma(series, period)
 	return ma
 }
@@ -46,12 +51,12 @@ func SimpleMovingAverage(series []float64, period int) *Average {
 func (m *Average) sma(period int) func(float64) float64 {
 	var i int
 	var sum float64
-	var storage = make([]float64, 0, period)
+	var storage = make([]float64, period)
 
 	return func(input float64) (avrg float64) {
 		if len(storage) < period {
 			sum += input
-			storage = append(storage, input)
+			storage[i] = input
 		}
 
 		sum += input - storage[i]
@@ -65,10 +70,12 @@ func (m *Average) sma(period int) func(float64) float64 {
 //Sma function is used to calc moving averages
 func (m *Average) Sma(series []float64, period int) []float64 {
 	ma := m.sma(period)
-	var result = make([]float64, 0, len(series))
-	for _, x := range series {
-		result = append(result, ma(x))
+	var result = make([]float64, len(series))
+	for i, x := range series {
+		result[i] = ma(x) //append(result, ma(x))
 	}
 	m.IndicatorStruct.defaultValues = result
+	fmt.Printf("Indicatorstruct.defaultValue %v", result)
+	//fmt.Printf("Indicatorstruct.defaultValue %v", m.IndicatorStruct.defaultValues)
 	return result
 }

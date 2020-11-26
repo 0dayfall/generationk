@@ -35,6 +35,11 @@ type Data struct{}
 
 func (d Data) Handle() {}
 
+//Fill event type
+type Quit struct{}
+
+func (q Quit) Handle() {}
+
 //PutEvent starts a backtest with the information in context
 func PutEvent(c *internal.Context, data chan Event) {
 
@@ -42,6 +47,7 @@ func PutEvent(c *internal.Context, data chan Event) {
 
 func RunBacktest(ctx *internal.Context) {
 	eventChannel := make(chan Event, 1)
+	ctx.Strategy[0].Init(ctx)
 	run(ctx, eventChannel)
 }
 
@@ -52,7 +58,7 @@ func run(ctx *internal.Context, data chan Event) {
 		case event := <-data:
 			switch event.(type) {
 			case Tick:
-				fmt.Println("Processing tick data")
+				//fmt.Println("Processing tick data")
 				for _, strat := range ctx.Strategy {
 					strat.Tick(ctx)
 				}
@@ -64,14 +70,48 @@ func run(ctx *internal.Context, data chan Event) {
 				// here v has type S
 			case Data:
 				// here v has type S
+			case Quit:
+				close(data)
+				break
 			default:
 				// no match; here v has the same type as i
 			}
 		default:
-			ctx.IncTime()
+			ctx.IncOneDay()
+			_, error := shiftData(ctx)
+			if error != nil {
+				data <- Quit{}
+			}
 			data <- Tick{}
 		}
 	}
+}
+
+type EndOfDataError struct {
+	Description string
+}
+
+func (e *EndOfDataError) Error() string {
+	return fmt.Sprintf("End of data: %s", e.Description)
+}
+
+func shiftData(ctx *internal.Context) (bool, error) {
+	for i := range ctx.Asset {
+		//asset.Ohlc = asset.Ohlc.shift()
+		//_, asset.Ohlc = asset.Ohlc[0], asset.Ohlc[1:]
+		//fmt.Printf("Capacity: %d\n", cap(ctx.Asset[i].Ohlc))
+		//fmt.Printf("Length: %d\n", len(ctx.Asset[i].Ohlc))
+		if len(ctx.Asset[i].Ohlc) > 1 {
+			if ctx.Time().Equal(ctx.Asset[i].Ohlc[0].Time) {
+				ctx.Asset[i].Ohlc = ctx.Asset[i].Ohlc[1:]
+				//fmt.Printf("New value: %f\n", ctx.Asset[i].Ohlc[0].Close)
+				return true, nil
+			}
+		} else {
+			return false, &EndOfDataError{}
+		}
+	}
+	return true, nil
 }
 
 func typeOfEvent(tst interface{}) {

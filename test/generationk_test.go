@@ -14,7 +14,7 @@ func TestRun(t *testing.T) {
 	abb := dm.ReadCSVFile("Queue_test.csv")
 	c.AddAsset(&abb)
 	var strat internal.Strategy
-	c.AddStrategy(strat)
+	c.AddStrategy(&strat)
 	c.AddStartDate(time.Now())
 	c.AddEndDate(time.Now())
 	eventChannel := make(chan genk.Event, 2)

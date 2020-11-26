@@ -9,7 +9,7 @@ type mfloat []float64
 
 //I type interface
 type Comparison interface {
-	LargerThanValue(number float64, number2 float64)
+	LargerThanValue(number2 float64) bool
 	LargerThanInd(ind Indicator)
 }
 
@@ -18,6 +18,7 @@ type Indicator interface {
 	ValueAtIndex(index int) float64
 	Value() float64
 	Values() []float64
+	Shift()
 }
 
 //Indicator struct
@@ -104,6 +105,12 @@ func DivSlice(slice []float64, n float64) []float64 {
 	}
 
 	return result
+}
+
+func (m *IndicatorStruct) Shift() {
+	if len(m.defaultValues) > 1 {
+		m.defaultValues = m.defaultValues[1:]
+	}
 }
 
 func (m *IndicatorStruct) Value() float64 {

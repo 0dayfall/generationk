@@ -33,9 +33,14 @@ func (a *Asset) GetCloseArray() []float64 {
 	return s
 }
 
-//GetClose is used to get the close value
-func (a *Asset) GetClose() float64 {
+//Close is used to get the close value
+func (a *Asset) Close() float64 {
 	return a.Ohlc[len(a.Ohlc)-1].Close
+}
+
+//CloseAtBar is used to get the close value
+func (a *Asset) CloseAtBar(ix int) float64 {
+	return a.Ohlc[ix].Close
 }
 
 // Portfolio structure
