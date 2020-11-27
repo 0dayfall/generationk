@@ -9,6 +9,7 @@ import (
 type Context struct {
 	Strategy    []Strategy
 	Asset       []Asset
+	Indicator   []Indicator
 	AssetMap    map[string]*Asset
 	StartDate   time.Time
 	EndDate     time.Time

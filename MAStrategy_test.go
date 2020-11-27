@@ -17,6 +17,7 @@ type MACrossStrategy struct {
 func (m *MACrossStrategy) Init(ctx *genk.Context) {
 	fmt.Printf("Init strategy\n")
 	m.ma50 = *indicators.SimpleMovingAverage(ctx.AssetMap["ABB"].CloseArray(), 50)
+	ctx.A
 }
 
 //Tick gets called when new data is available
