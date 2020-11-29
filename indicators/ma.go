@@ -1,9 +1,23 @@
 package indicators
 
+import log "github.com/sirupsen/logrus"
+
 type DEFAULT int
 
 type Average struct {
 	*IndicatorStruct
+}
+
+func SimpleMa(values []float64, period int) []float64 {
+	var sum float64
+	var avg []float64
+	n := len(values)
+	for _, value := range values {
+		sum += value
+		avg = append(avg, sum/float64(n))
+	}
+	// Finalize average and return
+	return avg
 }
 
 // Sma calculates simple moving average of a slice for a certain
@@ -46,6 +60,24 @@ func SimpleMovingAverage(series []float64, period int) *Average {
 	return ma
 }
 
+//Sma function is used to calc moving averages
+func (m *Average) Sma(series []float64, period int) []float64 {
+	ma := m.sma(period)
+	var result = make([]float64, len(series))
+	for i, x := range series {
+		result[i] = ma(x) //append(result, ma(x))
+	}
+	m.IndicatorStruct.defaultValues = result
+
+	log.WithFields(log.Fields{
+		"size of series":                          len(series),
+		"period of average":                       period,
+		"size of indicator struct default values": len(m.IndicatorStruct.defaultValues),
+	}).Debug("Creating Average structure")
+
+	return result
+}
+
 func (m *Average) sma(period int) func(float64) float64 {
 	var i int
 	var sum float64
@@ -63,16 +95,4 @@ func (m *Average) sma(period int) func(float64) float64 {
 
 		return
 	}
-}
-
-//Sma function is used to calc moving averages
-func (m *Average) Sma(series []float64, period int) []float64 {
-	ma := m.sma(period)
-	var result = make([]float64, len(series))
-	for i, x := range series {
-		result[i] = ma(x) //append(result, ma(x))
-	}
-	m.IndicatorStruct.defaultValues = result
-
-	return result
 }

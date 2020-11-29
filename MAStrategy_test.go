@@ -2,45 +2,77 @@ package generationk
 
 import (
 	"fmt"
-	indicators "generationk/indicators"
+	"generationk/indicators"
+	ind "generationk/indicators"
 	genk "generationk/internal"
+	"os"
 	"testing"
 	"time"
+
+	"github.com/shiena/ansicolor"
+	"github.com/sirupsen/logrus"
 )
 
 //Strategy strategy
 type MACrossStrategy struct {
-	ma50 indicators.Average
+	ma50  *indicators.Average
+	close *indicators.Series
 }
 
-//Init is used to start the strategy
-func (m *MACrossStrategy) Init(ctx *genk.Context) {
+//Setup is used to start the strategy
+func (m *MACrossStrategy) Indicators(ctx *genk.Context) {
 	fmt.Printf("Init strategy\n")
-	m.ma50 = *indicators.SimpleMovingAverage(ctx.AssetMap["ABB"].CloseArray(), 50)
-	ctx.A
+	m.close = ind.TimeSeries(ctx.AssetMap["ABB"].CloseArray())
+	m.ma50 = ind.SimpleMovingAverage(ctx.AssetMap["ABB"].CloseArray(), 50)
+	//ma200 := *ind.SimpleMovingAverage(ctx.AssetMap["ABB"].CloseArray(), 200)
 }
 
-//Tick gets called when new data is available
-func (m *MACrossStrategy) Tick(ctx *genk.Context) {
-	fmt.Printf("Date: %v ", ctx.Time())
-	fmt.Printf("comparing %f with %f\n", m.ma50.Value(), ctx.AssetMap["ABB"].Close())
-	fmt.Printf("len asset map %d \n", len(ctx.AssetMap["ABB"].Ohlc))
-	if m.ma50.Value() > ctx.AssetMap["ABB"].Close() {
+//Update gets called when updates arrive
+func (m *MACrossStrategy) Update(ctx *genk.Context) {
+	//New day new values
+	ctx.K++
+}
+
+//Orders get called when everything is updated
+func (m *MACrossStrategy) Orders(ctx *genk.Context) {
+
+	if m.ma50.ValueAtIndex(ctx.K) > m.close.ValueAtIndex(ctx.K) {
 		fmt.Printf("BUY! ===============>")
 	}
-	//fmt.Printf("Close: %f\n", ctx.Asset[0].Ohlc[0].Close)
+	ctx.K++
 }
 
 func TestRun(t *testing.T) {
-	dataManager := genk.NewDataManager()
-	market := genk.NewContext()
-	strategy := genk.Strategy(&MACrossStrategy{})
-	asset := dataManager.ReadCSVFile("test/ABB.csv")
 
+	logrus.SetFormatter(&logrus.TextFormatter{ForceColors: true})
+	logrus.SetOutput(ansicolor.NewAnsiColorWriter(os.Stdout))
+
+	lvl, ok := os.LookupEnv("LOG_LEVEL")
+	// LOG_LEVEL not set, let's default to debug
+	if !ok {
+		lvl = "debug"
+	}
+	// parse string, this is built-in feature of logrus
+	ll, err := logrus.ParseLevel(lvl)
+	if err != nil {
+		ll = logrus.DebugLevel
+	}
+	// set global log level
+	logrus.SetLevel(ll)
+
+	//Context that the strategy is being run with such as assets
+	market := genk.NewContext()
+
+	//Going to run with the following data
+	dataManager := genk.NewDataManager()
+	asset := dataManager.ReadCSVFile("test/data/ABB.csv")
 	market.AddAsset(&asset)
+
+	strategy := genk.Strategy(&MACrossStrategy{})
 	market.AddStrategy(&strategy)
+	
 	now := time.Now()
-	then := now.AddDate(0, -5, -2)
+	then := now.AddDate(0, -9, -2)
 	market.AddStartDate(then)
 
 	go RunBacktest(market)

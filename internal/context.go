@@ -1,19 +1,21 @@
 package internal
 
 import (
-	"fmt"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 //Context for this backtester
 type Context struct {
+	Updateable  []Updateable
 	Strategy    []Strategy
 	Asset       []Asset
-	Indicator   []Indicator
 	AssetMap    map[string]*Asset
 	StartDate   time.Time
 	EndDate     time.Time
 	datePointer time.Time
+	K           int
 }
 
 //NewContext creates a new context
@@ -30,14 +32,20 @@ func (m *Context) Time() time.Time {
 
 //IncOneDay is used to step time forward
 func (m *Context) IncOneDay() {
+	old := m.datePointer
 	m.datePointer = m.datePointer.AddDate(0, 0, 1)
-	fmt.Printf("IncOneDay: %v\n", m.datePointer)
+	log.WithFields(log.Fields{
+		"old": old,
+		"new": m.datePointer,
+	}).Debug("New day")
+
 	m.shift()
 }
 
 func (m *Context) shift() {
 	for i := range m.Asset {
-		m.Asset[i].Shift(m.datePointer)
+		numberOfShifts, _ := m.Asset[i].Shift(m.datePointer)
+		m.K += numberOfShifts
 	}
 	for _, element := range m.AssetMap {
 		element.Shift(m.datePointer)

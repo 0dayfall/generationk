@@ -45,9 +45,18 @@ func PutEvent(c *internal.Context, data chan Event) {
 
 }
 
+func SetCash(amount float64) {
+
+}
+
+type generationk struct {
+	broker    internal.Broker
+	portfolio internal.Portfolio
+}
+
 func RunBacktest(ctx *internal.Context) {
 	eventChannel := make(chan Event, 1)
-	ctx.Strategy[0].Init(ctx)
+	ctx.Strategy[0].Indicators(ctx)
 	run(ctx, eventChannel)
 }
 
@@ -60,7 +69,7 @@ func run(ctx *internal.Context, data chan Event) {
 			case Tick:
 				//fmt.Println("Processing tick data")
 				for i := range ctx.Strategy {
-					ctx.Strategy[i].Tick(ctx)
+					ctx.Strategy[i].Orders(ctx)
 				}
 			case Signal:
 				// here v has type S

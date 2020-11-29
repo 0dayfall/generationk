@@ -3,11 +3,13 @@ package indicators
 import (
 	"fmt"
 	"math"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type mfloat []float64
 
-//I type interface
+//Comparison type interface
 type Comparison interface {
 	LargerThanValue(number2 float64) bool
 	LargerThanInd(ind Indicator)
@@ -21,7 +23,7 @@ type Indicator interface {
 	Shift()
 }
 
-//Indicator struct
+//IndicatorStruct contains a default set of values
 type IndicatorStruct struct {
 	//ctx *genk.Context
 	defaultValues []float64
@@ -60,7 +62,7 @@ func Std(slice []float64) float64 {
 }
 
 // AddToAll adds a value to all slice elements.
-func (slice mfloat) AddToAll(val float64) []float64 {
+func AddToAll(slice []float64, val float64) []float64 {
 
 	var addedSlice []float64
 
@@ -118,6 +120,11 @@ func (m *IndicatorStruct) Value() float64 {
 }
 
 func (m *IndicatorStruct) ValueAtIndex(index int) float64 {
+	log.WithFields(log.Fields{
+		"index":                  index,
+		"len":                    len(m.defaultValues),
+		"m.defaultValues[index]": m.defaultValues[index],
+	}).Debug("Geting default value")
 	return m.defaultValues[index]
 }
 

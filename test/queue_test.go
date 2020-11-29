@@ -14,10 +14,10 @@ func TestEventQueue(t *testing.T) {
 
 	abb := dm.ReadCSVFile("Queue_test.csv")
 	c.AddAsset(&abb)
-	c.AddStrategy(&genk.MACrossStrategy{})
+	c.AddStrategy(nil)
 	c.AddStartDate(time.Now())
 	c.AddEndDate(time.Now())
-	channelSize := len(abb.GetCloseArray())
+	channelSize := len(abb.CloseArray())
 
 	channel := make(chan internal.OHLC, channelSize)
 	go genk.PutData(&c, channel)
@@ -31,7 +31,7 @@ func TestEventQueue(t *testing.T) {
 	}()
 
 	wg.Wait()
-	if value.Close == abb.GetCloseArray()[0] {
+	if value.Close == abb.CloseArray()[0] {
 		t.Errorf("The value read in the .csv file is not the same as fixture")
 	}
 
@@ -43,10 +43,10 @@ func TestOHLCQueue(t *testing.T) {
 
 	abb := dm.ReadCSVFile("Queue_test.csv")
 	c.AddAsset(&abb)
-	c.AddStrategy(MACrossStrategy{})
+	c.AddStrategy(nil)
 	c.AddStartDate(time.Now())
 	c.AddEndDate(time.Now())
-	channelSize := len(abb.GetCloseArray())
+	channelSize := len(abb.CloseArray())
 
 	channel := make(chan internal.OHLC, channelSize)
 	go genk.PutData(&c, channel)

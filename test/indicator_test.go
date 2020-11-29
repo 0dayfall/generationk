@@ -1,10 +1,10 @@
 package generationk
 
 import (
-	"testing"
 	"fmt"
 	"generationk/indicators"
 	genk "generationk/internal"
+	"testing"
 )
 
 func TestInidcator(t *testing.T) {
@@ -12,10 +12,10 @@ func TestInidcator(t *testing.T) {
 	dm := genk.NewDataManager()
 
 	asset := dm.ReadCSVFile("ABB.csv")
-	v := len(asset.GetCloseArray())
+	v := len(asset.CloseArray())
 
-	ma50 := indicators.SimpleMovingAverage(asset.GetCloseArray(), 50)
-	ma200 := indicators.SimpleMovingAverage(asset.GetCloseArray(), 200)
+	ma50 := indicators.SimpleMovingAverage(asset.CloseArray(), 50)
+	ma200 := indicators.SimpleMovingAverage(asset.CloseArray(), 200)
 	//ma = &indicators.Average{&indicators.IndicatorStruct{}}
 
 	//&Job{command, log.New(os.Stderr, "Job: ", log.Ldate)}

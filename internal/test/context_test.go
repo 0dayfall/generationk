@@ -27,9 +27,8 @@ func TestAddAsset(t *testing.T) {
 func TestIncTime(t *testing.T) {
 	c := genk.NewContext()
 	startTime := time.Now()
-	c.setStartTime(startTime)
-	c.IncTime()
-	got := c.datePointer
+	c.AddStartDate(startTime)
+	v := c.Time()
 	want := startTime.AddDate(0, 0, 1)
 
 	if got := v; got != want {

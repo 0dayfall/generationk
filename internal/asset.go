@@ -3,6 +3,8 @@ package internal
 import (
 	"fmt"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Asset data type
@@ -50,26 +52,31 @@ func dateEqual(date1, date2 time.Time) bool {
 	return y1 == y2 && m1 == m2 && d1 == d2
 }
 
-func (a *Asset) Shift(time time.Time) error {
+func (a *Asset) Shift(time time.Time) (int, error) {
 	//fmt.Printf("Shifting data\n")
 	//fmt.Printf("Shifting! Last date %v\n", a.Ohlc[len(a.Ohlc)-1].Time)
+	var i int
 	for ok := true; ok; ok = a.Ohlc[0].Time.Before(time) && len(a.Ohlc) > 0 {
 		a.Ohlc = a.Ohlc[1:]
+		i++
 	}
 
 	fmt.Printf("Len: a.Ohlc %v\n", len(a.Ohlc))
 	fmt.Printf("New value: %f\n", a.Ohlc[0].Close)
 
-	return nil
+	return i, nil
 }
 
 //CloseArray is used to get the close series
 func (a *Asset) CloseArray() []float64 {
 	s := make([]float64, len(a.Ohlc))
 
-	for _, ohlc := range a.Ohlc {
-		s = append(s, ohlc.Close)
+	for i, ohlc := range a.Ohlc {
+		s[i] = ohlc.Close
 	}
+	log.WithFields(log.Fields{
+		"CloseArray() length": len(s),
+	}).Debug("Asset: CloseArray()")
 	return s
 }
 
