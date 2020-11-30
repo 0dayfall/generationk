@@ -3,6 +3,7 @@ package generationk
 import (
 	"fmt"
 	internal "generationk/internal"
+	"time"
 )
 
 //Event type
@@ -45,19 +46,30 @@ func PutEvent(c *internal.Context, data chan Event) {
 
 }
 
-func SetCash(amount float64) {
-
+func (g *generationk) SetCash(amount float64) {
+	g.portfolio.SetCash(amount)
 }
 
 type generationk struct {
-	broker    internal.Broker
-	portfolio internal.Portfolio
+	broker       internal.Broker
+	portfolio    internal.Portfolio
+	eventChannel chan Event
 }
 
-func RunBacktest(ctx *internal.Context) {
-	eventChannel := make(chan Event, 1)
+func (g *generationk) New() {
+	g.portfolio = internal.Portfolio{}
+	g.broker = internal.Broker{}
+}
+
+func (g *generationk) buy(asset *internal.Asset, time time.Time, amount float64) {
+	g.broker.Buy(asset, time, amount)
+}
+
+func (g *generationk) RunBacktest(ctx *internal.Context) {
+	g.eventChannel = make(chan Event, 1)
 	ctx.Strategy[0].Indicators(ctx)
-	run(ctx, eventChannel)
+	run(ctx, g.eventChannel)
+
 }
 
 //Run starts a backtest with the information in context
@@ -74,7 +86,7 @@ func run(ctx *internal.Context, data chan Event) {
 			case Signal:
 				// here v has type S
 			case Order:
-				// here v has type S
+
 			case Fill:
 				// here v has type S
 			case Data:

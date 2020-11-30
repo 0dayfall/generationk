@@ -35,7 +35,6 @@ func (m *MACrossStrategy) Update(ctx *genk.Context) {
 
 //Orders get called when everything is updated
 func (m *MACrossStrategy) Orders(ctx *genk.Context) {
-
 	if m.ma50.ValueAtIndex(ctx.K) > m.close.ValueAtIndex(ctx.K) {
 		fmt.Printf("BUY! ===============>")
 	}
@@ -70,7 +69,7 @@ func TestRun(t *testing.T) {
 
 	strategy := genk.Strategy(&MACrossStrategy{})
 	market.AddStrategy(&strategy)
-	
+
 	now := time.Now()
 	then := now.AddDate(0, -9, -2)
 	market.AddStartDate(then)

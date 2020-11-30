@@ -89,7 +89,3 @@ func (a *Asset) Close() float64 {
 func (a *Asset) CloseAtBar(ix int) float64 {
 	return a.Ohlc[ix].Close
 }
-
-// Portfolio structure
-type Portfolio struct {
-}
