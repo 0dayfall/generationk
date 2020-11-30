@@ -53,17 +53,11 @@ func dateEqual(date1, date2 time.Time) bool {
 }
 
 func (a *Asset) Shift(time time.Time) (int, error) {
-	//fmt.Printf("Shifting data\n")
-	//fmt.Printf("Shifting! Last date %v\n", a.Ohlc[len(a.Ohlc)-1].Time)
 	var i int
 	for ok := true; ok; ok = a.Ohlc[0].Time.Before(time) && len(a.Ohlc) > 0 {
 		a.Ohlc = a.Ohlc[1:]
 		i++
 	}
-
-	fmt.Printf("Len: a.Ohlc %v\n", len(a.Ohlc))
-	fmt.Printf("New value: %f\n", a.Ohlc[0].Close)
-
 	return i, nil
 }
 

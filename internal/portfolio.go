@@ -1,6 +1,10 @@
 package internal
 
-import "time"
+import (
+	"time"
+
+	log "github.com/sirupsen/logrus"
+)
 
 type Direction int
 
@@ -20,9 +24,15 @@ type Position struct {
 type Portfolio struct {
 	Positions []Position
 	cash      float64
+	channel   chan Event
 }
 
 func (p *Portfolio) Add(position Position) {
+	log.WithFields(log.Fields{
+		"asset": position.assetName,
+		"time":  position.time,
+		"price": position.price,
+	}).Debug("Adding position to portfolio")
 	if p.Positions != nil {
 		p.Positions = append(p.Positions, position)
 	}

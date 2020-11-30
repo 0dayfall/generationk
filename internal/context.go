@@ -8,20 +8,31 @@ import (
 
 //Context for this backtester
 type Context struct {
-	Updateable  []Updateable
-	Strategy    []Strategy
-	Asset       []Asset
-	AssetMap    map[string]*Asset
-	StartDate   time.Time
-	EndDate     time.Time
-	datePointer time.Time
-	K           int
+	Updateable   []Updateable
+	Strategy     []Strategy
+	Asset        []Asset
+	AssetMap     map[string]*Asset
+	StartDate    time.Time
+	EndDate      time.Time
+	Portfolio    Portfolio
+	Broker       Broker
+	K            int
+	datePointer  time.Time
+	eventChannel chan Event
+}
+
+func (ctx *Context) EventChannel() chan Event {
+	return ctx.eventChannel
 }
 
 //NewContext creates a new context
 func NewContext() *Context {
+	ec := make(chan Event)
 	return &Context{
-		AssetMap: make(map[string]*Asset),
+		AssetMap:     make(map[string]*Asset),
+		eventChannel: ec,
+		Portfolio:    Portfolio{channel: ec},
+		Broker:       Broker{channel: ec},
 	}
 }
 
@@ -38,8 +49,8 @@ func (m *Context) IncOneDay() {
 		"old": old,
 		"new": m.datePointer,
 	}).Debug("New day")
-
 	m.shift()
+	m.eventChannel <- Tick{}
 }
 
 func (m *Context) shift() {

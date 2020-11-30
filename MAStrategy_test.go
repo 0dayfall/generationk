@@ -11,6 +11,7 @@ import (
 
 	"github.com/shiena/ansicolor"
 	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 //Strategy strategy
@@ -36,9 +37,14 @@ func (m *MACrossStrategy) Update(ctx *genk.Context) {
 //Orders get called when everything is updated
 func (m *MACrossStrategy) Orders(ctx *genk.Context) {
 	if m.ma50.ValueAtIndex(ctx.K) > m.close.ValueAtIndex(ctx.K) {
-		fmt.Printf("BUY! ===============>")
+		ctx.Broker.Order(genk.OrderType(genk.Buy), ctx.AssetMap["ABB"], ctx.Time(), 1000)
 	}
 	ctx.K++
+}
+
+//Orders get called when everything is updated
+func (m *MACrossStrategy) OrderEvent(ctx *genk.Context) {
+	log.Debug("Order event happened")
 }
 
 func TestRun(t *testing.T) {

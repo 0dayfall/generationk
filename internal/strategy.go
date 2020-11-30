@@ -9,4 +9,5 @@ type Updateable interface {
 type Strategy interface {
 	Indicators(ctx *Context)
 	Orders(ctx *Context)
+	OrderEvent(ctx *Context)
 }

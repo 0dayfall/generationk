@@ -2,108 +2,58 @@ package generationk
 
 import (
 	"fmt"
-	internal "generationk/internal"
-	"time"
+	int "generationk/internal"
+
+	log "github.com/sirupsen/logrus"
 )
 
-//Event type
-type Event interface {
-	Handle()
-}
-
-//Tick event type
-type Tick struct{}
-
-func (t Tick) Handle() {}
-
-//Signal event type
-type Signal struct{}
-
-func (s Signal) Handle() {}
-
-//Order event type
-type Order struct{}
-
-func (o Order) Handle() {}
-
-//Fill event type
-type Fill struct{}
-
-func (f Fill) Handle() {}
-
-//Data event type
-type Data struct{}
-
-func (d Data) Handle() {}
-
-//Fill event type
-type Quit struct{}
-
-func (q Quit) Handle() {}
-
 //PutEvent starts a backtest with the information in context
-func PutEvent(c *internal.Context, data chan Event) {
+func PutEvent(c *int.Context, data chan int.Event) {
 
 }
 
-func (g *generationk) SetCash(amount float64) {
-	g.portfolio.SetCash(amount)
-}
-
-type generationk struct {
-	broker       internal.Broker
-	portfolio    internal.Portfolio
-	eventChannel chan Event
-}
-
-func (g *generationk) New() {
-	g.portfolio = internal.Portfolio{}
-	g.broker = internal.Broker{}
-}
-
-func (g *generationk) buy(asset *internal.Asset, time time.Time, amount float64) {
-	g.broker.Buy(asset, time, amount)
-}
-
-func (g *generationk) RunBacktest(ctx *internal.Context) {
-	g.eventChannel = make(chan Event, 1)
+func RunBacktest(ctx *int.Context) {
 	ctx.Strategy[0].Indicators(ctx)
-	run(ctx, g.eventChannel)
-
+	go run(ctx)
 }
 
 //Run starts a backtest with the information in context
-func run(ctx *internal.Context, data chan Event) {
+func run(ctx *int.Context) {
 	for {
 		select {
-		case event := <-data:
+		case event := <-ctx.EventChannel():
 			switch event.(type) {
-			case Tick:
+			case int.Signal:
+				// here v has type S
+			case int.Order:
+				//go ctx.Broker.Order(int.Buy, )
+			case int.Fill:
+				log.Debug("Received FILL")
+				for i := range ctx.Strategy {
+					ctx.Strategy[i].OrderEvent(ctx)
+				}
+				// here v has type S
+			case int.Data:
+				// here v has type S
+			case int.Quit:
+				log.Debug("Received QUIT")
+				close(ctx.EventChannel())
+				break
+			case int.Tick:
+				log.Debug("Received TICK")
 				//fmt.Println("Processing tick data")
 				for i := range ctx.Strategy {
 					ctx.Strategy[i].Orders(ctx)
 				}
-			case Signal:
-				// here v has type S
-			case Order:
-
-			case Fill:
-				// here v has type S
-			case Data:
-				// here v has type S
-			case Quit:
-				close(data)
-				break
 			default:
 				// no match; here v has the same type as i
 			}
 		default:
-			ctx.IncOneDay()
+			go ctx.IncOneDay()
 			/*_, error := shiftData(ctx)
 			if error != nil {
 				data <- Quit{}
 			}*/
-			data <- Tick{}
 		}
 	}
 }
@@ -132,7 +82,7 @@ func typeOfEvent(tst interface{}) {
 }
 
 //PutData starts a backtest with the information in context
-func PutData(c *internal.Context, data chan internal.OHLC) {
+func PutData(c *int.Context, data chan int.OHLC) {
 	for _, asset := range c.Asset {
 		for _, ohlc := range asset.Ohlc {
 			data <- ohlc
@@ -141,7 +91,7 @@ func PutData(c *internal.Context, data chan internal.OHLC) {
 }
 
 //GetData starts a backtest with the information in context
-func GetData(c *internal.Context, data chan internal.OHLC) {
+func GetData(c *int.Context, data chan int.OHLC) {
 	for _, asset := range c.Asset {
 		for _, ohlc := range asset.Ohlc {
 			data <- ohlc
