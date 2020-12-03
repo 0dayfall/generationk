@@ -6,10 +6,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type OrderNotfication interface {
-	OrderConfirmation() Position
-}
-
 type OrderType int
 
 const (
@@ -20,41 +16,33 @@ const (
 )
 
 type Broker struct {
-	notifiers []OrderNotfication
 	portfolio Portfolio
 	channel   chan Event
 }
 
-func (b *Broker) Order(ordertype OrderType, asset *Asset, time time.Time, amount float64) {
+func (b *Broker) PlaceOrder(order Order) {
 	log.WithFields(log.Fields{
-		"ordertype": ordertype,
-		"asset":     asset.Name,
-		"time":      time,
-		"amount":    amount,
-	}).Debug("Creating order")
-	if ordertype == Buy {
-		b.buy(asset, time, amount)
+		"ordertype": order.Ordertype,
+		"asset":     (*order.Asset).Name,
+		"time":      order.Time,
+		"amount":    order.Amount,
+	}).Debug("BROKER>PLACE BUY ORDER")
+	if order.Ordertype == Buy {
+		b.buy(order.Asset, order.Time, order.Amount)
 	}
 }
 
 func (b *Broker) buy(asset *Asset, time time.Time, amount float64) {
-	pos := &Position{
-		amount:    amount,
-		assetName: asset.Name,
-		time:      time,
-		price:     asset.Close(),
-		comission: 0,
-	}
-	b.portfolio.Add(*pos)
-	log.Debug("Sending fill event to channel")
-	go func() {
-		b.channel <- Fill{}
-		for notify := range b.notifiers {
-			notify.OrderConfirmaion()
-		}
-	}()
+	//How many are we buying
+	qty := int(amount / asset.Close())
+	//b.portfolio.Add(*pos)
+	log.WithFields(log.Fields{
+		"Amount": amount,
+	}).Debug("BROKER> FILLED")
+	b.channel <- Fill{Qty: qty, AssetName: (*asset).Name, Time: time}
+	log.Debug("BROKER> Put FILL EVENT in queue")
 }
 
-func (b *Broker) Sell(asset *Asset, amount int) {
+func (b *Broker) sell(asset *Asset, amount int) {
 
 }

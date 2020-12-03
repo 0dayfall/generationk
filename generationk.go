@@ -3,6 +3,7 @@ package generationk
 import (
 	"fmt"
 	int "generationk/internal"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -12,48 +13,87 @@ func PutEvent(c *int.Context, data chan int.Event) {
 
 }
 
+func MakeOrder(ctx *int.Context, ordertype int.OrderType, asset *int.Asset, time time.Time, amount float64) {
+	log.Debug("GENERATIONK> Puting order on the orderchannel")
+	ctx.OrderChannel() <- int.Order{
+		Ordertype: ordertype,
+		Asset:     asset,
+		Time:      time,
+		Amount:    amount,
+	}
+}
+
+func Signal() {
+	
+}
+
+func NewDataManager() {
+
+}
+
 func RunBacktest(ctx *int.Context) {
-	ctx.Strategy[0].Indicators(ctx)
-	go run(ctx)
+	asset := ctx.dataManager.ReadCSVFile("test/data/ABB.csv")
+	ctx.AddAsset(&asset)
+	//Initialize the strategy
+	ctx.Strategy[0].Setup(ctx)
+	run(ctx)
 }
 
 //Run starts a backtest with the information in context
 func run(ctx *int.Context) {
 	for {
+		log.Debug("GENERATIONK> MAIN LOOP")
+		log.WithFields(log.Fields{
+			"Number of items": len(ctx.OrderChannel()),
+		}).Debug("GENERATIONK>ORDER CHANNEL")
 		select {
-		case event := <-ctx.EventChannel():
-			switch event.(type) {
-			case int.Signal:
-				// here v has type S
+		case orderEvent := <-ctx.OrderChannel():
+			switch orderEvent.(type) {
 			case int.Order:
-				//go ctx.Broker.Order(int.Buy, )
+				log.Debug("GENERATIONK>ORDERCHANNEL> ORDER EVENT PICKED OFF QUEUE")
+				ctx.Broker.PlaceOrder(orderEvent.(int.Order))
 			case int.Fill:
-				log.Debug("Received FILL")
+				log.Debug("GENERATIONK>ORDERCHANNEL> FILL EVENT PICKED OFF QUEUE")
+				ctx.Portfolio.Fill(orderEvent.(int.Fill))
+				log.Debug("GENERATIONK>ORDERCHANNEL> GIVING NOTICE TO STRATEGY")
 				for i := range ctx.Strategy {
 					ctx.Strategy[i].OrderEvent(ctx)
 				}
-				// here v has type S
-			case int.Data:
-				// here v has type S
-			case int.Quit:
-				log.Debug("Received QUIT")
-				close(ctx.EventChannel())
-				break
-			case int.Tick:
-				log.Debug("Received TICK")
-				//fmt.Println("Processing tick data")
-				for i := range ctx.Strategy {
-					ctx.Strategy[i].Orders(ctx)
-				}
 			default:
-				// no match; here v has the same type as i
+				log.WithFields(log.Fields{
+					"event": orderEvent,
+				}).Debug("GENERATIONK>ORDERCHANNEL> UNKNOWN EVENT")
+				fmt.Printf("%s", orderEvent)
 			}
 		default:
-			go ctx.IncOneDay()
-			/*_, error := shiftData(ctx)
-			if error != nil {
-				data <- Quit{}
-			}*/
+			log.Debug("GENERATIONK>ORDERCHANNEL> EMPTY")
+			log.WithFields(log.Fields{
+				"Number of items": len(ctx.EventChannel()),
+			}).Debug("GENERATIONK>EVENTCHANNEL>")
+			select {
+			case event := <-ctx.EventChannel():
+				switch event.(type) {
+				case int.Tick:
+					log.Debug("GENERATIONK>EVENTCHANNEL> TICK EVENT PICKED OFF QUEUE")
+					//fmt.Println("Processing tick data")
+					log.Debug("GENERATIONK>EVENTCHANNEL> Leting strategy know")
+					for i := range ctx.Strategy {
+						ctx.Strategy[i].Tick(ctx)
+					}
+				case int.Quit:
+					log.Debug("GENERATIONK>EVENTCHANNEL> QUIT EVENT PICKED OFF QUEUE")
+					close(ctx.EventChannel())
+					break
+				}
+			default:
+				ctx.IncOneDay()
+				ctx.EventChannel() <- int.Tick{}
+				log.Debug("GENERATIONK>EVENTCHANNEL> NEW TICK ON QUEUE")
+				/*_, error := shiftData(ctx)
+				if error != nil {
+					data <- Quit{}
+				}*/
+			}
 		}
 	}
 }

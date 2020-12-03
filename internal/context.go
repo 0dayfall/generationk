@@ -19,20 +19,28 @@ type Context struct {
 	K            int
 	datePointer  time.Time
 	eventChannel chan Event
+	orderChannel chan Event
 }
 
 func (ctx *Context) EventChannel() chan Event {
 	return ctx.eventChannel
 }
 
+func (ctx *Context) OrderChannel() chan Event {
+	return ctx.orderChannel
+}
+
 //NewContext creates a new context
 func NewContext() *Context {
-	ec := make(chan Event)
+	eventChannelc := make(chan Event, 1)
+	orderChannel := make(chan Event, 1)
+	portfolio := Portfolio{}
 	return &Context{
 		AssetMap:     make(map[string]*Asset),
-		eventChannel: ec,
-		Portfolio:    Portfolio{channel: ec},
-		Broker:       Broker{channel: ec},
+		eventChannel: eventChannelc,
+		orderChannel: orderChannel,
+		Portfolio:    portfolio,
+		Broker:       Broker{portfolio: portfolio, channel: orderChannel},
 	}
 }
 
@@ -50,7 +58,6 @@ func (m *Context) IncOneDay() {
 		"new": m.datePointer,
 	}).Debug("New day")
 	m.shift()
-	m.eventChannel <- Tick{}
 }
 
 func (m *Context) shift() {

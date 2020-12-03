@@ -7,7 +7,7 @@ type Updateable interface {
 
 //Strategy needs to implement Orders in order to generate them
 type Strategy interface {
-	Indicators(ctx *Context)
-	Orders(ctx *Context)
+	Setup(ctx *Context)
+	Tick(ctx *Context)
 	OrderEvent(ctx *Context)
 }

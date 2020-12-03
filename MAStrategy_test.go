@@ -21,7 +21,7 @@ type MACrossStrategy struct {
 }
 
 //Setup is used to start the strategy
-func (m *MACrossStrategy) Indicators(ctx *genk.Context) {
+func (m *MACrossStrategy) Setup(ctx *genk.Context) {
 	fmt.Printf("Init strategy\n")
 	m.close = ind.TimeSeries(ctx.AssetMap["ABB"].CloseArray())
 	m.ma50 = ind.SimpleMovingAverage(ctx.AssetMap["ABB"].CloseArray(), 50)
@@ -35,16 +35,17 @@ func (m *MACrossStrategy) Update(ctx *genk.Context) {
 }
 
 //Orders get called when everything is updated
-func (m *MACrossStrategy) Orders(ctx *genk.Context) {
+func (m *MACrossStrategy) Tick(ctx *genk.Context) {
 	if m.ma50.ValueAtIndex(ctx.K) > m.close.ValueAtIndex(ctx.K) {
-		ctx.Broker.Order(genk.OrderType(genk.Buy), ctx.AssetMap["ABB"], ctx.Time(), 1000)
+		MakeOrder(ctx, genk.OrderType(genk.Buy), ctx.AssetMap["ABB"], ctx.Time(), 1000)
 	}
 	ctx.K++
+	//generationk.Signal()
 }
 
 //Orders get called when everything is updated
 func (m *MACrossStrategy) OrderEvent(ctx *genk.Context) {
-	log.Debug("Order event happened")
+	log.Debug("MAStrategy_test> OrderEvent")
 }
 
 func TestRun(t *testing.T) {
@@ -69,9 +70,8 @@ func TestRun(t *testing.T) {
 	market := genk.NewContext()
 
 	//Going to run with the following data
-	dataManager := genk.NewDataManager()
-	asset := dataManager.ReadCSVFile("test/data/ABB.csv")
-	market.AddAsset(&asset)
+	dataManager := genk.NewDataManager(market.EventChannel())
+	
 
 	strategy := genk.Strategy(&MACrossStrategy{})
 	market.AddStrategy(&strategy)

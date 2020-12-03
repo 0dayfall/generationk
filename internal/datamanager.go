@@ -15,6 +15,16 @@ import (
 //DataManager type
 type DataManager struct {
 	fieldMapper func(records [][]string) []OHLC
+	dataChannel chan Event
+	Asset       []Asset
+}
+
+func (d *DataManager) getData(period int) []float64 {
+	return nil
+}
+
+func (d *DataManager) getLatestData() float64 {
+	return 0.0
 }
 
 func parseFloat(value string) float64 {
@@ -27,44 +37,16 @@ func parseFloat(value string) float64 {
 }
 
 //NewDataManager creates a new data manager object
-func NewDataManager() DataManager {
-	return newDataManager(nil)
+func NewDataManager(ch chan Event) DataManager {
+	return newDataManager(nil, ch)
 }
 
 //NewDataManager is used to create a data manager. It uses a field mapper to map the field
-func newDataManager(mapper func(records [][]string) []OHLC) DataManager {
-	var dm DataManager
-	if mapper == nil {
-		dm.fieldMapper = defaultFieldMapper
-	} else {
-		dm.fieldMapper = mapper
+func newDataManager(mapper func(records [][]string) []OHLC, ch chan Event) DataManager {
+	dm := DataManager{
+		dataChannel: ch,
 	}
 	return dm
-}
-
-func defaultFieldMapper(records [][]string) []OHLC {
-	// Iterate through the records
-	s := make([]OHLC, len(records))
-	for i, record := range records {
-		// Read each record from csv
-		record1, err := time.Parse("1/2/2006 00:00:00", record[0]+" "+record[1])
-		record2, err := strconv.ParseFloat(record[2], 64)
-		record3, err := strconv.ParseFloat(record[3], 64)
-		record4, err := strconv.ParseFloat(record[4], 64)
-		record5, err := strconv.ParseFloat(record[5], 64)
-		record6, err := strconv.Atoi(record[6])
-
-		if err != nil {
-			log.Printf("Was not possible to parse the format on  line %d, %s", i, err)
-		}
-
-		ohlc := OHLC{Time: record1, Open: record2, High: record3, Low: record4, Close: record5, Volume: record6}
-		s[i] = ohlc
-		//fmt.Printf("In addValue: s is %v\n", s)
-	}
-	reverseSlice(&s)
-
-	return s
 }
 
 func reverseSlice(ohlc *[]OHLC) {
@@ -92,8 +74,25 @@ func (d *DataManager) ReadCSVFile(file string) Asset {
 		log.Printf("Was not possible to read the file %s", err)
 	}
 
-	s := d.fieldMapper(records)
-	reverseSlice(&s)
+	s := make([]OHLC, len(records))
+	for i, record := range records {
+		// Read each record from csv
+		record1, err := time.Parse("1/2/2006 00:00:00", record[0]+" "+record[1])
+		record2, err := strconv.ParseFloat(record[2], 64)
+		record3, err := strconv.ParseFloat(record[3], 64)
+		record4, err := strconv.ParseFloat(record[4], 64)
+		record5, err := strconv.ParseFloat(record[5], 64)
+		record6, err := strconv.Atoi(record[6])
+
+		if err != nil {
+			log.Printf("Was not possible to parse the format on  line %d, %s", i, err)
+		}
+
+		ohlc := OHLC{Time: record1, Open: record2, High: record3, Low: record4, Close: record5, Volume: record6}
+		d.dataChannel <- DataEvent{}
+		s[i] = ohlc
+		//fmt.Printf("In addValue: s is %v\n", s)
+	}
 
 	return Asset{
 		Name: strings.TrimSuffix(filepath.Base(file), path.Ext(file)),

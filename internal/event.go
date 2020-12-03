@@ -1,8 +1,43 @@
 package internal
 
+import (
+	"time"
+
+	log "github.com/sirupsen/logrus"
+)
+
 //Event type
 type Event interface {
 	Handle()
+}
+
+type DataEvent struct{}
+
+func (d DataEvent) Handle() {}
+
+type Order struct {
+	Ordertype OrderType
+	Asset     *Asset
+	Time      time.Time
+	Amount    float64
+}
+
+func (o Order) Handle() {}
+
+type Fill struct {
+	Qty       int
+	AssetName string
+	Time      time.Time
+}
+
+func (f Fill) Handle() {}
+
+func (f Fill) String() {
+	log.WithFields(log.Fields{
+		"Qty":       f.Qty,
+		"AssetName": f.AssetName,
+		"Time":      f.Time,
+	}).Debug("Fill> ")
 }
 
 //Tick event type
@@ -14,16 +49,6 @@ func (t Tick) Handle() {}
 type Signal struct{}
 
 func (s Signal) Handle() {}
-
-//Order event type
-type Order struct{}
-
-func (o Order) Handle() {}
-
-//Fill event type
-type Fill struct{}
-
-func (f Fill) Handle() {}
 
 //Data event type
 type Data struct{}

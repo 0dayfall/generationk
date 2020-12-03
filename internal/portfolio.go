@@ -13,28 +13,29 @@ const (
 	Short
 )
 
-type Position struct {
-	amount    float64
-	assetName string
-	time      time.Time
-	price     float64
-	comission float64
-}
-
 type Portfolio struct {
-	Positions []Position
-	cash      float64
-	channel   chan Event
+	Holdings []Holding
+	cash     float64
 }
 
-func (p *Portfolio) Add(position Position) {
+type Holding struct {
+	Qty       int
+	AssetName string
+	Time      time.Time
+}
+
+func (p *Portfolio) Fill(fill Fill) {
+	p.AddHolding(Holding{Qty: fill.Qty, AssetName: fill.AssetName, Time: fill.Time})
+}
+
+func (p *Portfolio) AddHolding(position Holding) {
 	log.WithFields(log.Fields{
-		"asset": position.assetName,
-		"time":  position.time,
-		"price": position.price,
-	}).Debug("Adding position to portfolio")
-	if p.Positions != nil {
-		p.Positions = append(p.Positions, position)
+		"asset": position.AssetName,
+		"time":  position.Time,
+		"Qty":   position.Qty,
+	}).Debug("PORTFOLIO> Adding position to portfolio")
+	if p.Holdings != nil {
+		p.Holdings = append(p.Holdings, position)
 	}
 }
 

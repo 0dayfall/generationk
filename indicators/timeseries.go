@@ -17,7 +17,7 @@ func TimeSeries(series []float64) *Series {
 	log.WithFields(log.Fields{
 		"size of series": len(series),
 		"size of indicator struct default values": len(ts.IndicatorStruct.defaultValues),
-	}).Debug("Creating TimeSeries structure")
+	}).Debug("TIMESERIES> CREATED")
 
 	return ts
 }
