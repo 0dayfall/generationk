@@ -1,7 +1,6 @@
 package generationk
 
 import (
-	"fmt"
 	"generationk/indicators"
 	ind "generationk/indicators"
 	genk "generationk/internal"
@@ -21,10 +20,11 @@ type MACrossStrategy struct {
 }
 
 //Setup is used to start the strategy
-func (m *MACrossStrategy) Setup(ctx *genk.Context) {
-	fmt.Printf("Init strategy\n")
-	m.close = ind.TimeSeries(ctx.AssetMap["ABB"].CloseArray())
-	m.ma50 = ind.SimpleMovingAverage(ctx.AssetMap["ABB"].CloseArray(), 50)
+func (m *MACrossStrategy) Setup(ctx *genk.Context) error {
+	m.close, error := ind.TimeSeries(ctx.AssetMap["ABB"].CloseArray())
+	m.ma50, error = ind.SimpleMovingAverage(ctx.AssetMap["ABB"].CloseArray(), 50)
+	if (error != nil)
+		return error
 	//ma200 := *ind.SimpleMovingAverage(ctx.AssetMap["ABB"].CloseArray(), 200)
 }
 
@@ -69,10 +69,9 @@ func TestRun(t *testing.T) {
 	//Context that the strategy is being run with such as assets
 	market := genk.NewContext()
 
-	//Going to run with the following data
-	dataManager := genk.NewDataManager(market.EventChannel())
-	
-
+	//Going to run with the following data thingie to collect the data
+	dataManager := genk.NewDataManager(market)
+	dataManager.ReadCSVFile("test/data/ABB.csv")
 	strategy := genk.Strategy(&MACrossStrategy{})
 	market.AddStrategy(&strategy)
 
@@ -80,6 +79,6 @@ func TestRun(t *testing.T) {
 	then := now.AddDate(0, -9, -2)
 	market.AddStartDate(then)
 
-	go RunBacktest(market)
+	RunBacktest(market, dataManager)
 	select {}
 }

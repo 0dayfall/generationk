@@ -65,12 +65,15 @@ func (a *Asset) Shift(time time.Time) (int, error) {
 func (a *Asset) CloseArray() []float64 {
 	s := make([]float64, len(a.Ohlc))
 
+	if a.Ohlc == nil {
+		return nil
+	}
 	for i, ohlc := range a.Ohlc {
 		s[i] = ohlc.Close
 	}
 	log.WithFields(log.Fields{
 		"CloseArray() length": len(s),
-	}).Debug("Asset: CloseArray()")
+	}).Debug("ASSET> CloseArray()")
 	return s
 }
 

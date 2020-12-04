@@ -1,6 +1,10 @@
 package indicators
 
-import log "github.com/sirupsen/logrus"
+import (
+	"generationk/indicators"
+
+	log "github.com/sirupsen/logrus"
+)
 
 type DEFAULT int
 
@@ -52,12 +56,18 @@ func (slice mfloat) EMA(period int) []float64 {
 }
 
 //SimpleMovingAverage bla bla
-func SimpleMovingAverage(series []float64, period int) *Average {
+func SimpleMovingAverage(series []float64, period int) (*Average, error) {
+	if len(series) < period {
+		return nil, indicators.IndicatorNotReadyError{
+			msg: "SimpleMovingAverage",
+			len: (period - len(series)),
+		}
+	}
 	ma := &Average{
 		IndicatorStruct: &IndicatorStruct{},
 	}
 	ma.Sma(series, period)
-	return ma
+	return ma, nil
 }
 
 //Sma function is used to calc moving averages

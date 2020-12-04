@@ -11,9 +11,17 @@ type Event interface {
 	Handle()
 }
 
-type DataEvent struct{}
+type DataEvent struct {
+	Name string
+	Ohlc OHLC
+}
 
-func (d DataEvent) Handle() {}
+func (d DataEvent) Handle() {
+	log.WithFields(log.Fields{
+		"Name": d.Name,
+		"Ohlc": d.Ohlc,
+	}).Debug("DataEvent$ ")
+}
 
 type Order struct {
 	Ordertype OrderType
@@ -37,7 +45,7 @@ func (f Fill) String() {
 		"Qty":       f.Qty,
 		"AssetName": f.AssetName,
 		"Time":      f.Time,
-	}).Debug("Fill> ")
+	}).Debug("Fill$")
 }
 
 //Tick event type

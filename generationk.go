@@ -24,19 +24,19 @@ func MakeOrder(ctx *int.Context, ordertype int.OrderType, asset *int.Asset, time
 }
 
 func Signal() {
-	
+
 }
 
 func NewDataManager() {
 
 }
 
-func RunBacktest(ctx *int.Context) {
-	asset := ctx.dataManager.ReadCSVFile("test/data/ABB.csv")
-	ctx.AddAsset(&asset)
+func RunBacktest(ctx *int.Context, dataManager int.DataManager) {
+
 	//Initialize the strategy
 	ctx.Strategy[0].Setup(ctx)
-	run(ctx)
+	go run(ctx)
+	go dataManager.Start()
 }
 
 //Run starts a backtest with the information in context

@@ -35,13 +35,23 @@ func NewContext() *Context {
 	eventChannelc := make(chan Event, 1)
 	orderChannel := make(chan Event, 1)
 	portfolio := Portfolio{}
-	return &Context{
+	ctx := &Context{
+		Asset:        make([]Asset, 1),
 		AssetMap:     make(map[string]*Asset),
 		eventChannel: eventChannelc,
 		orderChannel: orderChannel,
 		Portfolio:    portfolio,
 		Broker:       Broker{portfolio: portfolio, channel: orderChannel},
 	}
+	log.WithFields(log.Fields{
+		"Asset":        ctx.Asset,
+		"AssetMap":     ctx.AssetMap,
+		"eventChannel": ctx.eventChannel,
+		"orderChannel": ctx.orderChannel,
+		"Portfolio":    ctx.Portfolio,
+		"Broker":       ctx.Broker,
+	}).Debug("Created context")
+	return ctx
 }
 
 //Time returns the time
@@ -90,6 +100,9 @@ func (m *Context) AddStrategy(strategy *Strategy) {
 func (m *Context) AddAsset(asset *Asset) {
 	m.Asset = append(m.Asset, *asset)
 	m.AssetMap[asset.Name] = asset
+	log.WithFields(log.Fields{
+		"Asset": asset,
+	}).Debug("Adding asset to context")
 }
 
 //AddNamedAsset is used to add an asset and a reference

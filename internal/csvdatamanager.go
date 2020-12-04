@@ -3,27 +3,24 @@ package internal
 import (
 	"encoding/csv"
 	"io"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
-//DataManager type
-type DataManager struct {
-	fieldMapper func(records [][]string) []OHLC
-	dataChannel chan Event
-	Asset       []Asset
-}
+//CSVDataManager type
+type CSVDataManager struct{}
 
-func (d *DataManager) getData(period int) []float64 {
+func (d *CSVDataManager) getData(period int) []float64 {
 	return nil
 }
 
-func (d *DataManager) getLatestData() float64 {
+func (d *CSVDataManager) getLatestData() float64 {
 	return 0.0
 }
 
@@ -36,16 +33,15 @@ func parseFloat(value string) float64 {
 	return floatValue
 }
 
-//NewDataManager creates a new data manager object
-func NewDataManager(ch chan Event) DataManager {
-	return newDataManager(nil, ch)
-}
-
-//NewDataManager is used to create a data manager. It uses a field mapper to map the field
-func newDataManager(mapper func(records [][]string) []OHLC, ch chan Event) DataManager {
-	dm := DataManager{
-		dataChannel: ch,
+//NewCSVDataManager creates a new data manager object
+func NewCSVDataManager(ctx *Context) CSVDataManager {
+	dm := CSVDataManager{
+		dataChannel: ctx.EventChannel(),
+		Asset:       make([]Asset, 0),
 	}
+	log.WithFields(log.Fields{
+		"dataChannel": dm.dataChannel,
+	}).Debug("Created CSVDataManager")
 	return dm
 }
 
@@ -57,12 +53,26 @@ func reverseSlice(ohlc *[]OHLC) {
 }
 
 //ReadCSVFile reads a CSV file
-func (d *DataManager) ReadCSVFile(file string) Asset {
-	csvfile, err := os.Open(file)
+func (d *CSVDataManager) ReadCSVFile(file string) {
+	asset := Asset{
+		Name: strings.TrimSuffix(filepath.Base(file), path.Ext(file)),
+	}
+	log.WithFields(log.Fields{
+		"Name": asset.Name,
+	}).Debug("Asset created")
+	//d.ctx.AddAsset(&asset)
+	d.Asset = append(d.Asset, asset)
+}
+
+func (d *CSVDataManager) Start() {
+	csvfile, err := os.Open(d.Asset[0].Name)
 
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.WithFields(log.Fields{
+		"File name": d.Asset[0].Name,
+	}).Debug("CSVDataManager> OPENED FILE")
 
 	defer csvfile.Close()
 
@@ -89,15 +99,11 @@ func (d *DataManager) ReadCSVFile(file string) Asset {
 		}
 
 		ohlc := OHLC{Time: record1, Open: record2, High: record3, Low: record4, Close: record5, Volume: record6}
-		d.dataChannel <- DataEvent{}
+		d.dataChannel <- DataEvent{Name: d.Asset[0].Name, Ohlc: ohlc}
 		s[i] = ohlc
 		//fmt.Printf("In addValue: s is %v\n", s)
 	}
 
-	return Asset{
-		Name: strings.TrimSuffix(filepath.Base(file), path.Ext(file)),
-		Ohlc: s,
-	}
 }
 
 /*func readCSV(universe []string) []Stock {
