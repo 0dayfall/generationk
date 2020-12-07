@@ -1,8 +1,6 @@
 package indicators
 
 import (
-	"generationk/indicators"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -58,8 +56,8 @@ func (slice mfloat) EMA(period int) []float64 {
 //SimpleMovingAverage bla bla
 func SimpleMovingAverage(series []float64, period int) (*Average, error) {
 	if len(series) < period {
-		return nil, indicators.IndicatorNotReadyError{
-			msg: "SimpleMovingAverage",
+		return nil, IndicatorNotReadyError{
+			msg: "SimpleMovingAverage is to short",
 			len: (period - len(series)),
 		}
 	}

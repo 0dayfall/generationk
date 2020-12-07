@@ -21,10 +21,13 @@ type MACrossStrategy struct {
 
 //Setup is used to start the strategy
 func (m *MACrossStrategy) Setup(ctx *genk.Context) error {
-	m.close, error := ind.TimeSeries(ctx.AssetMap["ABB"].CloseArray())
-	m.ma50, error = ind.SimpleMovingAverage(ctx.AssetMap["ABB"].CloseArray(), 50)
-	if (error != nil)
-		return error
+	var e error
+	m.close, e = ind.TimeSeries(ctx.AssetMap["ABB"].CloseArray())
+	m.ma50, e = ind.SimpleMovingAverage(ctx.AssetMap["ABB"].CloseArray(), 50)
+	if e != nil {
+		return e
+	}
+	return nil
 	//ma200 := *ind.SimpleMovingAverage(ctx.AssetMap["ABB"].CloseArray(), 200)
 }
 
@@ -70,8 +73,8 @@ func TestRun(t *testing.T) {
 	market := genk.NewContext()
 
 	//Going to run with the following data thingie to collect the data
-	dataManager := genk.NewDataManager(market)
-	dataManager.ReadCSVFile("test/data/ABB.csv")
+	dataManager := genk.NewCSVDataManager(market)
+	go dataManager.ReadCSVFile("test/data/ABB.csv")
 	strategy := genk.Strategy(&MACrossStrategy{})
 	market.AddStrategy(&strategy)
 
@@ -79,6 +82,6 @@ func TestRun(t *testing.T) {
 	then := now.AddDate(0, -9, -2)
 	market.AddStartDate(then)
 
-	RunBacktest(market, dataManager)
+	RunBacktest(market)
 	select {}
 }

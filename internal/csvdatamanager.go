@@ -14,7 +14,9 @@ import (
 )
 
 //CSVDataManager type
-type CSVDataManager struct{}
+type CSVDataManager struct {
+	dataChannel chan Event
+}
 
 func (d *CSVDataManager) getData(period int) []float64 {
 	return nil
@@ -37,7 +39,6 @@ func parseFloat(value string) float64 {
 func NewCSVDataManager(ctx *Context) CSVDataManager {
 	dm := CSVDataManager{
 		dataChannel: ctx.EventChannel(),
-		Asset:       make([]Asset, 0),
 	}
 	log.WithFields(log.Fields{
 		"dataChannel": dm.dataChannel,
@@ -45,33 +46,16 @@ func NewCSVDataManager(ctx *Context) CSVDataManager {
 	return dm
 }
 
-func reverseSlice(ohlc *[]OHLC) {
-	for i := len(*ohlc)/2 - 1; i >= 0; i-- {
-		opp := len(*ohlc) - 1 - i
-		(*ohlc)[i], (*ohlc)[opp] = (*ohlc)[opp], (*ohlc)[i]
-	}
-}
-
 //ReadCSVFile reads a CSV file
 func (d *CSVDataManager) ReadCSVFile(file string) {
-	asset := Asset{
-		Name: strings.TrimSuffix(filepath.Base(file), path.Ext(file)),
-	}
-	log.WithFields(log.Fields{
-		"Name": asset.Name,
-	}).Debug("Asset created")
-	//d.ctx.AddAsset(&asset)
-	d.Asset = append(d.Asset, asset)
-}
-
-func (d *CSVDataManager) Start() {
-	csvfile, err := os.Open(d.Asset[0].Name)
+	name := strings.TrimSuffix(filepath.Base(file), path.Ext(file))
+	csvfile, err := os.Open(file)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.WithFields(log.Fields{
-		"File name": d.Asset[0].Name,
+		"File name": file,
 	}).Debug("CSVDataManager> OPENED FILE")
 
 	defer csvfile.Close()
@@ -81,7 +65,7 @@ func (d *CSVDataManager) Start() {
 	records, err := r.ReadAll()
 
 	if err != nil && err != io.EOF {
-		log.Printf("Was not possible to read the file %s", err)
+		log.Error("Was not possible to read the file %s", err)
 	}
 
 	s := make([]OHLC, len(records))
@@ -95,21 +79,16 @@ func (d *CSVDataManager) Start() {
 		record6, err := strconv.Atoi(record[6])
 
 		if err != nil {
-			log.Printf("Was not possible to parse the format on  line %d, %s", i, err)
+			log.Error("Was not possible to parse the format on  line %d, %s", i, err)
 		}
 
 		ohlc := OHLC{Time: record1, Open: record2, High: record3, Low: record4, Close: record5, Volume: record6}
-		d.dataChannel <- DataEvent{Name: d.Asset[0].Name, Ohlc: ohlc}
+		log.WithFields(log.Fields{
+			"Name": name,
+			"Ohlc": ohlc,
+		}).Debug("DataEvent$ ")
+		d.dataChannel <- DataEvent{Name: name, Ohlc: ohlc}
 		s[i] = ohlc
-		//fmt.Printf("In addValue: s is %v\n", s)
 	}
 
 }
-
-/*func readCSV(universe []string) []Stock {
-	stock := make([]Stock, len(universe))
-	for i, j := range universe {
-		stock[i] = readCSVFile(strings.Join([]string{j, "csv"}, "."))
-	}
-	return stock
-}*/

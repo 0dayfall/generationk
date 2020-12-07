@@ -1,8 +1,6 @@
 package indicators
 
 import (
-	"generationk/indicators"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -12,7 +10,7 @@ type Series struct {
 
 func TimeSeries(series []float64) (*Series, error) {
 	if len(series) < 1 {
-		return nil, indicators.IndicatorNotReadyError{
+		return nil, IndicatorNotReadyError{
 			msg: "SimpleMovingAverage",
 			len: len(series),
 		}
@@ -27,5 +25,5 @@ func TimeSeries(series []float64) (*Series, error) {
 		"size of indicator struct default values": len(ts.IndicatorStruct.defaultValues),
 	}).Debug("TIMESERIES> CREATED")
 
-	return nil, ts
+	return ts, nil
 }

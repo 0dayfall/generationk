@@ -21,6 +21,11 @@ type Type struct {
 	close string
 }
 
+//DataUpdate is used to update the data in the assets
+type DataUpdate interface {
+	Update(ohlc OHLC)
+}
+
 // OHLC data type
 type OHLC struct {
 	Time                   time.Time
@@ -50,6 +55,11 @@ func dateEqual(date1, date2 time.Time) bool {
 	y2, m2, d2 := date2.Date()
 	//fmt.Printf("date2 %v", date2)
 	return y1 == y2 && m1 == m2 && d1 == d2
+}
+
+//Update interface to be able to get updated by the event queue
+func (a *Asset) Update(ohlc OHLC) {
+	a.Ohlc = append(a.Ohlc, ohlc)
 }
 
 func (a *Asset) Shift(time time.Time) (int, error) {

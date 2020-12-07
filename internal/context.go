@@ -22,14 +22,6 @@ type Context struct {
 	orderChannel chan Event
 }
 
-func (ctx *Context) EventChannel() chan Event {
-	return ctx.eventChannel
-}
-
-func (ctx *Context) OrderChannel() chan Event {
-	return ctx.orderChannel
-}
-
 //NewContext creates a new context
 func NewContext() *Context {
 	eventChannelc := make(chan Event, 1)
@@ -52,6 +44,14 @@ func NewContext() *Context {
 		"Broker":       ctx.Broker,
 	}).Debug("Created context")
 	return ctx
+}
+
+func (ctx *Context) EventChannel() chan Event {
+	return ctx.eventChannel
+}
+
+func (ctx *Context) OrderChannel() chan Event {
+	return ctx.orderChannel
 }
 
 //Time returns the time
