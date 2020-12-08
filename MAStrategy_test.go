@@ -1,6 +1,7 @@
 package generationk
 
 import (
+	"errors"
 	"generationk/indicators"
 	ind "generationk/indicators"
 	genk "generationk/internal"
@@ -8,38 +9,53 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shiena/ansicolor"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
 //Strategy strategy
 type MACrossStrategy struct {
-	ma50  *indicators.Average
-	close *indicators.Series
+	ma50       *indicators.Average
+	close      *indicators.Series
+	initPeriod int
 }
 
 //Setup is used to start the strategy
 func (m *MACrossStrategy) Setup(ctx *genk.Context) error {
 	var e error
-	m.close, e = ind.TimeSeries(ctx.AssetMap["ABB"].CloseArray())
-	m.ma50, e = ind.SimpleMovingAverage(ctx.AssetMap["ABB"].CloseArray(), 50)
+	if ctx.K < 5 {
+		return errors.New("Need more data to calculate indicators")
+	}
+	m.close, e = ind.NewTimeSeries(ctx.AssetMap["ABB"].CloseArray())
+	m.ma50, e = ind.SimpleMovingAverage(ctx.AssetMap["ABB"].CloseArray(), 5)
 	if e != nil {
 		return e
 	}
+
 	return nil
 	//ma200 := *ind.SimpleMovingAverage(ctx.AssetMap["ABB"].CloseArray(), 200)
+}
+
+func (m *MACrossStrategy) SetInitPeriod(period int) {
+	m.initPeriod = period
+}
+
+func (m MACrossStrategy) GetInitPeriod() int {
+	return m.initPeriod
 }
 
 //Update gets called when updates arrive
 func (m *MACrossStrategy) Update(ctx *genk.Context) {
 	//New day new values
+	log.Debug("MASTRATEGY_TEST> Update")
 	ctx.K++
+	//m.close, _ = ind.TimeSeries(ctx.AssetMap["ABB"].CloseArray())
+	//m.ma50, _ = ind.SimpleMovingAverage(ctx.AssetMap["ABB"].CloseArray(), 5)
 }
 
 //Orders get called when everything is updated
 func (m *MACrossStrategy) Tick(ctx *genk.Context) {
-	if m.ma50.ValueAtIndex(ctx.K) > m.close.ValueAtIndex(ctx.K) {
+	if m.ma50.ValueAtIndex(0) > m.close.ValueAtIndex(0) {
 		MakeOrder(ctx, genk.OrderType(genk.Buy), ctx.AssetMap["ABB"], ctx.Time(), 1000)
 	}
 	ctx.K++
@@ -53,10 +69,11 @@ func (m *MACrossStrategy) OrderEvent(ctx *genk.Context) {
 
 func TestRun(t *testing.T) {
 
-	logrus.SetFormatter(&logrus.TextFormatter{ForceColors: true})
-	logrus.SetOutput(ansicolor.NewAnsiColorWriter(os.Stdout))
+	//logrus.SetFormatter(&logrus.TextFormatter{ForceColors: true})
+	//logrus.SetOutput(ansicolor.NewAnsiColorWriter(os.Stdout))
 
 	lvl, ok := os.LookupEnv("LOG_LEVEL")
+
 	// LOG_LEVEL not set, let's default to debug
 	if !ok {
 		lvl = "debug"
@@ -82,6 +99,5 @@ func TestRun(t *testing.T) {
 	then := now.AddDate(0, -9, -2)
 	market.AddStartDate(then)
 
-	RunBacktest(market)
-	select {}
+	RunLive(market)
 }

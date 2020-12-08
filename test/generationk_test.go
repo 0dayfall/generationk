@@ -1,3 +1,4 @@
+// +build test
 package generationk
 
 import (
@@ -18,6 +19,6 @@ func TestRun(t *testing.T) {
 	c.AddStartDate(time.Now())
 	c.AddEndDate(time.Now())
 
-	genk.RunBacktest(&c)
+	genk.RunLive(&c)
 
 }

@@ -8,11 +8,11 @@ type Series struct {
 	*IndicatorStruct
 }
 
-func TimeSeries(series []float64) (*Series, error) {
+func NewTimeSeries(series []float64) (*Series, error) {
 	if len(series) < 1 {
 		return nil, IndicatorNotReadyError{
-			msg: "SimpleMovingAverage",
-			len: len(series),
+			Msg: "SimpleMovingAverage",
+			Len: len(series),
 		}
 	}
 	ts := &Series{

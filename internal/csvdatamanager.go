@@ -87,8 +87,9 @@ func (d *CSVDataManager) ReadCSVFile(file string) {
 			"Name": name,
 			"Ohlc": ohlc,
 		}).Debug("DataEvent$ ")
+
 		d.dataChannel <- DataEvent{Name: name, Ohlc: ohlc}
 		s[i] = ohlc
 	}
-
+	d.dataChannel <- Quit{}
 }

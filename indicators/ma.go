@@ -57,8 +57,8 @@ func (slice mfloat) EMA(period int) []float64 {
 func SimpleMovingAverage(series []float64, period int) (*Average, error) {
 	if len(series) < period {
 		return nil, IndicatorNotReadyError{
-			msg: "SimpleMovingAverage is to short",
-			len: (period - len(series)),
+			Msg: "SimpleMovingAverage is to short",
+			Len: (period - len(series)),
 		}
 	}
 	ma := &Average{

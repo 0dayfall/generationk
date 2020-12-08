@@ -1,3 +1,4 @@
+// +build test
 package generationk
 
 import (
@@ -6,7 +7,7 @@ import (
 )
 
 func TestDatamanager(t *testing.T) {
-	dm := genk.NewDataManager()
+	dm := genk.NewCSVDataManager()
 	asset := dm.ReadCSVFile("ABB.csv")
 	v := len(asset.CloseArray())
 	want := 9776

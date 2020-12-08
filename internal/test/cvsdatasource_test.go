@@ -1,3 +1,4 @@
+// +build test
 package internal
 
 import (

@@ -2,7 +2,7 @@ package generationk
 
 import (
 	"fmt"
-	int "generationk/internal"
+	inter "generationk/internal"
 	"sync"
 	"time"
 
@@ -10,13 +10,13 @@ import (
 )
 
 //PutEvent starts a backtest with the information in context
-func PutEvent(c *int.Context, data chan int.Event) {
+func PutEvent(c *inter.Context, data chan inter.Event) {
 
 }
 
-func MakeOrder(ctx *int.Context, ordertype int.OrderType, asset *int.Asset, time time.Time, amount float64) {
+func MakeOrder(ctx *inter.Context, ordertype inter.OrderType, asset *inter.Asset, time time.Time, amount float64) {
 	log.Debug("GENERATIONK> Puting order on the orderchannel")
-	ctx.OrderChannel() <- int.Order{
+	ctx.OrderChannel() <- inter.Order{
 		Ordertype: ordertype,
 		Asset:     asset,
 		Time:      time,
@@ -32,17 +32,31 @@ func NewDataManager() {
 
 }
 
-func RunBacktest(ctx *int.Context) {
+func prepend(x []inter.OHLC, y inter.OHLC) []inter.OHLC {
+	return append([]inter.OHLC{y}, x...)
+}
+
+func resize(z []inter.OHLC, period int) []inter.OHLC {
+	return z[:len(z)-period]
+}
+
+func RunLive(ctx *inter.Context) {
 
 	//Initialize the strategy
 	//ctx.Strategy[0].Setup(ctx)
-	go run(ctx)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go run(ctx, &wg)
+	wg.Wait()
 	//go dataManager.Start()
 }
 
 //Run starts a backtest with the information in context
-func run(ctx *int.Context) {
-	var once sync.Once
+func run(ctx *inter.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
+	//var init bool
+	//var once sync.Once
+	//Quit:
 	for {
 		log.Debug("GENERATIONK> MAIN LOOP")
 		log.WithFields(log.Fields{
@@ -51,12 +65,12 @@ func run(ctx *int.Context) {
 		select {
 		case orderEvent := <-ctx.OrderChannel():
 			switch orderEvent.(type) {
-			case int.Order:
+			case inter.Order:
 				log.Debug("GENERATIONK>ORDERCHANNEL> ORDER EVENT PICKED OFF QUEUE")
-				ctx.Broker.PlaceOrder(orderEvent.(int.Order))
-			case int.Fill:
+				ctx.Broker.PlaceOrder(orderEvent.(inter.Order))
+			case inter.Fill:
 				log.Debug("GENERATIONK>ORDERCHANNEL> FILL EVENT PICKED OFF QUEUE")
-				ctx.Portfolio.Fill(orderEvent.(int.Fill))
+				ctx.Portfolio.Fill(orderEvent.(inter.Fill))
 				log.Debug("GENERATIONK>ORDERCHANNEL> GIVING NOTICE TO STRATEGY")
 				for i := range ctx.Strategy {
 					ctx.Strategy[i].OrderEvent(ctx)
@@ -75,54 +89,69 @@ func run(ctx *int.Context) {
 			select {
 			case event := <-ctx.EventChannel():
 				switch event.(type) {
-				case int.Tick:
+				case inter.Tick:
 					log.Debug("GENERATIONK>EVENTCHANNEL> TICK EVENT PICKED OFF QUEUE")
-					//fmt.Println("Processing tick data")
+					//fmt.Printerln("Processing tick data")
 					log.Debug("GENERATIONK>EVENTCHANNEL> Leting strategy know")
 					for i := range ctx.Strategy {
 						ctx.Strategy[i].Tick(ctx)
 					}
-				case int.DataEvent:
+				case inter.DataEvent:
+					ctx.K++
 					//Add data to asset
-					if _, ok := ctx.AssetMap[event.(int.DataEvent).Name]; ok {
+					if _, ok := ctx.AssetMap[event.(inter.DataEvent).Name]; ok {
 						log.WithFields(log.Fields{
-							"(int.DataEvent).Name": event.(int.DataEvent).Name,
+							"(inter.DataEvent).Name": event.(inter.DataEvent).Name,
 						}).Debug("GENERATIONK>EVENTCHANNEL>DATAEVENT> EXISTS IN MAP")
 						//do something here
-						ctx.AssetMap[event.(int.DataEvent).Name].Ohlc = append(ctx.AssetMap[event.(int.DataEvent).Name].Ohlc, event.(int.DataEvent).Ohlc)
+						ctx.AssetMap[event.(inter.DataEvent).Name].Ohlc = prepend(ctx.AssetMap[event.(inter.DataEvent).Name].Ohlc, event.(inter.DataEvent).Ohlc)
+						resize(ctx.AssetMap[event.(inter.DataEvent).Name].Ohlc, ctx.Strategy[0].GetInitPeriod())
 					} else {
 						log.Debug("GENERATIONK>EVENTCHANNEL>DATAEVENT> CREATING ASSET AND ADDING TO MAP")
-						var asset int.Asset
-						asset.Name = event.(int.DataEvent).Name
-						asset.Ohlc = append(asset.Ohlc, event.(int.DataEvent).Ohlc)
-						ctx.AssetMap[event.(int.DataEvent).Name] = &asset
+						var asset inter.Asset
+						asset.Name = event.(inter.DataEvent).Name
+						asset.Ohlc = append(asset.Ohlc, event.(inter.DataEvent).Ohlc)
+						ctx.AssetMap[event.(inter.DataEvent).Name] = &asset
 					}
-					//Fist time run the setup
-					once.Do(func() {
+					//Run setup after initperiod is finished
+					if ctx.K < ctx.Strategy[0].GetInitPeriod() || ctx.Strategy[0].Setup(ctx) != nil {
+						break
+					} else {
+
+						/* 					//Fist time run the setup
+						   					if init != true {
+						   						for i := range ctx.Strategy {
+						   							e := ctx.Strategy[i].Setup(ctx)
+						   							if e != nil {
+						   								if e, ok := e.(*indicators.IndicatorNotReadyError); ok {
+						   									log.WithFields(log.Fields{
+						   										"Error in setup": e.Len,
+						   									}).Error("Indicator not ready error")
+						   								} else {
+						   									init = true
+						   								}
+						   							}
+						   						}
+						   					} else { */
+
+						log.Debug("GENERATIONK>EVENTCHANNEL> DATAEVENT EVENT PICKED OFF QUEUE")
+						//fmt.Printerln("Processing tick data")
+						log.Debug("GENERATIONK>EVENTCHANNEL> Leting strategy know")
 						for i := range ctx.Strategy {
-							e := ctx.Strategy[i].Setup(ctx)
-							serr, ok := e.(*indicators.IndicatorNotReadyError)
-							if e != nil {
-								log.WithFields(log.Fields{
-									"Error in setup": e.Error(),
-								}).Error("Setup failed")
-							}
+							//ctx.Strategy[i].Update(ctx)
+							ctx.Strategy[i].Tick(ctx)
 						}
-					})
-					log.Debug("GENERATIONK>EVENTCHANNEL> DATAEVENT EVENT PICKED OFF QUEUE")
-					//fmt.Println("Processing tick data")
-					log.Debug("GENERATIONK>EVENTCHANNEL> Leting strategy know")
-					for i := range ctx.Strategy {
-						ctx.Strategy[i].Tick(ctx)
 					}
-				case int.Quit:
+				case inter.Quit:
 					log.Debug("GENERATIONK>EVENTCHANNEL> QUIT EVENT PICKED OFF QUEUE")
+					close(ctx.OrderChannel())
 					close(ctx.EventChannel())
-					break
+					return
+					//break Quit
 				}
 				//default:
 				//ctx.IncOneDay()
-				//ctx.EventChannel() <- int.Tick{}
+				//ctx.EventChannel() <- inter.Tick{}
 				//log.Debug("GENERATIONK>EVENTCHANNEL> NEW TICK ON QUEUE")
 				//log.Debug("GENERATIONK>EVENTCHANNEL> DEFAULT")
 				/*_, error := shiftData(ctx)
@@ -142,11 +171,11 @@ func (e *EndOfDataError) Error() string {
 	return fmt.Sprintf("End of data: %s", e.Description)
 }
 
-/*func shiftData(ctx *internal.Context) (bool, error) {
+/*func shiftData(ctx *interernal.Context) (bool, error) {
 	for i := range ctx.Asset {
 		error := ctx.Asset[i].Shift(ctx.Time())
 		if error != nil {
-			fmt.Printf("Data error <==============")
+			fmt.Printerf("Data error <==============")
 			return false, error
 		}
 	}
@@ -158,7 +187,7 @@ func typeOfEvent(tst interface{}) {
 }
 
 //PutData starts a backtest with the information in context
-func PutData(c *int.Context, data chan int.OHLC) {
+func PutData(c *inter.Context, data chan inter.OHLC) {
 	for _, asset := range c.Asset {
 		for _, ohlc := range asset.Ohlc {
 			data <- ohlc
@@ -167,7 +196,7 @@ func PutData(c *int.Context, data chan int.OHLC) {
 }
 
 //GetData starts a backtest with the information in context
-func GetData(c *int.Context, data chan int.OHLC) {
+func GetData(c *inter.Context, data chan inter.OHLC) {
 	for _, asset := range c.Asset {
 		for _, ohlc := range asset.Ohlc {
 			data <- ohlc
