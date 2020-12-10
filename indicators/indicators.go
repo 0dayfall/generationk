@@ -9,6 +9,11 @@ import (
 
 type mfloat []float64
 
+//Updatable tells generatinok this it is possible to run Update()
+type Updatable interface {
+	Update()
+}
+
 //Comparison type interface
 type Comparison interface {
 	LargerThanValue(number2 float64) bool
@@ -20,7 +25,6 @@ type Indicator interface {
 	ValueAtIndex(index int) float64
 	Value() float64
 	Values() []float64
-	Shift()
 }
 
 //IndicatorStruct contains a default set of values

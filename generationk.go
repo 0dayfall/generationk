@@ -32,14 +32,6 @@ func NewDataManager() {
 
 }
 
-func prepend(x []inter.OHLC, y inter.OHLC) []inter.OHLC {
-	return append([]inter.OHLC{y}, x...)
-}
-
-func resize(z []inter.OHLC, period int) []inter.OHLC {
-	return z[:len(z)-period]
-}
-
 func RunLive(ctx *inter.Context) {
 
 	//Initialize the strategy
@@ -104,14 +96,18 @@ func run(ctx *inter.Context, wg *sync.WaitGroup) {
 							"(inter.DataEvent).Name": event.(inter.DataEvent).Name,
 						}).Debug("GENERATIONK>EVENTCHANNEL>DATAEVENT> EXISTS IN MAP")
 						//do something here
-						ctx.AssetMap[event.(inter.DataEvent).Name].Ohlc = prepend(ctx.AssetMap[event.(inter.DataEvent).Name].Ohlc, event.(inter.DataEvent).Ohlc)
-						resize(ctx.AssetMap[event.(inter.DataEvent).Name].Ohlc, ctx.Strategy[0].GetInitPeriod())
+						//ctx.AssetMap[event.(inter.DataEvent).Name].Ohlc = prepend(ctx.AssetMap[event.(inter.DataEvent).Name].Ohlc, event.(inter.DataEvent).Ohlc)
+						ctx.AssetMap[event.(inter.DataEvent).Name].Update(event.(inter.DataEvent).Ohlc)
+
+						//resize(ctx.AssetMap[event.(inter.DataEvent).Name].Ohlc, ctx.Strategy[0].GetInitPeriod())
 					} else {
 						log.Debug("GENERATIONK>EVENTCHANNEL>DATAEVENT> CREATING ASSET AND ADDING TO MAP")
-						var asset inter.Asset
-						asset.Name = event.(inter.DataEvent).Name
-						asset.Ohlc = append(asset.Ohlc, event.(inter.DataEvent).Ohlc)
-						ctx.AssetMap[event.(inter.DataEvent).Name] = &asset
+						//var asset inter.Asset
+						//asset.Name = event.(inter.DataEvent).Name
+						//asset.Update(event.(inter.DataEvent).Ohlc)
+						asset := inter.NewAsset(event.(inter.DataEvent).Name, event.(inter.DataEvent).Ohlc)
+						//asset.Ohlc = append(asset.Ohlc, )
+						ctx.AssetMap[event.(inter.DataEvent).Name] = asset
 					}
 					//Run setup after initperiod is finished
 					if ctx.K < ctx.Strategy[0].GetInitPeriod() || ctx.Strategy[0].Setup(ctx) != nil {
@@ -136,6 +132,9 @@ func run(ctx *inter.Context, wg *sync.WaitGroup) {
 
 						log.Debug("GENERATIONK>EVENTCHANNEL> DATAEVENT EVENT PICKED OFF QUEUE")
 						//fmt.Printerln("Processing tick data")
+						
+						log.Debug("GENERATIONK>EVENTCHANNEL> Updating inidcators data")
+						
 						log.Debug("GENERATIONK>EVENTCHANNEL> Leting strategy know")
 						for i := range ctx.Strategy {
 							//ctx.Strategy[i].Update(ctx)

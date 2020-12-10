@@ -13,6 +13,13 @@ type Asset struct {
 	Ohlc []OHLC
 }
 
+//NewAsset is used to create a new asset
+func NewAsset(name string, ohlc OHLC) *Asset {
+	return &Asset{
+		Name: name,
+		Ohlc: []OHLC{ohlc}}
+}
+
 //Type is the type for ohlc
 type Type struct {
 	Open  string
@@ -57,9 +64,17 @@ func dateEqual(date1, date2 time.Time) bool {
 	return y1 == y2 && m1 == m2 && d1 == d2
 }
 
+func prepend(x []OHLC, y OHLC) []OHLC {
+	return append([]OHLC{y}, x...)
+}
+
+func resize(z []OHLC, period int) []OHLC {
+	return z[:len(z)-period]
+}
+
 //Update interface to be able to get updated by the event queue
 func (a *Asset) Update(ohlc OHLC) {
-	a.Ohlc = append(a.Ohlc, ohlc)
+	a.Ohlc = prepend(a.Ohlc, ohlc)
 }
 
 func (a *Asset) Shift(time time.Time) (int, error) {
