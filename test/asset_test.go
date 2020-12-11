@@ -7,8 +7,8 @@ import (
 )
 
 func TestAsset(t *testing.T) {
-	var c genk.Context
-	dm := genk.NewDataManager()
+	ctx := genk.NewContext()
+	dm := genk.NewCSVDataManager(ctx)
 
 	abb := dm.ReadCSVFile("ABB.csv")
 	c.AddAsset(&abb)

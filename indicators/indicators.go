@@ -9,6 +9,22 @@ import (
 
 type mfloat []float64
 
+//OhlcValue is the value which will be used for the indicator
+type OhlcValue int
+
+const (
+	//Open value will be used for the data
+	Open = iota
+	//High value will be used for the data
+	High
+	//Low value will be used for the data
+	Low
+	//Close value will be used for the data
+	Close
+	//Volume value will be used for the data
+	Volume
+)
+
 //Updatable tells generatinok this it is possible to run Update()
 type Updatable interface {
 	Update()
@@ -30,7 +46,39 @@ type Indicator interface {
 //IndicatorStruct contains a default set of values
 type IndicatorStruct struct {
 	//ctx *genk.Context
-	defaultValues []float64
+
+	values []float64
+}
+
+// Ema calculates exponential moving average of a slice for a certain
+// number of tiSmame periods.
+func (slice mfloat) EMA(period int) []float64 {
+
+	var emaSlice []float64
+
+	ak := period + 1
+	k := float64(2) / float64(ak)
+
+	emaSlice = append(emaSlice, slice[0])
+
+	for i := 1; i < len(slice); i++ {
+		emaSlice = append(emaSlice, (slice[i]*float64(k))+(emaSlice[i-1]*float64(1-k)))
+	}
+
+	return emaSlice
+}
+
+// Sma calculates simple moving average of a slice for a certain
+// number of time periods.
+func (slice mfloat) SMA(period int) []float64 {
+
+	var smaSlice []float64
+
+	for i := period; i <= len(slice); i++ {
+		smaSlice = append(smaSlice, Sum(slice[i-period:i])/float64(period))
+	}
+
+	return smaSlice
 }
 
 // Avg returns 'data' average.
@@ -114,26 +162,26 @@ func DivSlice(slice []float64, n float64) []float64 {
 }
 
 func (m *IndicatorStruct) Shift() {
-	if len(m.defaultValues) > 1 {
-		m.defaultValues = m.defaultValues[1:]
+	if len(m.values) > 1 {
+		m.values = m.values[1:]
 	}
 }
 
 func (m *IndicatorStruct) Value() float64 {
-	return m.defaultValues[0]
+	return m.values[0]
 }
 
 func (m *IndicatorStruct) ValueAtIndex(index int) float64 {
 	log.WithFields(log.Fields{
 		"index":                  index,
-		"len":                    len(m.defaultValues),
-		"m.defaultValues[index]": m.defaultValues[index],
+		"len":                    len(m.values),
+		"m.defaultValues[index]": m.values[index],
 	}).Debug("Geting default value")
-	return m.defaultValues[index]
+	return m.values[index]
 }
 
 func (m *IndicatorStruct) Values() []float64 {
-	return m.defaultValues
+	return m.values
 }
 
 //Value the default value of the indicator

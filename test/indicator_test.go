@@ -10,13 +10,14 @@ import (
 
 func TestInidcator(t *testing.T) {
 	fmt.Printf("Running GENERATIONK")
-	dm := genk.NewDataManager()
+	ctx := genk.NewContext()
+	dm := genk.NewCSVDataManager(ctx)
 
 	asset := dm.ReadCSVFile("ABB.csv")
 	v := len(asset.CloseArray())
 
-	ma50 := indicators.SimpleMovingAverage(asset.CloseArray(), 50)
-	ma200 := indicators.SimpleMovingAverage(asset.CloseArray(), 200)
+	ma50 := indicators.NewSimpleMovingAverage(asset.CloseArray(), 50)
+	ma200 := indicators.NewSimpleMovingAverage(asset.CloseArray(), 200)
 	//ma = &indicators.Average{&indicators.IndicatorStruct{}}
 
 	//&Job{command, log.New(os.Stderr, "Job: ", log.Ldate)}

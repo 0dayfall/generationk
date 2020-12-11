@@ -1,9 +1,7 @@
 package generationk
 
 import (
-	"errors"
 	"generationk/indicators"
-	ind "generationk/indicators"
 	genk "generationk/internal"
 	"os"
 	"testing"
@@ -15,24 +13,30 @@ import (
 
 //Strategy strategy
 type MACrossStrategy struct {
-	ma50       *indicators.Average
+	ma50       *indicators.SimpleMovingAverage
 	close      *indicators.Series
 	initPeriod int
 }
 
 //Setup is used to start the strategy
-func (m *MACrossStrategy) Setup(ctx *genk.Context) error {
-	var e error
+func (m *MACrossStrategy) Setup(ctx *genk.Context) {
+	/*var e error
 	if ctx.K < 5 {
 		return errors.New("Need more data to calculate indicators")
 	}
-	m.close, e = ind.NewTimeSeries(ctx.AssetMap["ABB"].CloseArray())
-	m.ma50, e = ind.SimpleMovingAverage(ctx.AssetMap["ABB"].CloseArray(), 5)
+	m.close, e = ind.NewTimeSeries(ctx.AssetMap["ABB"])
+	m.ma50, e = ind.NewSimpleMovingAverage(ctx.AssetMap["ABB"], ind.Close, 5)
 	if e != nil {
 		return e
 	}
+	ctx.AddUpdatable(m.close, m.ma50)
 
-	return nil
+	return nil*/
+	m.close, e = ind.NewTimeSeries(Close)
+	m.ma50, e = ind.NewSimpleMovingAverage(genk.Close, 5)
+
+	ctx.AddIndicator(m.close)
+	ctx.AddIndicator(m.m50)
 	//ma200 := *ind.SimpleMovingAverage(ctx.AssetMap["ABB"].CloseArray(), 200)
 }
 

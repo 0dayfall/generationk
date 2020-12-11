@@ -7,7 +7,8 @@ import (
 )
 
 func TestDatamanager(t *testing.T) {
-	dm := genk.NewCSVDataManager()
+	ctx := genk.NewContext()
+	dm := genk.NewCSVDataManager(ctx)
 	asset := dm.ReadCSVFile("ABB.csv")
 	v := len(asset.CloseArray())
 	want := 9776

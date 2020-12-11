@@ -2,7 +2,7 @@ package internal
 
 //Updateable takes new data into account
 type Updateable interface {
-	Update(ctx *Context)
+	Update([]float64)
 }
 
 //Strategy needs to implement Orders in order to generate them

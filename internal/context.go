@@ -3,23 +3,26 @@ package internal
 import (
 	"time"
 
+	ind "generationk/indicators"
+
 	log "github.com/sirupsen/logrus"
 )
 
 //Context for this backtester
 type Context struct {
-	Updateable   []Updateable
-	Strategy     []Strategy
-	Asset        []Asset
-	AssetMap     map[string]*Asset
-	StartDate    time.Time
-	EndDate      time.Time
-	Portfolio    Portfolio
-	Broker       Broker
-	K            int
-	datePointer  time.Time
-	eventChannel chan Event
-	orderChannel chan Event
+	Updateable        []Updateable
+	Strategy          []Strategy
+	Asset             []Asset
+	AssetMap          map[string]*Asset
+	AssetIndicatorMap map[string]*ind.Indicator
+	StartDate         time.Time
+	EndDate           time.Time
+	Portfolio         Portfolio
+	Broker            Broker
+	K                 int
+	datePointer       time.Time
+	eventChannel      chan Event
+	orderChannel      chan Event
 }
 
 //NewContext creates a new context
@@ -28,12 +31,13 @@ func NewContext() *Context {
 	orderChannel := make(chan Event, 1)
 	portfolio := Portfolio{}
 	ctx := &Context{
-		Asset:        make([]Asset, 1),
-		AssetMap:     make(map[string]*Asset),
-		eventChannel: eventChannelc,
-		orderChannel: orderChannel,
-		Portfolio:    portfolio,
-		Broker:       Broker{portfolio: portfolio, channel: orderChannel},
+		Asset:             make([]Asset, 1),
+		AssetMap:          make(map[string]*Asset),
+		AssetIndicatorMap: make(map[string]*ind.Indicator),
+		eventChannel:      eventChannelc,
+		orderChannel:      orderChannel,
+		Portfolio:         portfolio,
+		Broker:            Broker{portfolio: portfolio, channel: orderChannel},
 	}
 	log.WithFields(log.Fields{
 		"Asset":        ctx.Asset,
@@ -55,58 +59,79 @@ func (ctx *Context) OrderChannel() chan Event {
 }
 
 //Time returns the time
-func (m *Context) Time() time.Time {
-	return m.datePointer
+func (ctx *Context) Time() time.Time {
+	return ctx.datePointer
 }
 
 //IncOneDay is used to step time forward
-func (m *Context) IncOneDay() {
-	old := m.datePointer
-	m.datePointer = m.datePointer.AddDate(0, 0, 1)
+func (ctx *Context) IncOneDay() {
+	old := ctx.datePointer
+	ctx.datePointer = ctx.datePointer.AddDate(0, 0, 1)
 	log.WithFields(log.Fields{
 		"old": old,
-		"new": m.datePointer,
+		"new": ctx.datePointer,
 	}).Debug("New day")
-	m.shift()
+	ctx.shift()
 }
 
-func (m *Context) shift() {
-	for i := range m.Asset {
-		numberOfShifts, _ := m.Asset[i].Shift(m.datePointer)
-		m.K += numberOfShifts
+//AddIndicatorOnAsset will add an indicator on the asset
+func (ctx *Context) AddIndicatorOnAsset(asset *Asset, indicator *ind.Indicator) {
+	ctx.AssetIndicatorMap[asset.Name] = indicator
+}
+
+//AddIndicator will add it to all assets
+func (ctx *Context) AddIndicator(indicator *ind.Indicator) {
+	for k, v := range ctx.AssetMap {
+		ctx.AssetIndicatorMap[k] = indicator
+		log.WithFields(log.Fields{
+			"ctx.AssetMap":             v,
+			"ctx.AssetIndicatorMap[k]": ctx.AssetIndicatorMap[k],
+		}).Debug("New day")
 	}
-	for _, element := range m.AssetMap {
-		element.Shift(m.datePointer)
+}
+
+//AddUpdatable add an updatable interface
+func (ctx *Context) AddUpdatable(indicators ...Updateable) {
+	ctx.Updateable = indicators
+}
+
+func (ctx *Context) shift() {
+	for i := range ctx.Asset {
+		numberOfShifts, _ := ctx.Asset[i].Shift(ctx.datePointer)
+		ctx.K += numberOfShifts
+	}
+	for _, element := range ctx.AssetMap {
+		element.Shift(ctx.datePointer)
 	}
 }
 
 //AddEndDate is used to set the strategy that will be run
-func (m *Context) AddEndDate(endTime time.Time) {
-	m.EndDate = endTime
+func (ctx *Context) AddEndDate(endTime time.Time) {
+	ctx.EndDate = endTime
 }
 
 //AddStartDate is used to set the strategy that will be run
-func (m *Context) AddStartDate(startTime time.Time) {
-	m.StartDate = startTime
-	m.datePointer = startTime
+func (ctx *Context) AddStartDate(startTime time.Time) {
+	ctx.StartDate = startTime
+	ctx.datePointer = startTime
 }
 
 //AddStrategy is used to set the strategy that will be run
-func (m *Context) AddStrategy(strategy *Strategy) {
-	m.Strategy = append(m.Strategy, *strategy)
+func (ctx *Context) AddStrategy(strategy *Strategy) {
+	ctx.Strategy = append(ctx.Strategy, *strategy)
 }
 
 //AddAsset is used to add assets that the strategy will use
-func (m *Context) AddAsset(asset *Asset) {
-	m.Asset = append(m.Asset, *asset)
-	m.AssetMap[asset.Name] = asset
+func (ctx *Context) AddAsset(asset *Asset) {
+	ctx.Asset = append(ctx.Asset, *asset)
+	ctx.AssetMap[asset.Name] = asset
 	log.WithFields(log.Fields{
 		"Asset": asset,
 	}).Debug("Adding asset to context")
 }
 
 //AddNamedAsset is used to add an asset and a reference
-func (m *Context) AddNamedAsset(asset *Asset, name string) {
-	m.Asset = append(m.Asset, *asset)
-	m.AssetMap[name] = asset
+func (ctx *Context) AddNamedAsset(asset *Asset, name string) {
+	ctx.Asset = append(ctx.Asset, *asset)
+	ctx.AssetMap[name] = asset
 }

@@ -7,10 +7,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+
 // Asset data type
 type Asset struct {
 	Name string
 	Ohlc []OHLC
+}
+
+func (a Asset) length() int {
+	return len(a.Ohlc)
 }
 
 //NewAsset is used to create a new asset
@@ -75,6 +80,7 @@ func resize(z []OHLC, period int) []OHLC {
 //Update interface to be able to get updated by the event queue
 func (a *Asset) Update(ohlc OHLC) {
 	a.Ohlc = prepend(a.Ohlc, ohlc)
+
 }
 
 func (a *Asset) Shift(time time.Time) (int, error) {

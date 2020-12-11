@@ -9,8 +9,8 @@ import (
 )
 
 func TestRun(t *testing.T) {
-	var c internal.Context
-	dm := internal.NewDataManager()
+	ctx := genk.NewContext()
+	dm := genk.NewCSVDataManager(ctx)
 
 	abb := dm.ReadCSVFile("Queue_test.csv")
 	c.AddAsset(&abb)
