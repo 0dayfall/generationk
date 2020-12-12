@@ -15,3 +15,11 @@ func NewSimpleMovingAverage(value OhlcValue, period int) (Indicator, error) {
 	}
 	return &ma, nil
 }
+
+func (sma *SimpleMovingAverage) calculate(k int) {
+	var sum float64
+	for k := 0; k <= sma.period; k++ {
+		sum += values[k]
+	}
+	sma.IndicatorStruct.values = sum
+}

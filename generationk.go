@@ -134,9 +134,9 @@ func run(ctx *inter.Context, wg *sync.WaitGroup) {
 						//fmt.Printerln("Processing tick data")
 
 						log.Debug("GENERATIONK>EVENTCHANNEL> Updating indicators data")
-						for i := range ctx.Updateable {
-							ctx.Updateable[i].Updgit statuate()
-						}
+						//for i := range ctx.Updateable {
+						//	ctx.Updateable[i].Updgit statuate()
+						//}
 
 						log.Debug("GENERATIONK>EVENTCHANNEL> Leting strategy know")
 						for i := range ctx.Strategy {
