@@ -3,10 +3,7 @@ package internal
 import (
 	"fmt"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
-
 
 // Asset data type
 type Asset struct {
@@ -18,7 +15,7 @@ func (a Asset) length() int {
 	return len(a.Ohlc)
 }
 
-//NewAsset is used to create a new asset
+//NewAsset is used to create a new asset-
 func NewAsset(name string, ohlc OHLC) *Asset {
 	return &Asset{
 		Name: name,
@@ -79,7 +76,13 @@ func resize(z []OHLC, period int) []OHLC {
 
 //Update interface to be able to get updated by the event queue
 func (a *Asset) Update(ohlc OHLC) {
+	/*	log.WithFields(log.Fields{
+		"a.Ohlc": a.Ohlc,
+	}).Debug("ASSET> UPDATE")*/
 	a.Ohlc = prepend(a.Ohlc, ohlc)
+	/*log.WithFields(log.Fields{
+		"a.Ohlc": a.Ohlc,
+	}).Debug("ASSET>PREPEND> UPDATE")*/
 
 }
 
@@ -102,9 +105,9 @@ func (a *Asset) CloseArray() []float64 {
 	for i, ohlc := range a.Ohlc {
 		s[i] = ohlc.Close
 	}
-	log.WithFields(log.Fields{
+	/*log.WithFields(log.Fields{
 		"CloseArray() length": len(s),
-	}).Debug("ASSET> CloseArray()")
+	}).Debug("ASSET> CloseArray()")*/
 	return s
 }
 

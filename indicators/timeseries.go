@@ -7,25 +7,35 @@ import (
 //TimeSeries structure is used to create a time series which may be updated
 type TimeSeries struct {
 	*IndicatorStruct
+	value OhlcValue
+}
+
+//GetDataType explains to generationk which type it should be updated with
+func (ts TimeSeries) GetDataType() OhlcValue {
+	return ts.value
+}
+
+//Update is used to initialize indicator with values
+func (ts TimeSeries) Update(values []float64) {
+	log.WithFields(log.Fields{
+		"values length": len(values),
+	}).Debug("TIMESERIES> Update()")
+	ts.IndicatorStruct.values = values
 }
 
 //NewTimeSeries is used to create a time series which may be updates
-func NewTimeSeries(series []float64) (*TimeSeries, error) {
-	if len(series) < 1 {
-		return nil, IndicatorNotReadyError{
-			Msg: "NewTimeSeries",
-			Len: len(series),
-		}
-	}
+func NewTimeSeries(value OhlcValue, period int) *TimeSeries {
+
 	ts := &TimeSeries{
-		IndicatorStruct: &IndicatorStruct{},
+		IndicatorStruct: &IndicatorStruct{
+			name:   "Time Series",
+			period: period},
+		value: value,
 	}
-	ts.IndicatorStruct.values = series
 
 	log.WithFields(log.Fields{
-		"size of series": len(series),
-		"size of indicator struct default values": len(ts.IndicatorStruct.values),
+		"type of value in time series": value,
 	}).Debug("TIMESERIES> CREATED")
 
-	return ts, nil
+	return ts
 }

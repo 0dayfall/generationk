@@ -10,11 +10,11 @@ import (
 
 //Context for this backtester
 type Context struct {
-	Updateable        []Updateable
+	//Updateable        []Updateable
 	Strategy          []Strategy
 	Asset             []Asset
 	AssetMap          map[string]*Asset
-	AssetIndicatorMap map[string]*ind.Indicator
+	AssetIndicatorMap map[string][]*ind.Indicator
 	StartDate         time.Time
 	EndDate           time.Time
 	Portfolio         Portfolio
@@ -33,7 +33,7 @@ func NewContext() *Context {
 	ctx := &Context{
 		Asset:             make([]Asset, 1),
 		AssetMap:          make(map[string]*Asset),
-		AssetIndicatorMap: make(map[string]*ind.Indicator),
+		AssetIndicatorMap: make(map[string][]*ind.Indicator),
 		eventChannel:      eventChannelc,
 		orderChannel:      orderChannel,
 		Portfolio:         portfolio,
@@ -76,23 +76,31 @@ func (ctx *Context) IncOneDay() {
 
 //AddIndicatorOnAsset will add an indicator on the asset
 func (ctx *Context) AddIndicatorOnAsset(asset *Asset, indicator *ind.Indicator) {
-	ctx.AssetIndicatorMap[asset.Name] = indicator
+	ctx.AssetIndicatorMap[asset.Name] = append(ctx.AssetIndicatorMap[asset.Name], indicator)
 }
 
 //AddIndicator will add it to all assets
-func (ctx *Context) AddIndicator(indicator *ind.Indicator) {
-	for k, v := range ctx.AssetMap {
-		ctx.AssetIndicatorMap[k] = indicator
+func (ctx *Context) AddIndicator(indicator ind.Indicator) {
+	for name, asset := range ctx.AssetMap {
+		ctx.AssetIndicatorMap[name] = append(ctx.AssetIndicatorMap[name], &indicator)
 		log.WithFields(log.Fields{
-			"ctx.AssetMap":             v,
-			"ctx.AssetIndicatorMap[k]": ctx.AssetIndicatorMap[k],
-		}).Debug("New day")
+			"ctx.AssetIndicatorMap[k]": indicator.GetName(),
+			"ctx.AssetMap":             asset.Name,
+		}).Debug("Adding indicator to asset")
+		if indicator.GetDataType() == ind.Close {
+			indicator.Update(ctx.AssetMap[name].CloseArray())
+		}
 	}
 }
 
 //AddUpdatable add an updatable interface
 func (ctx *Context) AddUpdatable(indicators ...Updateable) {
-	ctx.Updateable = indicators
+	//ctx.Updateable = indicators
+}
+
+//Position is used to find out if we have a holding in an asset
+func (ctx *Context) Position(asset *Asset) bool {
+	return ctx.Portfolio.IsOwning(asset.Name)
 }
 
 func (ctx *Context) shift() {
@@ -128,10 +136,4 @@ func (ctx *Context) AddAsset(asset *Asset) {
 	log.WithFields(log.Fields{
 		"Asset": asset,
 	}).Debug("Adding asset to context")
-}
-
-//AddNamedAsset is used to add an asset and a reference
-func (ctx *Context) AddNamedAsset(asset *Asset, name string) {
-	ctx.Asset = append(ctx.Asset, *asset)
-	ctx.AssetMap[name] = asset
 }

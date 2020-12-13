@@ -2,6 +2,7 @@ package generationk
 
 import (
 	"generationk/indicators"
+	ind "generationk/indicators"
 	genk "generationk/internal"
 	"os"
 	"testing"
@@ -14,12 +15,12 @@ import (
 //Strategy strategy
 type MACrossStrategy struct {
 	ma50       *indicators.SimpleMovingAverage
-	close      *indicators.Series
+	close      *indicators.TimeSeries
 	initPeriod int
 }
 
 //Setup is used to start the strategy
-func (m *MACrossStrategy) Setup(ctx *genk.Context) {
+func (m *MACrossStrategy) Setup(ctx *genk.Context) error {
 	/*var e error
 	if ctx.K < 5 {
 		return errors.New("Need more data to calculate indicators")
@@ -32,12 +33,14 @@ func (m *MACrossStrategy) Setup(ctx *genk.Context) {
 	ctx.AddUpdatable(m.close, m.ma50)
 
 	return nil*/
-	m.close, e = ind.NewTimeSeries(Close)
-	m.ma50, e = ind.NewSimpleMovingAverage(genk.Close, 5)
+	m.close = ind.NewTimeSeries(ind.Close, 5)
+	m.ma50 = ind.NewSimpleMovingAverage(ind.Close, 7)
 
 	ctx.AddIndicator(m.close)
-	ctx.AddIndicator(m.m50)
+	ctx.AddIndicator(m.ma50)
+	m.SetInitPeriod(7)
 	//ma200 := *ind.SimpleMovingAverage(ctx.AssetMap["ABB"].CloseArray(), 200)
+	return nil
 }
 
 func (m *MACrossStrategy) SetInitPeriod(period int) {
@@ -60,7 +63,12 @@ func (m *MACrossStrategy) Update(ctx *genk.Context) {
 //Orders get called when everything is updated
 func (m *MACrossStrategy) Tick(ctx *genk.Context) {
 	if m.ma50.ValueAtIndex(0) > m.close.ValueAtIndex(0) {
-		MakeOrder(ctx, genk.OrderType(genk.Buy), ctx.AssetMap["ABB"], ctx.Time(), 1000)
+		if !ctx.Position(ctx.AssetMap["ABB"]) {
+			MakeOrder(ctx, genk.OrderType(genk.Buy), ctx.AssetMap["ABB"], ctx.Time(), 1000)
+		}
+	}
+	if m.ma50.ValueAtIndex(0) < m.close.ValueAtIndex(0) {
+		MakeOrder(ctx, genk.OrderType(genk.Sell), ctx.AssetMap["ABB"], ctx.Time(), 1000)
 	}
 	ctx.K++
 	//generationk.Signal()
@@ -80,7 +88,7 @@ func TestRun(t *testing.T) {
 
 	// LOG_LEVEL not set, let's default to debug
 	if !ok {
-		lvl = "debug"
+		lvl = "info"
 	}
 	// parse string, this is built-in feature of logrus
 	ll, err := logrus.ParseLevel(lvl)
@@ -92,7 +100,7 @@ func TestRun(t *testing.T) {
 
 	//Context that the strategy is being run with such as assets
 	market := genk.NewContext()
-
+	market.AddAsset(genk.NewAsset("ABB", genk.OHLC{}))
 	//Going to run with the following data thingie to collect the data
 	dataManager := genk.NewCSVDataManager(market)
 	go dataManager.ReadCSVFile("test/data/ABB.csv")
@@ -100,8 +108,12 @@ func TestRun(t *testing.T) {
 	market.AddStrategy(&strategy)
 
 	now := time.Now()
-	then := now.AddDate(0, -9, -2)
-	market.AddStartDate(then)
+	start := now.AddDate(0, -9, -2)
+	market.AddStartDate(start)
+
+	now = time.Now()
+	end := now.AddDate(0, -3, -2)
+	market.AddStartDate(end)
 
 	RunLive(market)
 }

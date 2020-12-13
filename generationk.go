@@ -15,7 +15,11 @@ func PutEvent(c *inter.Context, data chan inter.Event) {
 }
 
 func MakeOrder(ctx *inter.Context, ordertype inter.OrderType, asset *inter.Asset, time time.Time, amount float64) {
-	log.Debug("GENERATIONK> Puting order on the orderchannel")
+	log.WithFields(log.Fields{
+		"Asset":  asset.Name,
+		"Time":   time,
+		"Amount": amount,
+	}).Info("GENERATIONK>MAKE ORDER>")
 	ctx.OrderChannel() <- inter.Order{
 		Ordertype: ordertype,
 		Asset:     asset,
@@ -46,6 +50,7 @@ func RunLive(ctx *inter.Context) {
 //Run starts a backtest with the information in context
 func run(ctx *inter.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
+	var o sync.Once
 	//var init bool
 	//var once sync.Once
 	//Quit:
@@ -57,9 +62,11 @@ func run(ctx *inter.Context, wg *sync.WaitGroup) {
 		select {
 		case orderEvent := <-ctx.OrderChannel():
 			switch orderEvent.(type) {
+
 			case inter.Order:
 				log.Debug("GENERATIONK>ORDERCHANNEL> ORDER EVENT PICKED OFF QUEUE")
 				ctx.Broker.PlaceOrder(orderEvent.(inter.Order))
+
 			case inter.Fill:
 				log.Debug("GENERATIONK>ORDERCHANNEL> FILL EVENT PICKED OFF QUEUE")
 				ctx.Portfolio.Fill(orderEvent.(inter.Fill))
@@ -67,11 +74,13 @@ func run(ctx *inter.Context, wg *sync.WaitGroup) {
 				for i := range ctx.Strategy {
 					ctx.Strategy[i].OrderEvent(ctx)
 				}
+
 			default:
 				log.WithFields(log.Fields{
 					"event": orderEvent,
 				}).Debug("GENERATIONK>ORDERCHANNEL> UNKNOWN EVENT")
 				fmt.Printf("%s", orderEvent)
+
 			}
 		default:
 			log.Debug("GENERATIONK>ORDERCHANNEL> EMPTY")
@@ -89,7 +98,13 @@ func run(ctx *inter.Context, wg *sync.WaitGroup) {
 						ctx.Strategy[i].Tick(ctx)
 					}
 				case inter.DataEvent:
+					if ctx.EndDate.After(event.(inter.DataEvent).Ohlc.Time) {
+						log.Debug("GENERATIONK>EVENTCHANNEL> Ohlc.Time is after the back test end date")
+						ctx.EventChannel() <- inter.Quit{}
+						break
+					}
 					ctx.K++
+					log.Debug("GENERATIONK>EVENTCHANNEL> DATAEVENT EVENT PICKED OFF QUEUE")
 					//Add data to asset
 					if _, ok := ctx.AssetMap[event.(inter.DataEvent).Name]; ok {
 						log.WithFields(log.Fields{
@@ -109,34 +124,22 @@ func run(ctx *inter.Context, wg *sync.WaitGroup) {
 						//asset.Ohlc = append(asset.Ohlc, )
 						ctx.AssetMap[event.(inter.DataEvent).Name] = asset
 					}
+					//Run only once at some point
+
+					o.Do(func() {
+						ctx.Strategy[0].Setup(ctx)
+						log.Debug("GENERATIONK>RUN ONCE")
+					})
 					//Run setup after initperiod is finished
-					if ctx.K < ctx.Strategy[0].GetInitPeriod() || ctx.Strategy[0].Setup(ctx) != nil {
+					if ctx.K < ctx.Strategy[0].GetInitPeriod() {
+
+						log.Debug("GENERATIONK>EVENTCHANNEL>DATAEVENT> Initializing strategy failed")
 						break
+
 					} else {
 
-						/* 					//Fist time run the setup
-						   					if init != true {
-						   						for i := range ctx.Strategy {
-						   							e := ctx.Strategy[i].Setup(ctx)
-						   							if e != nil {
-						   								if e, ok := e.(*indicators.IndicatorNotReadyError); ok {
-						   									log.WithFields(log.Fields{
-						   										"Error in setup": e.Len,
-						   									}).Error("Indicator not ready error")
-						   								} else {
-						   									init = true
-						   								}
-						   							}
-						   						}
-						   					} else { */
-
-						log.Debug("GENERATIONK>EVENTCHANNEL> DATAEVENT EVENT PICKED OFF QUEUE")
-						//fmt.Printerln("Processing tick data")
-
 						log.Debug("GENERATIONK>EVENTCHANNEL> Updating indicators data")
-						//for i := range ctx.Updateable {
-						//	ctx.Updateable[i].Updgit statuate()
-						//}
+						updateIndicators(ctx, event.(inter.DataEvent))
 
 						log.Debug("GENERATIONK>EVENTCHANNEL> Leting strategy know")
 						for i := range ctx.Strategy {
@@ -162,6 +165,33 @@ func run(ctx *inter.Context, wg *sync.WaitGroup) {
 				}*/
 			}
 		}
+	}
+}
+
+// Min returns the smaller of x or y.
+func Min(x, y int) int {
+	if x > y {
+		return y
+	}
+	return x
+}
+
+func updateIndicators(ctx *inter.Context, dataEvent inter.DataEvent) {
+	log.Debug("ctx.AssetIndicatorMap[dataEvent.Name]: ", len(ctx.AssetIndicatorMap[dataEvent.Name]))
+	for k := range ctx.AssetIndicatorMap[dataEvent.Name] {
+		indicator := (*ctx.AssetIndicatorMap[dataEvent.Name][k])
+		data := ctx.AssetMap[dataEvent.Name].CloseArray()
+		if len(data) > 0 {
+			period := Min(len(ctx.AssetMap[dataEvent.Name].CloseArray()), indicator.GetPeriod())
+			dataWindow := make([]float64, period)
+			copy(dataWindow, data[:period])
+			log.WithFields(log.Fields{
+				"len(dataWindow)": len(dataWindow),
+				"dataWindow":      dataWindow,
+			}).Debug("GENERATIONK>UPDATE INDICATORS>")
+			indicator.Update(dataWindow)
+		}
+		log.Debug("K: ", k)
 	}
 }
 

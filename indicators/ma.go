@@ -1,25 +1,47 @@
 package indicators
 
+import log "github.com/sirupsen/logrus"
+
 //SimpleMovingAverage for the basics
 type SimpleMovingAverage struct {
 	IndicatorStruct
-	period int
-	//value  OhlcValue
+	value OhlcValue
 }
 
 //NewSimpleMovingAverage is to start a new moving average
-func NewSimpleMovingAverage(value OhlcValue, period int) (Indicator, error) {
-	ma := SimpleMovingAverage{
-		IndicatorStruct: IndicatorStruct{},
-		period:          period,
+func NewSimpleMovingAverage(value OhlcValue, period int) *SimpleMovingAverage {
+	ma := &SimpleMovingAverage{
+		IndicatorStruct: IndicatorStruct{name: "Simple Moving Average", period: period, values: []float64{}},
 	}
-	return &ma, nil
+
+	log.WithFields(log.Fields{
+		"type of value in moving average series": value,
+	}).Debug("MA> CREATED")
+
+	return ma
 }
 
-func (sma *SimpleMovingAverage) calculate(k int) {
+//Update is used to give data to the indicator
+func (sma *SimpleMovingAverage) Update(values []float64) {
+	log.WithFields(log.Fields{
+		"values length": len(values),
+	}).Debug("MA> Update()")
+	sma.IndicatorStruct.values = values
+}
+
+//GetDataType is used to know which float64 array to use on the indicator
+func (sma SimpleMovingAverage) GetDataType() OhlcValue {
+	return sma.value
+}
+
+func (sma SimpleMovingAverage) ValueAtIndex(k int) float64 {
 	var sum float64
-	for k := 0; k <= sma.period; k++ {
-		sum += values[k]
+	for k := 0; k <= sma.period-1; k++ {
+		sum += sma.IndicatorStruct.values[k]
 	}
-	sma.IndicatorStruct.values = sum
+	returnValue := sum / float64(sma.period)
+	log.WithFields(log.Fields{
+		"sma.IndicatorStruct.values[k]": returnValue,
+	}).Debug("MA> ValueAtIndex()")
+	return returnValue
 }

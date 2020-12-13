@@ -38,9 +38,9 @@ func (b *Broker) buy(asset *Asset, time time.Time, amount float64) {
 	//b.portfolio.Add(*pos)
 	log.WithFields(log.Fields{
 		"Amount": amount,
-	}).Debug("BROKER> FILLED")
+	}).Info("BROKER> FILLED")
 	b.channel <- Fill{Qty: qty, AssetName: (*asset).Name, Time: time}
-	log.Debug("BROKER> Put FILL EVENT in queue")
+	log.Info("BROKER> Put FILL EVENT in queue")
 }
 
 func (b *Broker) sell(asset *Asset, amount int) {

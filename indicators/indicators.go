@@ -23,6 +23,8 @@ const (
 	Close
 	//Volume value will be used for the data
 	Volume
+	//Default is used when the data is something else than ohlcv
+	Default
 )
 
 //Updatable tells generatinok this it is possible to run Update()
@@ -41,12 +43,17 @@ type Indicator interface {
 	ValueAtIndex(index int) float64
 	Value() float64
 	Values() []float64
+	Update(values []float64)
+	GetDataType() OhlcValue
+	GetName() string
+	GetPeriod() int
 }
 
 //IndicatorStruct contains a default set of values
 type IndicatorStruct struct {
 	//ctx *genk.Context
-
+	name   string
+	period int
 	values []float64
 }
 
@@ -161,6 +168,14 @@ func DivSlice(slice []float64, n float64) []float64 {
 	return result
 }
 
+func (m IndicatorStruct) GetPeriod() int {
+	return m.period
+}
+
+func (m IndicatorStruct) GetName() string {
+	return m.name
+}
+
 func (m *IndicatorStruct) Shift() {
 	if len(m.values) > 1 {
 		m.values = m.values[1:]
@@ -176,7 +191,7 @@ func (m *IndicatorStruct) ValueAtIndex(index int) float64 {
 		"index":                  index,
 		"len":                    len(m.values),
 		"m.defaultValues[index]": m.values[index],
-	}).Debug("Geting default value")
+	}).Debug("GENERIC INDICATOR>ValueAtIndex()")
 	return m.values[index]
 }
 
