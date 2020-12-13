@@ -3,10 +3,31 @@
 The inspiration for this project took place after using a few other backtesting frameworks in Python. I was tired of waiting for results and concluded that I want the fast feeling of a compiled language and I also want to make use the multiple processor cores that often is available but rarely used.
 
 ## Design choices
-
-This is is really tricky for me and I have started over a few times. I backtest mostly on daily data so I have questioned is there even a need for a backtesting framwork, I could just work with an alternative for pandas. Is there then really a point for event driven, I can just approximate slippage and comissions, its not a big deal for my small trading. Going for event driven in the end came more from a point of being able to split the program up to run on multiple computers for performance reasons rather than a needs for realism (but implictly contributes to realism).
-
-Another choice coming from an object oriented background is the inheritance and encapsulation of data where things magically happens vs. seing a lot of float arrays and increasing counters yourself in the strategy. From the start I wanted as a simple approach as possible, i.e. working with float arrays inside the strategy but coming from the object oriented world I tend to complicate things that way.
+Going for event driven in the end came more from a point of being able to split the program up to run on multiple computers for performance reasons rather than a needs for realism (but implictly contributes to realism). Another choice was working with float arrays as arguments to all indicators to keep it as simple as possible.
 
 ## The Crossing MA example looks like this
+```golang
+type MACrossStrategy struct {
+	ma50       *indicators.SimpleMovingAverage
+	close      *indicators.TimeSeries
+	initPeriod int
+}
 
+func (m *MACrossStrategy) Setup(ctx *genk.Context) error {
+	m.close, e = ind.NewTimeSeries(ctx.AssetMap["AAPL"])
+	m.ma50, e = ind.NewSimpleMovingAverage(ctx.AssetMap["AAPL"], ind.Close, 5)
+	if e != nil {
+		return e
+	}
+	ctx.AddUpdatable(m.close, m.ma50)
+}
+
+func (m *MACrossStrategy) Tick(ctx *genk.Context) {
+	if m.ma50.ValueAtIndex(0) > m.close.ValueAtIndex(0) {
+		if !ctx.Position(ctx.AssetMap["ABB"]) {
+			MakeOrder(ctx, genk.OrderType(genk.Buy), ctx.AssetMap["ABB"], ctx.Time(), 1000)
+		}
+	}
+}
+
+There is also coded needed to create the strategy and run the backtest.
