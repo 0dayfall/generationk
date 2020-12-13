@@ -28,5 +28,6 @@ func (m *MACrossStrategy) Tick(ctx *genk.Context) {
 		}
 	}
 }
+```
 
 There is also coded needed to create the strategy and run the backtest.
