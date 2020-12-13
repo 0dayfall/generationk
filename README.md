@@ -1,5 +1,4 @@
 # generationk
-
 The inspiration for this project took place after using a few other backtesting frameworks in Python. I was tired of waiting for results and concluded that I want the fast feeling of a compiled language and I also want to make use the multiple processor cores that often is available but rarely used.
 
 ## Design choices
