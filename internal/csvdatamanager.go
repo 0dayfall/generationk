@@ -46,10 +46,27 @@ func NewCSVDataManager(ctx *Context) CSVDataManager {
 	return dm
 }
 
+func (d CSVDataManager) readCSVFilesAsync(files []string) {
+	for k := 0; k < len(files); k++ {
+		d.ReadCSVFileAsync(files[k])
+	}
+}
+
+//ReadFolderWithCSVFilesAsync is used to read a folder of files and put them on the queue to the strategy
+func (d CSVDataManager) ReadFolderWithCSVFilesAsync(folder string) {
+	//var heap OhlcHeap
+	files, err := filepath.Glob("*.csv")
+	if err != nil {
+		log.Fatal(err)
+	}
+	d.readCSVFilesAsync(files)
+}
+
 //ReadCSVFile reads a CSV file
-func (d *CSVDataManager) ReadCSVFile(file string) {
-	name := strings.TrimSuffix(filepath.Base(file), path.Ext(file))
+func (d CSVDataManager) readCSVFile(file string) []OHLC {
+
 	csvfile, err := os.Open(file)
+	defer csvfile.Close()
 
 	if err != nil {
 		log.Fatal(err)
@@ -57,8 +74,6 @@ func (d *CSVDataManager) ReadCSVFile(file string) {
 	log.WithFields(log.Fields{
 		"File name": file,
 	}).Debug("CSVDataManager> OPENED FILE")
-
-	defer csvfile.Close()
 
 	// Parse the file
 	r := csv.NewReader(csvfile)
@@ -84,12 +99,27 @@ func (d *CSVDataManager) ReadCSVFile(file string) {
 
 		ohlc := OHLC{Time: record1, Open: record2, High: record3, Low: record4, Close: record5, Volume: record6}
 		log.WithFields(log.Fields{
-			"Name": name,
-			"Ohlc": ohlc,
+			"Name of file": file,
+			"Ohlc":         ohlc,
 		}).Debug("DataEvent$ ")
 
-		d.dataChannel <- DataEvent{Name: name, Ohlc: ohlc}
 		s[i] = ohlc
 	}
+
+	return s
+}
+
+func (d CSVDataManager) putDataOnChannel(name string, ohlc []OHLC) {
+
+	for k := 0; k < len(ohlc); k++ {
+		d.dataChannel <- DataEvent{Name: name, Ohlc: ohlc[k]}
+	}
 	d.dataChannel <- Quit{}
+}
+
+//ReadCSVFileAsync is used to start a go thread
+func (d CSVDataManager) ReadCSVFileAsync(file string) {
+	ohlc := d.readCSVFile(file)
+	name := strings.TrimSuffix(filepath.Base(file), path.Ext(file))
+	go d.putDataOnChannel(name, ohlc)
 }

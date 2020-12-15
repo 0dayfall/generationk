@@ -1,6 +1,7 @@
-package generationk
+package strategy
 
 import (
+	"generationk"
 	"generationk/indicators"
 	ind "generationk/indicators"
 	genk "generationk/internal"
@@ -42,7 +43,7 @@ func (ma *MACrossStrategy) Tick(ctx *genk.Context) {
 
 	if ma.ma50.ValueAtIndex(0) > ma.close.ValueAtIndex(0) {
 		if !ctx.Position(ctx.AssetMap["ABB"]) {
-			MakeOrder(ctx, genk.OrderType(genk.Buy), ctx.AssetMap["ABB"], ctx.Time(), 1000)
+			generationk.MakeOrder(ctx, genk.OrderType(genk.Buy), ctx.AssetMap["ABB"], ctx.Time(), 1000)
 		}
 	}
 

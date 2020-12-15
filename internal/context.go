@@ -23,6 +23,7 @@ type Context struct {
 	datePointer       time.Time
 	eventChannel      chan Event
 	orderChannel      chan Event
+	period            int
 }
 
 //NewContext creates a new context
@@ -129,11 +130,21 @@ func (ctx *Context) AddStrategy(strategy *Strategy) {
 	ctx.Strategy = append(ctx.Strategy, *strategy)
 }
 
+func (ctx *Context) SetInitPeriod(period int) {
+	ctx.period = period
+}
+
+func (ctx Context) GetInitPeriod() int {
+	return ctx.period
+}
+
 //AddAsset is used to add assets that the strategy will use
 func (ctx *Context) AddAsset(asset *Asset) {
 	ctx.Asset = append(ctx.Asset, *asset)
 	ctx.AssetMap[asset.Name] = asset
+	ctx.AssetIndicatorMap[asset.Name] = nil
+
 	log.WithFields(log.Fields{
-		"Asset": asset,
-	}).Debug("Adding asset to context")
+		"Asset": asset.Name,
+	}).Debug("Asset added to context")
 }
