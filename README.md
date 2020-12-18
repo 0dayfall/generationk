@@ -12,19 +12,19 @@ type MACrossStrategy struct {
 	initPeriod int
 }
 
-func (m *MACrossStrategy) Setup(ctx *genk.Context) error {
-	m.close, e = ind.NewTimeSeries(ctx.AssetMap["AAPL"])
-	m.ma50, e = ind.NewSimpleMovingAverage(ctx.AssetMap["AAPL"], ind.Close, 5)
+func (m *MACrossStrategy) Setup(ctx *Context) error {
+	m.close, e = NewTimeSeries(ctx.AssetMap["AAPL"])
+	m.ma50, e = NewSimpleMovingAverage(ctx.AssetMap["AAPL"], Close, 5)
 	if e != nil {
 		return e
 	}
 	ctx.AddUpdatable(m.close, m.ma50)
 }
 
-func (m *MACrossStrategy) Tick(ctx *genk.Context) {
+func (m *MACrossStrategy) Tick(ctx *Context) {
 	if m.ma50.ValueAtIndex(0) > m.close.ValueAtIndex(0) {
 		if !ctx.Position(ctx.AssetMap["ABB"]) {
-			MakeOrder(ctx, genk.OrderType(genk.Buy), ctx.AssetMap["ABB"], ctx.Time(), 1000)
+			MakeOrder(ctx, OrderType(Buy), ctx.AssetMap["ABB"], ctx.Time(), 1000)
 		}
 	}
 }

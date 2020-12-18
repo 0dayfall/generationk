@@ -205,13 +205,13 @@ func (m *IndicatorStruct) ValueAttr(value string) {}
 //LargerThan the larger than operator
 func (m *IndicatorStruct) LargerThanValue(ind Indicator) bool {
 	fmt.Printf("Larger than Value is used\n")
-	return m.Value() > ind.Value()
+	return m.Value() > m.Value()
 }
 
 //LargerThanInd
 func (m *IndicatorStruct) LargerThanInd(ind Indicator) []bool {
-	result := make([]bool, len(ind.Values()))
-	for i, j := range ind.Values() {
+	result := make([]bool, len(m.Values()))
+	for i, j := range m.Values() {
 		result[i] = m.ValueAtIndex(i) > j
 	}
 	return result

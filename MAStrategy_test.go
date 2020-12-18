@@ -1,12 +1,12 @@
 package generationk
 
 import (
-	"generationk/indicators"
-	ind "generationk/indicators"
-	genk "generationk/internal"
 	"os"
 	"testing"
 	"time"
+
+	indicators "github.com/greenorangebay/generationk/indicators"
+	"github.com/shiena/ansicolor"
 
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
@@ -20,9 +20,9 @@ type MACrossStrategy struct {
 }
 
 //Setup is used to declare what indicators will be used
-func (ma MACrossStrategy) Setup(ctx *genk.Context) error {
-	ma.close = ind.NewTimeSeries(ind.Close, 5)
-	ma.ma50 = ind.NewSimpleMovingAverage(ind.Close, 7)
+func (ma MACrossStrategy) Setup(ctx *Context) error {
+	ma.close = indicators.NewTimeSeries(indicators.Close, 5)
+	ma.ma50 = indicators.NewSimpleMovingAverage(indicators.Close, 7)
 
 	ctx.AddIndicator(ma.close)
 	ctx.AddIndicator(ma.ma50)
@@ -32,41 +32,39 @@ func (ma MACrossStrategy) Setup(ctx *genk.Context) error {
 }
 
 //Update gets called when updates arrive
-func (ma *MACrossStrategy) Update(ctx *genk.Context) {
-
+func (ma *MACrossStrategy) Update(ctx *Context) {
 	ctx.K++
 }
 
 //Tick get called when there is new data coming in
-func (ma *MACrossStrategy) Tick(ctx *genk.Context) {
-
+func (ma *MACrossStrategy) Tick(ctx *Context) {
 	if ma.ma50.ValueAtIndex(0) > ma.close.ValueAtIndex(0) {
 		if !ctx.Position(ctx.AssetMap["ABB"]) {
-			MakeOrder(ctx, genk.OrderType(genk.Buy), ctx.AssetMap["ABB"], ctx.Time(), 1000)
+			MakeOrder(ctx, OrderType(Buy), ctx.AssetMap["ABB"], ctx.Time(), 1000)
 		}
 	}
 
 	if ma.ma50.ValueAtIndex(0) < ma.close.ValueAtIndex(0) {
-		MakeOrder(ctx, genk.OrderType(genk.Sell), ctx.AssetMap["ABB"], ctx.Time(), 1000)
+		MakeOrder(ctx, OrderType(Sell), ctx.AssetMap["ABB"], ctx.Time(), 1000)
 	}
 
 }
 
 //Orders get called when everything is updated
-func (ma *MACrossStrategy) OrderEvent(ctx *genk.Context) {
+func (ma *MACrossStrategy) OrderEvent(ctx *Context) {
 	log.Debug("MAStrategy_test> OrderEvent")
 }
 
 func TestRun(t *testing.T) {
 
 	logrus.SetFormatter(&logrus.TextFormatter{ForceColors: true})
-	//logrus.SetOutput(ansicolor.NewAnsiColorWriter(os.Stdout))
+	logrus.SetOutput(ansicolor.NewAnsiColorWriter(os.Stdout))
 
 	lvl, ok := os.LookupEnv("LOG_LEVEL")
 
 	// LOG_LEVEL not set, let's default to debug
 	if !ok {
-		lvl = "info"
+		lvl = "debug"
 	}
 	// parse string, this is built-in feature of logrus
 	ll, err := logrus.ParseLevel(lvl)
@@ -77,12 +75,12 @@ func TestRun(t *testing.T) {
 	logrus.SetLevel(ll)
 
 	//Context that the strategy is being run with such as assets
-	market := genk.NewContext()
-	market.AddAsset(genk.NewAsset("ABB", genk.OHLC{}))
+	market := NewContext()
+	market.AddAsset(NewAsset("ABB", OHLC{}))
 	//Going to run with the following data thingie to collect the data
-	dataManager := genk.NewCSVDataManager(market)
+	dataManager := NewCSVDataManager(market)
 	dataManager.ReadCSVFileAsync("test/data/ABB.csv")
-	strategy := genk.Strategy(&MACrossStrategy{})
+	strategy := Strategy(&MACrossStrategy{})
 	market.AddStrategy(&strategy)
 
 	now := time.Now()
@@ -93,5 +91,5 @@ func TestRun(t *testing.T) {
 	end := now.AddDate(0, -3, -2)
 	market.AddStartDate(end)
 
-	generationk.RunEventBased(market)
+	RunEventBased(market)
 }

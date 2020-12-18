@@ -1,4 +1,4 @@
-package internal
+package generationk
 
 //DataSource interface for getting data
 type DataSource interface {

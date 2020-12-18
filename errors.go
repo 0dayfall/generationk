@@ -1,5 +1,6 @@
-package indicators
+package generationk
 
+//IndicatorError Used to signal an error with an indicator
 type IndicatorError struct {
 	msg string
 	Err error

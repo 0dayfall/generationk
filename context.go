@@ -1,10 +1,9 @@
-package internal
+package generationk
 
 import (
 	"time"
 
-	ind "generationk/indicators"
-
+	indicators "github.com/greenorangebay/generationk/indicators"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -14,7 +13,7 @@ type Context struct {
 	Strategy          []Strategy
 	Asset             []Asset
 	AssetMap          map[string]*Asset
-	AssetIndicatorMap map[string][]*ind.Indicator
+	AssetIndicatorMap map[string][]*indicators.Indicator
 	StartDate         time.Time
 	EndDate           time.Time
 	Portfolio         Portfolio
@@ -34,7 +33,7 @@ func NewContext() *Context {
 	ctx := &Context{
 		Asset:             make([]Asset, 1),
 		AssetMap:          make(map[string]*Asset),
-		AssetIndicatorMap: make(map[string][]*ind.Indicator),
+		AssetIndicatorMap: make(map[string][]*indicators.Indicator),
 		eventChannel:      eventChannelc,
 		orderChannel:      orderChannel,
 		Portfolio:         portfolio,
@@ -51,10 +50,12 @@ func NewContext() *Context {
 	return ctx
 }
 
+//EventChannel return the channel for events
 func (ctx *Context) EventChannel() chan Event {
 	return ctx.eventChannel
 }
 
+//OrderChannel returns the channel for orders
 func (ctx *Context) OrderChannel() chan Event {
 	return ctx.orderChannel
 }
@@ -65,7 +66,7 @@ func (ctx *Context) Time() time.Time {
 }
 
 //IncOneDay is used to step time forward
-func (ctx *Context) IncOneDay() {
+/*func (ctx *Context) IncOneDay() {
 	old := ctx.datePointer
 	ctx.datePointer = ctx.datePointer.AddDate(0, 0, 1)
 	log.WithFields(log.Fields{
@@ -73,22 +74,22 @@ func (ctx *Context) IncOneDay() {
 		"new": ctx.datePointer,
 	}).Debug("New day")
 	ctx.shift()
-}
+}*/
 
 //AddIndicatorOnAsset will add an indicator on the asset
-func (ctx *Context) AddIndicatorOnAsset(asset *Asset, indicator *ind.Indicator) {
+func (ctx *Context) AddIndicatorOnAsset(asset *Asset, indicator *indicators.Indicator) {
 	ctx.AssetIndicatorMap[asset.Name] = append(ctx.AssetIndicatorMap[asset.Name], indicator)
 }
 
 //AddIndicator will add it to all assets
-func (ctx *Context) AddIndicator(indicator ind.Indicator) {
+func (ctx *Context) AddIndicator(indicator indicators.Indicator) {
 	for name, asset := range ctx.AssetMap {
 		ctx.AssetIndicatorMap[name] = append(ctx.AssetIndicatorMap[name], &indicator)
 		log.WithFields(log.Fields{
 			"ctx.AssetIndicatorMap[k]": indicator.GetName(),
 			"ctx.AssetMap":             asset.Name,
 		}).Debug("Adding indicator to asset")
-		if indicator.GetDataType() == ind.Close {
+		if indicator.GetDataType() == indicators.Close {
 			indicator.Update(ctx.AssetMap[name].CloseArray())
 		}
 	}
@@ -104,7 +105,7 @@ func (ctx *Context) Position(asset *Asset) bool {
 	return ctx.Portfolio.IsOwning(asset.Name)
 }
 
-func (ctx *Context) shift() {
+/*func (ctx *Context) shift() {
 	for i := range ctx.Asset {
 		numberOfShifts, _ := ctx.Asset[i].Shift(ctx.datePointer)
 		ctx.K += numberOfShifts
@@ -112,7 +113,7 @@ func (ctx *Context) shift() {
 	for _, element := range ctx.AssetMap {
 		element.Shift(ctx.datePointer)
 	}
-}
+}*/
 
 //AddEndDate is used to set the strategy that will be run
 func (ctx *Context) AddEndDate(endTime time.Time) {
@@ -130,10 +131,12 @@ func (ctx *Context) AddStrategy(strategy *Strategy) {
 	ctx.Strategy = append(ctx.Strategy, *strategy)
 }
 
+//SetInitPeriod is used to set the priod for which
 func (ctx *Context) SetInitPeriod(period int) {
 	ctx.period = period
 }
 
+//GetInitPeriod returns the period
 func (ctx Context) GetInitPeriod() int {
 	return ctx.period
 }

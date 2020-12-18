@@ -1,4 +1,4 @@
-package internal
+package generationk
 
 import (
 	"time"

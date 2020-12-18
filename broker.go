@@ -1,4 +1,4 @@
-package internal
+package generationk
 
 import (
 	"time"
@@ -6,20 +6,27 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//OrderType is used to describe an order
 type OrderType int
 
 const (
+	//Buy order
 	Buy OrderType = iota
+	//Sell order
 	Sell
+	//SellShort order
 	SellShort
+	//Cover short order
 	Cover
 )
 
+//Broker is used to send orders
 type Broker struct {
 	portfolio Portfolio
 	channel   chan Event
 }
 
+//PlaceOrder is used to place an order with the broker
 func (b *Broker) PlaceOrder(order Order) {
 	log.WithFields(log.Fields{
 		"ordertype": order.Ordertype,

@@ -1,4 +1,4 @@
-package internal
+package generationk
 
 //Updateable takes new data into account
 type Updateable interface {

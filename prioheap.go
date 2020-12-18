@@ -1,4 +1,4 @@
-package internal
+package generationk
 
 // An OhlcHeap is a min-heap of ints.
 type OhlcHeap []OHLC

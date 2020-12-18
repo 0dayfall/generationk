@@ -1,7 +1,6 @@
-package internal
+package generationk
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -42,22 +41,6 @@ type OHLC struct {
 	Volume                 int
 }
 
-type EndOfDataError struct {
-	Description string
-}
-
-func (e *EndOfDataError) Error() string {
-	return fmt.Sprintf("End of data: %s", e.Description)
-}
-
-type DataNotInCombatZone struct {
-	Description string
-}
-
-func (e *DataNotInCombatZone) Error() string {
-	return fmt.Sprintf("DataNotInCombatZone: %s", e.Description)
-}
-
 func dateEqual(date1, date2 time.Time) bool {
 	y1, m1, d1 := date1.Date()
 	//fmt.Printf("date1 %v", date1)
@@ -86,14 +69,14 @@ func (a *Asset) Update(ohlc OHLC) {
 
 }
 
-func (a *Asset) Shift(time time.Time) (int, error) {
+/*func (a *Asset) Shift(time time.Time) (int, error) {
 	var i int
 	for ok := true; ok; ok = a.Ohlc[0].Time.Before(time) && len(a.Ohlc) > 0 {
 		a.Ohlc = a.Ohlc[1:]
 		i++
 	}
 	return i, nil
-}
+}*/
 
 //CloseArray is used to get the close series
 func (a *Asset) CloseArray() []float64 {

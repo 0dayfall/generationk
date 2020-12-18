@@ -1,4 +1,4 @@
-package internal
+package generationk
 
 import (
 	"time"
@@ -11,11 +11,13 @@ type Event interface {
 	Handle()
 }
 
+//DataEvent is for sending data
 type DataEvent struct {
 	Name string
 	Ohlc OHLC
 }
 
+//Handle iM not sure what it si used for
 func (d DataEvent) Handle() {
 	log.WithFields(log.Fields{
 		"Name": d.Name,
@@ -23,6 +25,7 @@ func (d DataEvent) Handle() {
 	}).Debug("DataEvent$ ")
 }
 
+//Order describes an order
 type Order struct {
 	Ordertype OrderType
 	Asset     *Asset
@@ -63,7 +66,7 @@ type Data struct{}
 
 func (d Data) Handle() {}
 
-//Fill event type
+//Quit event type
 type Quit struct{}
 
 func (q Quit) Handle() {}

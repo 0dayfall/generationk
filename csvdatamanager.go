@@ -1,4 +1,4 @@
-package internal
+package generationk
 
 import (
 	"encoding/csv"
@@ -29,7 +29,9 @@ func (d *CSVDataManager) getLatestData() float64 {
 func parseFloat(value string) float64 {
 	floatValue, err := strconv.ParseFloat(value, 64)
 	if err != nil {
-		log.Printf("Was not possible to parse float: %s", value)
+		log.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Error("Error parsing float")
 		return 0.0
 	}
 	return floatValue
@@ -80,7 +82,9 @@ func (d CSVDataManager) readCSVFile(file string) []OHLC {
 	records, err := r.ReadAll()
 
 	if err != nil && err != io.EOF {
-		log.Error("Was not possible to read the file %s", err)
+		log.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Error("Was not possible to read the file")
 	}
 
 	s := make([]OHLC, len(records))
@@ -94,7 +98,9 @@ func (d CSVDataManager) readCSVFile(file string) []OHLC {
 		record6, err := strconv.Atoi(record[6])
 
 		if err != nil {
-			log.Error("Was not possible to parse the format on  line %d, %s", i, err)
+			log.WithFields(log.Fields{
+				"error": err.Error(),
+			}).Error("Error in parsing CSV file")
 		}
 
 		ohlc := OHLC{Time: record1, Open: record2, High: record3, Low: record4, Close: record5, Volume: record6}
@@ -117,9 +123,13 @@ func (d CSVDataManager) putDataOnChannel(name string, ohlc []OHLC) {
 	d.dataChannel <- Quit{}
 }
 
-//ReadCSVFileAsync is used to start a go thread
-func (d CSVDataManager) ReadCSVFileAsync(file string) {
+func (d CSVDataManager) read(file string) {
 	ohlc := d.readCSVFile(file)
 	name := strings.TrimSuffix(filepath.Base(file), path.Ext(file))
-	go d.putDataOnChannel(name, ohlc)
+	d.putDataOnChannel(name, ohlc)
+}
+
+//ReadCSVFileAsync is used to start a go thread
+func (d CSVDataManager) ReadCSVFileAsync(file string) {
+	go d.read(file)
 }
