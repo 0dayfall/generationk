@@ -1,6 +1,7 @@
 package generationk
 
 import (
+	"fmt"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -8,7 +9,7 @@ import (
 
 //Event type
 type Event interface {
-	Handle()
+	String() string
 }
 
 //DataEvent is for sending data
@@ -18,11 +19,12 @@ type DataEvent struct {
 }
 
 //Handle iM not sure what it si used for
-func (d DataEvent) Handle() {
+func (d DataEvent) String() string {
 	log.WithFields(log.Fields{
 		"Name": d.Name,
 		"Ohlc": d.Ohlc,
 	}).Debug("DataEvent$ ")
+	return fmt.Sprintf("$DATAEVENT %s", d.Name)
 }
 
 //Order describes an order
@@ -34,7 +36,31 @@ type Order struct {
 	Qty       int
 }
 
-func (o Order) Handle() {}
+func (o Order) String() string {
+	return fmt.Sprintf("$ORDER %v %v %f %d", o.Ordertype, o.Time, o.Amount, o.Qty)
+}
+
+//Accepted is a status of the order
+type Accepted struct {
+}
+
+func (a Accepted) String() string {
+	return "$ACCEPTED"
+}
+
+type Submitted struct {
+}
+
+func (s Submitted) String() string {
+	return "$SUBMITTED"
+}
+
+type PartialFill struct {
+}
+
+func (pf PartialFill) String() string {
+	return "$PARTIALFILL"
+}
 
 type Fill struct {
 	Qty       int
@@ -43,45 +69,51 @@ type Fill struct {
 	Time      time.Time
 }
 
-func (f Fill) Handle() {}
-
-func (f Fill) String() {
+func (f Fill) String() string {
 	log.WithFields(log.Fields{
 		"Qty":       f.Qty,
 		"Price":     f.Price,
 		"AssetName": f.AssetName,
 		"Time":      f.Time,
 	}).Debug("Fill$")
+	return fmt.Sprintf("%d %f %s %v", f.Qty, f.Price, f.AssetName, f.Time)
 }
 
 type Rejected struct {
 	message string
 }
 
-func (r Rejected) Handle() {}
-
-func (r Rejected) String() {
+func (r Rejected) String() string {
 	log.WithFields(log.Fields{
 		"Message": r.message,
-	}).Debug("Fill$")
+	}).Debug("REJECTED$")
+	return "$REJECTED"
 }
 
 //Tick event type
 type Tick struct{}
 
-func (t Tick) Handle() {}
+func (t Tick) String() string {
+	return "$TICK"
+}
 
 //Signal event type
 type Signal struct{}
 
-func (s Signal) Handle() {}
+func (s Signal) String() string {
+	return "$SIGNAL"
+}
 
 //Data event type
 type Data struct{}
 
-func (d Data) Handle() {}
+func (d Data) String() string {
+	return "$DATA"
+}
 
 //Quit event type
 type Quit struct{}
 
-func (q Quit) Handle() {}
+func (q Quit) String() string {
+	return "$QUIT"
+}

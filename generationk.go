@@ -9,7 +9,8 @@ import (
 )
 
 func MakeOrder(ctx *Context, ordertype OrderType, asset *Asset, time time.Time, amount float64) {
-	go makeOrder(ctx, ordertype, asset, time, amount)
+	log.Debug("GENERATIONK>makeOrder()")
+	makeOrder(ctx, ordertype, asset, time, amount)
 }
 
 func makeOrder(ctx *Context, ordertype OrderType, asset *Asset, time time.Time, amount float64) {
@@ -25,7 +26,6 @@ func makeOrder(ctx *Context, ordertype OrderType, asset *Asset, time time.Time, 
 		Time:      time,
 		Amount:    amount,
 	}
-
 }
 
 func RunEventBased(ctx *Context) {
@@ -41,38 +41,69 @@ func run(ctx *Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 	var o sync.Once
 	for {
-		log.Debug("GENERATIONK> MAIN LOOP")
-		log.WithFields(log.Fields{
-			"Number of items": len(ctx.OrderChannel()),
-		}).Debug("GENERATIONK>ORDER CHANNEL")
 		select {
 		case orderEvent := <-ctx.OrderChannel():
+			log.WithFields(log.Fields{
+				"Number of items": len(ctx.OrderChannel()),
+			}).Debug("GENERATIONK>ORDER EVENT PICKED OFF QUEUE")
+
 			switch orderEvent.(type) {
 
 			case Order:
-				log.Debug("GENERATIONK>ORDERCHANNEL> ORDER EVENT PICKED OFF QUEUE")
+				log.Debug("GENERATIONK>ORDERCHANNEL>ORDER> EVENT PICKED OFF QUEUE")
+				//				go func() {
+				log.Debug("GENERATIONK>ORDERCHANNEL>ORDER>PUTING SUBMITTED ON QUEUE")
+				ctx.OrderChannel() <- Submitted{}
+				//				}()
 				ctx.Broker.PlaceOrder(orderEvent.(Order))
+			case Submitted:
+				log.Debug("GENERATIONK>ORDERCHANNEL>SUBMIT> EVENT PICKED OFF QUEUE")
+
+				//for i := range ctx.Strategy {
+				ctx.Strategy[0].OrderEvent(orderEvent)
+				//}
+
+			case Accepted:
+				log.Debug("GENERATIONK>ORDERCHANNEL>ACCEPT> EVENT PICKED OFF QUEUE")
+
+				//for i := range ctx.Strategy {
+				ctx.Strategy[0].OrderEvent(orderEvent)
+				//}
+
+			case PartialFill:
+				log.Debug("GENERATIONK>ORDERCHANNEL>PARTIALFILL> EVENT PICKED OFF QUEUE")
+
+				//for i := range ctx.Strategy {
+				ctx.Strategy[0].OrderEvent(orderEvent)
+				//}
 
 			case Fill:
-				log.Debug("GENERATIONK>ORDERCHANNEL> FILL EVENT PICKED OFF QUEUE")
-				//ctx.Portfolio.Fill(orderEvent.(Fill))
-				log.Debug("GENERATIONK>ORDERCHANNEL> GIVING NOTICE TO STRATEGY")
-				for i := range ctx.Strategy {
-					ctx.Strategy[i].OrderEvent(ctx)
-				}
+				log.Debug("GENERATIONK>ORDERCHANNEL>FILL> EVENT PICKED OFF QUEUE")
 
+				//for i := range ctx.Strategy {
+				ctx.Strategy[0].OrderEvent(orderEvent)
+				//}
+
+			case Rejected:
+				log.Debug("GENERATIONK>ORDERCHANNEL>REJECTED> EVENT PICKED OFF QUEUE")
+
+				//for i := range ctx.Strategy {
+				ctx.Strategy[0].OrderEvent(orderEvent)
+				//}
 			default:
 				log.WithFields(log.Fields{
 					"event": orderEvent,
-				}).Debug("GENERATIONK>ORDERCHANNEL> DEFAULT")
+				}).Debug("GENERATIONK>ORDERCHANNEL> DEFAULTS - ORDERCHANNEL EMPTY")
 			}
 		default:
-			log.Debug("GENERATIONK>ORDERCHANNEL> EMPTY")
-			log.WithFields(log.Fields{
-				"Number of items": len(ctx.EventChannel()),
-			}).Debug("GENERATIONK>EVENTCHANNEL>")
+
 			select {
 			case event := <-ctx.EventChannel():
+
+				log.WithFields(log.Fields{
+					"Number of items": len(ctx.EventChannel()),
+				}).Debug("GENERATIONK>DATA EVENT PICKED OFF QUEUE")
+
 				switch event.(type) {
 				case Tick:
 
@@ -84,7 +115,6 @@ func run(ctx *Context, wg *sync.WaitGroup) {
 					}
 
 				case DataEvent:
-					log.Debug("GENERATIONK>EVENTCHANNEL> DATAEVENT EVENT PICKED OFF QUEUE")
 
 					if ctx.EndDate.After(event.(DataEvent).Ohlc.Time) {
 						log.Debug("GENERATIONK>EVENTCHANNEL> Ohlc.Time is after the back test end date")
@@ -92,23 +122,18 @@ func run(ctx *Context, wg *sync.WaitGroup) {
 						break
 					}
 					ctx.K++
+
 					//Add data to asset
 					if _, ok := ctx.AssetMap[event.(DataEvent).Name]; !ok {
 						log.Debug("GENERATIONK>EVENTCHANNEL>DATAEVENT> CREATING ASSET AND ADDING TO MAP")
-						//var asset Asset
-						//asset.Name = event.(DataEvent).Name
-						//asset.Update(event.(DataEvent).Ohlc)
 						asset := NewAsset(event.(DataEvent).Name, event.(DataEvent).Ohlc)
-						//asset.Ohlc = append(asset.Ohlc, )
 						ctx.AssetMap[event.(DataEvent).Name] = asset
-
-						//resize(ctx.AssetMap[event.(DataEvent).Name].Ohlc, ctx.Strategy[0].GetInitPeriod())
 					}
 
 					log.WithFields(log.Fields{
 						"(DataEvent).Name": event.(DataEvent).Name,
 					}).Debug("GENERATIONK>EVENTCHANNEL>DATAEVENT> EXISTS IN MAP")
-					//do something here
+
 					//ctx.AssetMap[event.(DataEvent).Name].Ohlc = prepend(ctx.AssetMap[event.(DataEvent).Name].Ohlc, event.(DataEvent).Ohlc)
 					ctx.AssetMap[event.(DataEvent).Name].Update(event.(DataEvent).Ohlc)
 
@@ -120,9 +145,7 @@ func run(ctx *Context, wg *sync.WaitGroup) {
 							"strategy": ctx.Strategy[0],
 						}).Debug("Strategy")
 					})
-					log.WithFields(log.Fields{
-						"strategy": ctx.Strategy[0],
-					}).Debug("Strategy")
+
 					//Run setup after initperiod is finished
 					if ctx.K < ctx.GetInitPeriod() {
 
@@ -136,10 +159,6 @@ func run(ctx *Context, wg *sync.WaitGroup) {
 
 						log.Debug("GENERATIONK>EVENTCHANNEL> Leting strategy know")
 						ctx.Strategy[0].Tick(ctx)
-						for i := range ctx.Strategy {
-							//ctx.Strategy[i].Update(ctx)
-							ctx.Strategy[i].Tick(ctx)
-						}
 					}
 				case Quit:
 					log.Debug("GENERATIONK>EVENTCHANNEL> QUIT EVENT PICKED OFF QUEUE")

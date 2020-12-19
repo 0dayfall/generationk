@@ -9,5 +9,5 @@ type Updateable interface {
 type Strategy interface {
 	Setup(ctx *Context) error
 	Tick(ctx *Context)
-	OrderEvent(ctx *Context)
+	OrderEvent(orderEvent Event)
 }

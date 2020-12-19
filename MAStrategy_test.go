@@ -48,8 +48,10 @@ func (ma *MACrossStrategy) Tick(ctx *Context) {
 }
 
 //Orders get called when everything is updated
-func (ma *MACrossStrategy) OrderEvent(ctx *Context) {
-	log.Debug("MAStrategy_test> OrderEvent")
+func (ma *MACrossStrategy) OrderEvent(orderEvent Event) {
+	log.WithFields(log.Fields{
+		"orderEvent": orderEvent,
+	}).Debug("MAStrategy_test> OrderEvent")
 }
 
 func TestRun(t *testing.T) {

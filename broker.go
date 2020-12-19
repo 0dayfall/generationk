@@ -53,6 +53,20 @@ func getQtyForAmount(order Order) int {
 	return int(order.Amount / order.Asset.Close())
 }
 
+func (b Broker) accepted(order Order) {
+	log.WithFields(log.Fields{
+		"Order": order,
+	}).Info("BROKER> ACCEPTED")
+	b.channel <- Accepted{}
+}
+
+func (b Broker) rejected(order Order) {
+	log.WithFields(log.Fields{
+		"Order": order,
+	}).Info("BROKER> REJECTED")
+	b.channel <- Rejected{message: "Insufficient funds"}
+}
+
 func (b *Broker) buy(order Order) {
 	log.WithFields(log.Fields{
 		"Order": order,
@@ -60,9 +74,11 @@ func (b *Broker) buy(order Order) {
 	if order.Qty > 0 {
 		err := b.portfolio.updateCash(getAmountForQty(order))
 		if err != nil {
-			b.channel <- Rejected{message: "Insufficient funds"}
+			b.rejected(order)
+			return
 		}
 	}
+	//b.accepted(order)
 	b.portfolio.AddHolding(Holding{Qty: order.Qty, AssetName: order.Asset.Name, Price: order.Asset.Close(), Time: order.Time})
 	b.channel <- Fill{Qty: order.Qty, AssetName: order.Asset.Name, Price: order.Asset.Close(), Time: order.Time}
 	log.Info("BROKER> Put FILL EVENT in queue")
