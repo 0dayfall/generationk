@@ -31,12 +31,14 @@ type Order struct {
 	Asset     *Asset
 	Time      time.Time
 	Amount    float64
+	Qty       int
 }
 
 func (o Order) Handle() {}
 
 type Fill struct {
 	Qty       int
+	Price     float64
 	AssetName string
 	Time      time.Time
 }
@@ -46,8 +48,21 @@ func (f Fill) Handle() {}
 func (f Fill) String() {
 	log.WithFields(log.Fields{
 		"Qty":       f.Qty,
+		"Price":     f.Price,
 		"AssetName": f.AssetName,
 		"Time":      f.Time,
+	}).Debug("Fill$")
+}
+
+type Rejected struct {
+	message string
+}
+
+func (r Rejected) Handle() {}
+
+func (r Rejected) String() {
+	log.WithFields(log.Fields{
+		"Message": r.message,
 	}).Debug("Fill$")
 }
 

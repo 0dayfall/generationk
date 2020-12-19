@@ -134,10 +134,16 @@ func (ctx *Context) AddStrategy(strategy *Strategy) {
 //SetInitPeriod is used to set the priod for which
 func (ctx *Context) SetInitPeriod(period int) {
 	ctx.period = period
+	log.WithFields(log.Fields{
+		"period": ctx.period,
+	}).Debug("Setting the init period")
 }
 
 //GetInitPeriod returns the period
 func (ctx Context) GetInitPeriod() int {
+	log.WithFields(log.Fields{
+		"period": ctx.period,
+	}).Debug("Returning the init period")
 	return ctx.period
 }
 

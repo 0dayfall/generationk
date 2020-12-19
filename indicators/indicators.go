@@ -182,11 +182,11 @@ func (m *IndicatorStruct) Shift() {
 	}
 }
 
-func (m *IndicatorStruct) Value() float64 {
+func (m IndicatorStruct) Value() float64 {
 	return m.values[0]
 }
 
-func (m *IndicatorStruct) ValueAtIndex(index int) float64 {
+func (m IndicatorStruct) ValueAtIndex(index int) float64 {
 	log.WithFields(log.Fields{
 		"index":                  index,
 		"len":                    len(m.values),
@@ -195,7 +195,7 @@ func (m *IndicatorStruct) ValueAtIndex(index int) float64 {
 	return m.values[index]
 }
 
-func (m *IndicatorStruct) Values() []float64 {
+func (m IndicatorStruct) Values() []float64 {
 	return m.values
 }
 
@@ -203,13 +203,13 @@ func (m *IndicatorStruct) Values() []float64 {
 func (m *IndicatorStruct) ValueAttr(value string) {}
 
 //LargerThan the larger than operator
-func (m *IndicatorStruct) LargerThanValue(ind Indicator) bool {
+func (m IndicatorStruct) LargerThanValue(ind Indicator) bool {
 	fmt.Printf("Larger than Value is used\n")
 	return m.Value() > m.Value()
 }
 
 //LargerThanInd
-func (m *IndicatorStruct) LargerThanInd(ind Indicator) []bool {
+func (m IndicatorStruct) LargerThanInd(ind Indicator) []bool {
 	result := make([]bool, len(m.Values()))
 	for i, j := range m.Values() {
 		result[i] = m.ValueAtIndex(i) > j

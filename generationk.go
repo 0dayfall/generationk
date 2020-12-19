@@ -9,6 +9,10 @@ import (
 )
 
 func MakeOrder(ctx *Context, ordertype OrderType, asset *Asset, time time.Time, amount float64) {
+	go makeOrder(ctx, ordertype, asset, time, amount)
+}
+
+func makeOrder(ctx *Context, ordertype OrderType, asset *Asset, time time.Time, amount float64) {
 	log.WithFields(log.Fields{
 		"Asset":  asset.Name,
 		"Time":   time,
@@ -51,7 +55,7 @@ func run(ctx *Context, wg *sync.WaitGroup) {
 
 			case Fill:
 				log.Debug("GENERATIONK>ORDERCHANNEL> FILL EVENT PICKED OFF QUEUE")
-				ctx.Portfolio.Fill(orderEvent.(Fill))
+				//ctx.Portfolio.Fill(orderEvent.(Fill))
 				log.Debug("GENERATIONK>ORDERCHANNEL> GIVING NOTICE TO STRATEGY")
 				for i := range ctx.Strategy {
 					ctx.Strategy[i].OrderEvent(ctx)
@@ -60,9 +64,7 @@ func run(ctx *Context, wg *sync.WaitGroup) {
 			default:
 				log.WithFields(log.Fields{
 					"event": orderEvent,
-				}).Debug("GENERATIONK>ORDERCHANNEL> UNKNOWN EVENT")
-				fmt.Printf("%s", orderEvent)
-
+				}).Debug("GENERATIONK>ORDERCHANNEL> DEFAULT")
 			}
 		default:
 			log.Debug("GENERATIONK>ORDERCHANNEL> EMPTY")
@@ -114,7 +116,13 @@ func run(ctx *Context, wg *sync.WaitGroup) {
 					o.Do(func() {
 						log.Debug("GENERATIONK>RUN ONCE")
 						ctx.Strategy[0].Setup(ctx)
+						log.WithFields(log.Fields{
+							"strategy": ctx.Strategy[0],
+						}).Debug("Strategy")
 					})
+					log.WithFields(log.Fields{
+						"strategy": ctx.Strategy[0],
+					}).Debug("Strategy")
 					//Run setup after initperiod is finished
 					if ctx.K < ctx.GetInitPeriod() {
 
@@ -127,14 +135,13 @@ func run(ctx *Context, wg *sync.WaitGroup) {
 						updateIndicators(ctx, event.(DataEvent))
 
 						log.Debug("GENERATIONK>EVENTCHANNEL> Leting strategy know")
+						ctx.Strategy[0].Tick(ctx)
 						for i := range ctx.Strategy {
 							//ctx.Strategy[i].Update(ctx)
 							ctx.Strategy[i].Tick(ctx)
 						}
-
 					}
 				case Quit:
-
 					log.Debug("GENERATIONK>EVENTCHANNEL> QUIT EVENT PICKED OFF QUEUE")
 					close(ctx.OrderChannel())
 					close(ctx.EventChannel())

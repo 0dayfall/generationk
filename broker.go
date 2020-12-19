@@ -1,8 +1,6 @@
 package generationk
 
 import (
-	"time"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -34,22 +32,58 @@ func (b *Broker) PlaceOrder(order Order) {
 		"time":      order.Time,
 		"amount":    order.Amount,
 	}).Debug("BROKER>PLACE BUY ORDER")
-	if order.Ordertype == Buy {
-		b.buy(order.Asset, order.Time, order.Amount)
+
+	switch order.Ordertype {
+	case Buy:
+		go b.buy(order)
+	case Sell:
+		go b.sell(order)
+	case SellShort:
+		go b.sellshort(order)
+	case Cover:
+		go b.cover(order)
 	}
 }
 
-func (b *Broker) buy(asset *Asset, time time.Time, amount float64) {
-	//How many are we buying
-	qty := int(amount / asset.Close())
-	//b.portfolio.Add(*pos)
+func getAmountForQty(order Order) float64 {
+	return order.Asset.Close() * float64(order.Qty)
+}
+
+func getQtyForAmount(order Order) int {
+	return int(order.Amount / order.Asset.Close())
+}
+
+func (b *Broker) buy(order Order) {
 	log.WithFields(log.Fields{
-		"Amount": amount,
-	}).Info("BROKER> FILLED")
-	b.channel <- Fill{Qty: qty, AssetName: (*asset).Name, Time: time}
+		"Order": order,
+	}).Info("BROKER> BUY")
+	if order.Qty > 0 {
+		err := b.portfolio.updateCash(getAmountForQty(order))
+		if err != nil {
+			b.channel <- Rejected{message: "Insufficient funds"}
+		}
+	}
+	b.portfolio.AddHolding(Holding{Qty: order.Qty, AssetName: order.Asset.Name, Price: order.Asset.Close(), Time: order.Time})
+	b.channel <- Fill{Qty: order.Qty, AssetName: order.Asset.Name, Price: order.Asset.Close(), Time: order.Time}
 	log.Info("BROKER> Put FILL EVENT in queue")
 }
 
-func (b *Broker) sell(asset *Asset, amount int) {
+func (b *Broker) sell(order Order) {
+	log.WithFields(log.Fields{
+		"Order": order,
+	}).Info("BROKER> SELL")
+	b.channel <- Fill{Qty: order.Qty, AssetName: order.Asset.Name, Price: order.Asset.Close(), Time: order.Time}
+	log.Info("BROKER> Put FILL EVENT in queue")
+}
 
+func (b *Broker) sellshort(order Order) {
+	log.WithFields(log.Fields{
+		"Order": order,
+	}).Info("BROKER> SELLSHORT")
+}
+
+func (b *Broker) cover(order Order) {
+	log.WithFields(log.Fields{
+		"Order": order,
+	}).Info("BROKER> COVER")
 }

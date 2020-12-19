@@ -1,6 +1,7 @@
 package generationk
 
 import (
+	"errors"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -21,6 +22,7 @@ type Portfolio struct {
 type Holding struct {
 	Qty       int
 	AssetName string
+	Price     float64
 	Time      time.Time
 }
 
@@ -35,7 +37,21 @@ func (p Portfolio) IsOwning(assetName string) bool {
 }
 
 func (p *Portfolio) Fill(fill Fill) {
-	p.AddHolding(Holding{Qty: fill.Qty, AssetName: fill.AssetName, Time: fill.Time})
+
+	go p.AddHolding(Holding{Qty: fill.Qty, Price: fill.Price, AssetName: fill.AssetName, Time: fill.Time})
+}
+
+func (p *Portfolio) SellHolding(position Holding) {
+	log.WithFields(log.Fields{
+		"asset": position.AssetName,
+		"time":  position.Time,
+		"price": position.Price,
+		"qty":   position.Qty,
+	}).Debug("PORTFOLIO> Adding position to portfolio")
+	if p.Holdings != nil {
+		p.Holdings = append(p.Holdings, position)
+	}
+	p.updateCash(+float64(position.Qty) * position.Price)
 }
 
 func (p *Portfolio) AddHolding(position Holding) {
@@ -47,12 +63,22 @@ func (p *Portfolio) AddHolding(position Holding) {
 	if p.Holdings != nil {
 		p.Holdings = append(p.Holdings, position)
 	}
+	p.updateCash(-float64(position.Qty) * position.Price)
+}
+
+func (p *Portfolio) updateCash(cost float64) error {
+	balance := p.cash + cost
+	if balance < 0 {
+		return errors.New("Balance < 0")
+	}
+	p.cash = balance
+	return nil
 }
 
 func (p *Portfolio) SetCash(amount float64) {
 	p.cash = amount
 }
 
-func (p *Portfolio) GetCash() float64 {
+func (p Portfolio) GetCash() float64 {
 	return p.cash
 }

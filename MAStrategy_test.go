@@ -20,13 +20,13 @@ type MACrossStrategy struct {
 }
 
 //Setup is used to declare what indicators will be used
-func (ma MACrossStrategy) Setup(ctx *Context) error {
+func (ma *MACrossStrategy) Setup(ctx *Context) error {
 	ma.close = indicators.NewTimeSeries(indicators.Close, 5)
-	ma.ma50 = indicators.NewSimpleMovingAverage(indicators.Close, 7)
+	ma.ma50 = indicators.NewSimpleMovingAverage(indicators.Close, 9)
 
 	ctx.AddIndicator(ma.close)
 	ctx.AddIndicator(ma.ma50)
-	ctx.SetInitPeriod(7)
+	ctx.SetInitPeriod(9)
 
 	return nil
 }
@@ -38,14 +38,11 @@ func (ma *MACrossStrategy) Update(ctx *Context) {
 
 //Tick get called when there is new data coming in
 func (ma *MACrossStrategy) Tick(ctx *Context) {
+
 	if ma.ma50.ValueAtIndex(0) > ma.close.ValueAtIndex(0) {
 		if !ctx.Position(ctx.AssetMap["ABB"]) {
 			MakeOrder(ctx, OrderType(Buy), ctx.AssetMap["ABB"], ctx.Time(), 1000)
 		}
-	}
-
-	if ma.ma50.ValueAtIndex(0) < ma.close.ValueAtIndex(0) {
-		MakeOrder(ctx, OrderType(Sell), ctx.AssetMap["ABB"], ctx.Time(), 1000)
 	}
 
 }
