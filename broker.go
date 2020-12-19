@@ -18,14 +18,22 @@ const (
 	Cover
 )
 
+//OrderStatus is a callback interface used to recieve information about orders
+type OrderStatus interface {
+	OrderEvent(orderEvent Event)
+}
+
 //Broker is used to send orders
 type Broker struct {
 	portfolio Portfolio
 	channel   chan Event
+	callback  OrderStatus
 }
 
 //PlaceOrder is used to place an order with the broker
-func (b *Broker) PlaceOrder(order Order) {
+func (b *Broker) PlaceOrder(order Order, orderstatus OrderStatus) {
+	b.callback = orderstatus
+
 	log.WithFields(log.Fields{
 		"ordertype": order.Ordertype,
 		"asset":     (*order.Asset).Name,
@@ -35,13 +43,13 @@ func (b *Broker) PlaceOrder(order Order) {
 
 	switch order.Ordertype {
 	case Buy:
-		go b.buy(order)
+		b.buy(order)
 	case Sell:
-		go b.sell(order)
+		b.sell(order)
 	case SellShort:
-		go b.sellshort(order)
+		b.sellshort(order)
 	case Cover:
-		go b.cover(order)
+		b.cover(order)
 	}
 }
 
@@ -57,14 +65,14 @@ func (b Broker) accepted(order Order) {
 	log.WithFields(log.Fields{
 		"Order": order,
 	}).Info("BROKER> ACCEPTED")
-	b.channel <- Accepted{}
+	b.callback.OrderEvent(Accepted{})
 }
 
 func (b Broker) rejected(order Order) {
 	log.WithFields(log.Fields{
 		"Order": order,
 	}).Info("BROKER> REJECTED")
-	b.channel <- Rejected{message: "Insufficient funds"}
+	b.callback.OrderEvent(Rejected{message: "Insufficient funds"})
 }
 
 func (b *Broker) buy(order Order) {
@@ -78,9 +86,21 @@ func (b *Broker) buy(order Order) {
 			return
 		}
 	}
-	//b.accepted(order)
+	if order.Amount > 0.0 {
+		err := b.portfolio.updateCash(order.Amount)
+		if err != nil {
+			b.rejected(order)
+			return
+		}
+		qty := getQtyForAmount(order)
+		order.Qty = qty
+	}
+
+	b.accepted(order)
 	b.portfolio.AddHolding(Holding{Qty: order.Qty, AssetName: order.Asset.Name, Price: order.Asset.Close(), Time: order.Time})
-	b.channel <- Fill{Qty: order.Qty, AssetName: order.Asset.Name, Price: order.Asset.Close(), Time: order.Time}
+	log.Info("Calling the order event")
+	b.callback.OrderEvent(Fill{Qty: order.Qty, AssetName: order.Asset.Name, Price: order.Asset.Close(), Time: order.Time})
+	log.Info("Coming back after it")
 	log.Info("BROKER> Put FILL EVENT in queue")
 }
 
@@ -88,7 +108,7 @@ func (b *Broker) sell(order Order) {
 	log.WithFields(log.Fields{
 		"Order": order,
 	}).Info("BROKER> SELL")
-	b.channel <- Fill{Qty: order.Qty, AssetName: order.Asset.Name, Price: order.Asset.Close(), Time: order.Time}
+	b.callback.OrderEvent(Fill{Qty: order.Qty, AssetName: order.Asset.Name, Price: order.Asset.Close(), Time: order.Time})
 	log.Info("BROKER> Put FILL EVENT in queue")
 }
 

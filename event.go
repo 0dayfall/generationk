@@ -70,12 +70,12 @@ type Fill struct {
 }
 
 func (f Fill) String() string {
-	log.WithFields(log.Fields{
+	/*log.WithFields(log.Fields{
 		"Qty":       f.Qty,
 		"Price":     f.Price,
 		"AssetName": f.AssetName,
 		"Time":      f.Time,
-	}).Debug("Fill$")
+	}).Debug("Fill$")*/
 	return fmt.Sprintf("%d %f %s %v", f.Qty, f.Price, f.AssetName, f.Time)
 }
 

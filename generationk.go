@@ -20,12 +20,18 @@ func makeOrder(ctx *Context, ordertype OrderType, asset *Asset, time time.Time, 
 		"Amount": amount,
 	}).Info("GENERATIONK>MAKE ORDER>")
 
-	ctx.OrderChannel() <- Order{
-		Ordertype: ordertype,
-		Asset:     asset,
-		Time:      time,
-		Amount:    amount,
-	}
+	orderStatus, _ := interface{}(ctx.Strategy[0]).(OrderStatus)
+
+	ctx.Broker.PlaceOrder(
+		Order{
+			Ordertype: ordertype,
+			Asset:     asset,
+			Time:      time,
+			Amount:    amount,
+		},
+		orderStatus,
+	)
+
 }
 
 func RunEventBased(ctx *Context) {
@@ -53,42 +59,42 @@ func run(ctx *Context, wg *sync.WaitGroup) {
 				log.Debug("GENERATIONK>ORDERCHANNEL>ORDER> EVENT PICKED OFF QUEUE")
 				//				go func() {
 				log.Debug("GENERATIONK>ORDERCHANNEL>ORDER>PUTING SUBMITTED ON QUEUE")
-				ctx.OrderChannel() <- Submitted{}
+				//ctx.OrderChannel() <- Submitted{}
 				//				}()
-				ctx.Broker.PlaceOrder(orderEvent.(Order))
+
 			case Submitted:
 				log.Debug("GENERATIONK>ORDERCHANNEL>SUBMIT> EVENT PICKED OFF QUEUE")
 
 				//for i := range ctx.Strategy {
-				ctx.Strategy[0].OrderEvent(orderEvent)
+				//ctx.Strategy[0].OrderEvent(orderEvent)
 				//}
 
 			case Accepted:
 				log.Debug("GENERATIONK>ORDERCHANNEL>ACCEPT> EVENT PICKED OFF QUEUE")
 
 				//for i := range ctx.Strategy {
-				ctx.Strategy[0].OrderEvent(orderEvent)
+				//ctx.Strategy[0].OrderEvent(orderEvent)
 				//}
 
 			case PartialFill:
 				log.Debug("GENERATIONK>ORDERCHANNEL>PARTIALFILL> EVENT PICKED OFF QUEUE")
 
 				//for i := range ctx.Strategy {
-				ctx.Strategy[0].OrderEvent(orderEvent)
+				//ctx.Strategy[0].OrderEvent(orderEvent)
 				//}
 
 			case Fill:
 				log.Debug("GENERATIONK>ORDERCHANNEL>FILL> EVENT PICKED OFF QUEUE")
 
 				//for i := range ctx.Strategy {
-				ctx.Strategy[0].OrderEvent(orderEvent)
+				//ctx.Strategy[0].OrderEvent(orderEvent)
 				//}
 
 			case Rejected:
 				log.Debug("GENERATIONK>ORDERCHANNEL>REJECTED> EVENT PICKED OFF QUEUE")
 
 				//for i := range ctx.Strategy {
-				ctx.Strategy[0].OrderEvent(orderEvent)
+				//ctx.Strategy[0].OrderEvent(orderEvent)
 				//}
 			default:
 				log.WithFields(log.Fields{

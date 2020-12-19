@@ -51,7 +51,7 @@ func (ma *MACrossStrategy) Tick(ctx *Context) {
 func (ma *MACrossStrategy) OrderEvent(orderEvent Event) {
 	log.WithFields(log.Fields{
 		"orderEvent": orderEvent,
-	}).Debug("MAStrategy_test> OrderEvent")
+	}).Info("MAStrategy_test> OrderEvent")
 }
 
 func TestRun(t *testing.T) {

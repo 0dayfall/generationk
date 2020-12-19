@@ -72,6 +72,9 @@ func (p *Portfolio) updateCash(cost float64) error {
 		return errors.New("Balance < 0")
 	}
 	p.cash = balance
+	log.WithFields(log.Fields{
+		"Balance": p.cash,
+	}).Debug("PORTFOLIO> Updating balance")
 	return nil
 }
 
