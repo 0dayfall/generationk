@@ -22,11 +22,11 @@ type MACrossStrategy struct {
 //Setup is used to declare what indicators will be used
 func (ma *MACrossStrategy) Setup(ctx *Context) error {
 	ma.close = indicators.NewTimeSeries(indicators.Close, 5)
-	ma.ma50 = indicators.NewSimpleMovingAverage(indicators.Close, 9)
+	ma.ma50 = indicators.NewSimpleMovingAverage(indicators.Close, 50)
 
 	ctx.AddIndicator(ma.close)
 	ctx.AddIndicator(ma.ma50)
-	ctx.SetInitPeriod(9)
+	ctx.SetInitPeriod(50)
 
 	return nil
 }
@@ -39,9 +39,15 @@ func (ma *MACrossStrategy) Update(ctx *Context) {
 //Tick get called when there is new data coming in
 func (ma *MACrossStrategy) Tick(ctx *Context) {
 
-	if ma.ma50.ValueAtIndex(0) > ma.close.ValueAtIndex(0) {
-		if !ctx.Position(ctx.AssetMap["ABB"]) {
-			MakeOrder(ctx, OrderType(Buy), ctx.AssetMap["ABB"], ctx.Time(), 1000)
+	if ma.close.ValueAtIndex(0) > ma.ma50.ValueAtIndex(0) {
+		if !ctx.Position("ABB") {
+			MakeOrder(ctx, OrderType(Buy), "ABB", ctx.Time(), 0, 100)
+		}
+	}
+
+	if ma.close.ValueAtIndex(0) < ma.ma50.ValueAtIndex(0) {
+		if ctx.Position("ABB") {
+			MakeOrder(ctx, OrderType(Sell), "ABB", ctx.Time(), 0, 100)
 		}
 	}
 
@@ -51,7 +57,7 @@ func (ma *MACrossStrategy) Tick(ctx *Context) {
 func (ma *MACrossStrategy) OrderEvent(orderEvent Event) {
 	log.WithFields(log.Fields{
 		"orderEvent": orderEvent,
-	}).Info("MAStrategy_test> OrderEvent")
+	}).Debug("MAStrategy_test> OrderEvent")
 }
 
 func TestRun(t *testing.T) {
@@ -63,12 +69,12 @@ func TestRun(t *testing.T) {
 
 	// LOG_LEVEL not set, let's default to debug
 	if !ok {
-		lvl = "debug"
+		lvl = "info"
 	}
 	// parse string, this is built-in feature of logrus
 	ll, err := logrus.ParseLevel(lvl)
 	if err != nil {
-		ll = logrus.DebugLevel
+		ll = logrus.InfoLevel
 	}
 	// set global log level
 	logrus.SetLevel(ll)
@@ -81,7 +87,7 @@ func TestRun(t *testing.T) {
 	dataManager.ReadCSVFileAsync("test/data/ABB.csv")
 	strategy := Strategy(&MACrossStrategy{})
 	market.AddStrategy(&strategy)
-
+	market.Portfolio.SetCash(100000)
 	now := time.Now()
 	start := now.AddDate(0, -9, -2)
 	market.AddStartDate(start)

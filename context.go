@@ -16,7 +16,7 @@ type Context struct {
 	AssetIndicatorMap map[string][]*indicators.Indicator
 	StartDate         time.Time
 	EndDate           time.Time
-	Portfolio         Portfolio
+	Portfolio         *Portfolio
 	Broker            Broker
 	K                 int
 	datePointer       time.Time
@@ -29,24 +29,27 @@ type Context struct {
 func NewContext() *Context {
 	eventChannelc := make(chan Event, 1)
 	orderChannel := make(chan Event, 1)
-	portfolio := Portfolio{}
+	portfolio := Portfolio{
+		Holdings: make([]Holding, 0),
+		cash:     0,
+	}
 	ctx := &Context{
 		Asset:             make([]Asset, 1),
 		AssetMap:          make(map[string]*Asset),
 		AssetIndicatorMap: make(map[string][]*indicators.Indicator),
 		eventChannel:      eventChannelc,
 		orderChannel:      orderChannel,
-		Portfolio:         portfolio,
-		Broker:            Broker{portfolio: portfolio, channel: orderChannel},
+		Portfolio:         &portfolio,
+		Broker:            Broker{portfolio: &portfolio, channel: orderChannel},
 	}
 	log.WithFields(log.Fields{
 		"Asset":        ctx.Asset,
 		"AssetMap":     ctx.AssetMap,
 		"eventChannel": ctx.eventChannel,
 		"orderChannel": ctx.orderChannel,
-		"Portfolio":    ctx.Portfolio,
+		"Portfolio":    &ctx.Portfolio,
 		"Broker":       ctx.Broker,
-	}).Debug("Created context")
+	}).Info("Created context")
 	return ctx
 }
 
@@ -101,8 +104,8 @@ func (ctx *Context) AddUpdatable(indicators ...Updateable) {
 }
 
 //Position is used to find out if we have a holding in an asset
-func (ctx *Context) Position(asset *Asset) bool {
-	return ctx.Portfolio.IsOwning(asset.Name)
+func (ctx *Context) Position(name string) bool {
+	return ctx.Portfolio.IsOwning(name)
 }
 
 /*func (ctx *Context) shift() {

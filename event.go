@@ -79,15 +79,16 @@ func (f Fill) String() string {
 	return fmt.Sprintf("%d %f %s %v", f.Qty, f.Price, f.AssetName, f.Time)
 }
 
+//Rejected type is for order that can not be executed
 type Rejected struct {
-	message string
+	err error
 }
 
 func (r Rejected) String() string {
-	log.WithFields(log.Fields{
-		"Message": r.message,
-	}).Debug("REJECTED$")
-	return "$REJECTED"
+	/*log.WithFields(log.Fields{
+		"Message": r.err.Error(),
+	}).Debug("REJECTED$")*/
+	return r.err.Error()
 }
 
 //Tick event type

@@ -27,9 +27,15 @@ type Holding struct {
 }
 
 //IsOwning is used to find out if a position is already owned in this asset
-func (p Portfolio) IsOwning(assetName string) bool {
+func (p *Portfolio) IsOwning(assetName string) bool {
+	log.WithFields(log.Fields{
+		"Holdings length": len(p.Holdings),
+	}).Debug("IsOwning")
 	for k := range p.Holdings {
 		if p.Holdings[k].AssetName == assetName {
+			log.WithFields(log.Fields{
+				"AssetName": assetName,
+			}).Debug("Already owned")
 			return true
 		}
 	}
@@ -41,17 +47,31 @@ func (p *Portfolio) Fill(fill Fill) {
 	go p.AddHolding(Holding{Qty: fill.Qty, Price: fill.Price, AssetName: fill.AssetName, Time: fill.Time})
 }
 
-func (p *Portfolio) SellHolding(position Holding) {
+func (p *Portfolio) RemoveHolding(position Holding) {
 	log.WithFields(log.Fields{
 		"asset": position.AssetName,
 		"time":  position.Time,
 		"price": position.Price,
 		"qty":   position.Qty,
-	}).Debug("PORTFOLIO> Adding position to portfolio")
-	if p.Holdings != nil {
-		p.Holdings = append(p.Holdings, position)
+	}).Info("PORTFOLIO> Removing position from portfolio")
+	pos := -1
+	for k := range p.Holdings {
+		if position.AssetName == p.Holdings[k].AssetName {
+			pos = k
+		}
 	}
-	p.updateCash(+float64(position.Qty) * position.Price)
+	log.WithFields(log.Fields{
+		"asset": len(p.Holdings),
+		"pos":   pos,
+	}).Info("PORTFOLIO> Length of holdings")
+	p.Holdings = remove(pos, p.Holdings)
+	log.WithFields(log.Fields{
+		"asset": len(p.Holdings),
+	}).Info("PORTFOLIO> Length of holdings")
+}
+
+func remove(ix int, holdings []Holding) []Holding {
+	return append(holdings[:ix], holdings[ix+1:]...)
 }
 
 func (p *Portfolio) AddHolding(position Holding) {
@@ -60,13 +80,10 @@ func (p *Portfolio) AddHolding(position Holding) {
 		"time":  position.Time,
 		"Qty":   position.Qty,
 	}).Debug("PORTFOLIO> Adding position to portfolio")
-	if p.Holdings != nil {
-		p.Holdings = append(p.Holdings, position)
-	}
-	p.updateCash(-float64(position.Qty) * position.Price)
+	p.Holdings = append(p.Holdings, position)
 }
 
-func (p *Portfolio) updateCash(cost float64) error {
+func (p *Portfolio) checkAndUpdateBalance(cost float64) error {
 	balance := p.cash + cost
 	if balance < 0 {
 		return errors.New("Balance < 0")
@@ -74,7 +91,7 @@ func (p *Portfolio) updateCash(cost float64) error {
 	p.cash = balance
 	log.WithFields(log.Fields{
 		"Balance": p.cash,
-	}).Debug("PORTFOLIO> Updating balance")
+	}).Info("PORTFOLIO> Updating balance")
 	return nil
 }
 

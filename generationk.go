@@ -8,26 +8,28 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func MakeOrder(ctx *Context, ordertype OrderType, asset *Asset, time time.Time, amount float64) {
+func MakeOrder(ctx *Context, ordertype OrderType, assetName string, time time.Time, amount float64, qty int) {
 	log.Debug("GENERATIONK>makeOrder()")
-	makeOrder(ctx, ordertype, asset, time, amount)
+	makeOrder(ctx, ordertype, assetName, time, amount, qty)
 }
 
-func makeOrder(ctx *Context, ordertype OrderType, asset *Asset, time time.Time, amount float64) {
+func makeOrder(ctx *Context, ordertype OrderType, assetName string, time time.Time, amount float64, qty int) {
 	log.WithFields(log.Fields{
-		"Asset":  asset.Name,
+		"Asset":  assetName,
 		"Time":   time,
 		"Amount": amount,
-	}).Info("GENERATIONK>MAKE ORDER>")
+		"Qty":    qty,
+	}).Debug("GENERATIONK>MAKE ORDER>")
 
 	orderStatus, _ := interface{}(ctx.Strategy[0]).(OrderStatus)
 
 	ctx.Broker.PlaceOrder(
 		Order{
 			Ordertype: ordertype,
-			Asset:     asset,
+			Asset:     ctx.AssetMap[assetName],
 			Time:      time,
 			Amount:    amount,
+			Qty:       qty,
 		},
 		orderStatus,
 	)
@@ -121,6 +123,7 @@ func run(ctx *Context, wg *sync.WaitGroup) {
 					}
 
 				case DataEvent:
+					ctx.datePointer = event.(DataEvent).Ohlc.Time
 
 					if ctx.EndDate.After(event.(DataEvent).Ohlc.Time) {
 						log.Debug("GENERATIONK>EVENTCHANNEL> Ohlc.Time is after the back test end date")
