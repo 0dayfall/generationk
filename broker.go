@@ -78,7 +78,7 @@ func (b *Broker) buy(order Order) {
 			return
 		}
 	}
-	//b.accepted(order)
+	b.accepted(order)
 	b.portfolio.AddHolding(Holding{Qty: order.Qty, AssetName: order.Asset.Name, Price: order.Asset.Close(), Time: order.Time})
 	b.channel <- Fill{Qty: order.Qty, AssetName: order.Asset.Name, Price: order.Asset.Close(), Time: order.Time}
 	log.Info("BROKER> Put FILL EVENT in queue")

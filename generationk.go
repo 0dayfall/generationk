@@ -10,15 +10,15 @@ import (
 
 func MakeOrder(ctx *Context, ordertype OrderType, asset *Asset, time time.Time, amount float64) {
 	log.Debug("GENERATIONK>makeOrder()")
-	makeOrder(ctx, ordertype, asset, time, amount)
+	go makeOrder(ctx, ordertype, asset, time, amount)
 }
 
 func makeOrder(ctx *Context, ordertype OrderType, asset *Asset, time time.Time, amount float64) {
-	log.WithFields(log.Fields{
+	/*log.WithFields(log.Fields{
 		"Asset":  asset.Name,
 		"Time":   time,
 		"Amount": amount,
-	}).Info("GENERATIONK>MAKE ORDER>")
+	}).Info("GENERATIONK>MAKE ORDER>")*/
 
 	ctx.OrderChannel() <- Order{
 		Ordertype: ordertype,
@@ -51,10 +51,10 @@ func run(ctx *Context, wg *sync.WaitGroup) {
 
 			case Order:
 				log.Debug("GENERATIONK>ORDERCHANNEL>ORDER> EVENT PICKED OFF QUEUE")
-				//				go func() {
-				log.Debug("GENERATIONK>ORDERCHANNEL>ORDER>PUTING SUBMITTED ON QUEUE")
-				ctx.OrderChannel() <- Submitted{}
-				//				}()
+				go func() {
+					log.Debug("GENERATIONK>ORDERCHANNEL>ORDER>PUTING SUBMITTED ON QUEUE")
+					ctx.OrderChannel() <- Submitted{}
+				}()
 				ctx.Broker.PlaceOrder(orderEvent.(Order))
 			case Submitted:
 				log.Debug("GENERATIONK>ORDERCHANNEL>SUBMIT> EVENT PICKED OFF QUEUE")
@@ -101,6 +101,7 @@ func run(ctx *Context, wg *sync.WaitGroup) {
 			case event := <-ctx.EventChannel():
 
 				log.WithFields(log.Fields{
+					"DATE> ":          event.(DataEvent).Ohlc.Time,
 					"Number of items": len(ctx.EventChannel()),
 				}).Debug("GENERATIONK>DATA EVENT PICKED OFF QUEUE")
 
@@ -157,6 +158,8 @@ func run(ctx *Context, wg *sync.WaitGroup) {
 						log.Debug("GENERATIONK>EVENTCHANNEL> Updating indicators data")
 						updateIndicators(ctx, event.(DataEvent))
 
+						updateTime()
+						ctx.datePointer = event.(DataEvent).Ohlc.Time
 						log.Debug("GENERATIONK>EVENTCHANNEL> Leting strategy know")
 						ctx.Strategy[0].Tick(ctx)
 					}
@@ -170,6 +173,10 @@ func run(ctx *Context, wg *sync.WaitGroup) {
 			}
 		}
 	}
+}
+
+func updateTime() {
+
 }
 
 // Min returns the smaller of x or y.
