@@ -23,9 +23,9 @@ func NewSimpleMovingAverage(value OhlcValue, period int) *SimpleMovingAverage {
 
 //Update is used to give data to the indicator
 func (sma *SimpleMovingAverage) Update(values []float64) {
-	log.WithFields(log.Fields{
+	/*log.WithFields(log.Fields{
 		"values length": len(values),
-	}).Debug("MA> Update()")
+	}).Debug("MA> Update()")*/
 	sma.IndicatorStruct.values = values
 }
 

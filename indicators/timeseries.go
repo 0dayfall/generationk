@@ -17,9 +17,9 @@ func (ts TimeSeries) GetDataType() OhlcValue {
 
 //Update is used to initialize indicator with values
 func (ts TimeSeries) Update(values []float64) {
-	log.WithFields(log.Fields{
+	/*log.WithFields(log.Fields{
 		"values length": len(values),
-	}).Debug("TIMESERIES> Update()")
+	}).Debug("TIMESERIES> Update()")*/
 	ts.IndicatorStruct.values = values
 }
 

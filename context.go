@@ -3,7 +3,7 @@ package generationk
 import (
 	"time"
 
-	indicators "github.com/greenorangebay/generationk/indicators"
+	indicators "github.com/0dayfall/generationk/indicators"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -26,9 +26,9 @@ type Context struct {
 }
 
 //NewContext creates a new context
-func NewContext() *Context {
-	eventChannelc := make(chan Event, 1)
-	orderChannel := make(chan Event, 1)
+func newContext() *Context {
+	//eventChannelc := make(chan Event, 1)
+	//orderChannel := make(chan Event, 1)
 	portfolio := Portfolio{
 		Holdings: make([]Holding, 0),
 		cash:     0,
@@ -37,10 +37,10 @@ func NewContext() *Context {
 		Asset:             make([]Asset, 1),
 		AssetMap:          make(map[string]*Asset),
 		AssetIndicatorMap: make(map[string][]*indicators.Indicator),
-		eventChannel:      eventChannelc,
-		orderChannel:      orderChannel,
-		Portfolio:         &portfolio,
-		Broker:            Broker{portfolio: &portfolio, channel: orderChannel},
+		//eventChannel:      eventChannelc,
+		//orderChannel:      orderChannel,
+		Portfolio: &portfolio,
+		Broker:    Broker{portfolio: &portfolio},
 	}
 	log.WithFields(log.Fields{
 		"Asset":        ctx.Asset,
@@ -101,11 +101,6 @@ func (ctx *Context) AddIndicator(indicator indicators.Indicator) {
 //AddUpdatable add an updatable interface
 func (ctx *Context) AddUpdatable(indicators ...Updateable) {
 	//ctx.Updateable = indicators
-}
-
-//Position is used to find out if we have a holding in an asset
-func (ctx *Context) Position(name string) bool {
-	return ctx.Portfolio.IsOwning(name)
 }
 
 /*func (ctx *Context) shift() {

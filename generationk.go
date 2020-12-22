@@ -2,18 +2,138 @@ package generationk
 
 import (
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
+	"github.com/shiena/ansicolor"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
-func MakeOrder(ctx *Context, ordertype OrderType, assetName string, time time.Time, amount float64, qty int) {
-	log.Debug("GENERATIONK>makeOrder()")
-	makeOrder(ctx, ordertype, assetName, time, amount, qty)
+var o sync.Once
+
+type GenkCallback interface {
+	IsOwning(asset string) bool
+	OrderSend(assetName string, ordertype OrderType, amount float64, qty int)
 }
 
-func makeOrder(ctx *Context, ordertype OrderType, assetName string, time time.Time, amount float64, qty int) {
+type generationK struct {
+	market *Context
+}
+
+func NewGenerationK() *generationK {
+
+	generationK := &generationK{
+		market: newContext(),
+	}
+	return generationK
+}
+
+func (k *generationK) DataEvent(dataEvent Event) {
+
+	log.WithFields(log.Fields{
+		"Number of items": len(k.market.EventChannel()),
+	}).Debug("GENERATIONK>DATA EVENT PICKED OFF QUEUE")
+
+	k.market.datePointer = dataEvent.(DataEvent).Ohlc.Time
+
+	if dataEvent.(DataEvent).Ohlc.Time.After(k.market.EndDate) {
+		log.Debug("GENERATIONK>EVENTCHANNEL> Ohlc.Time is after the back test end date")
+		//k.market.EventChannel() <- Quit{}
+		return
+	}
+	k.market.K++
+
+	//Add data to asset
+	if _, ok := k.market.AssetMap[dataEvent.(DataEvent).Name]; !ok {
+		log.Debug("GENERATIONK>EVENTCHANNEL>DATAEVENT> CREATING ASSET AND ADDING TO MAP")
+		asset := NewAsset(dataEvent.(DataEvent).Name, dataEvent.(DataEvent).Ohlc)
+		k.market.AssetMap[dataEvent.(DataEvent).Name] = asset
+	}
+
+	log.WithFields(log.Fields{
+		"(DataEvent).Name": dataEvent.(DataEvent).Name,
+	}).Debug("GENERATIONK>EVENTCHANNEL>DATAEVENT> EXISTS IN MAP")
+
+	//k.market.AssetMap[event.(DataEvent).Name].Ohlc = prepend(k.market.AssetMap[event.(DataEvent).Name].Ohlc, event.(DataEvent).Ohlc)
+	k.market.AssetMap[dataEvent.(DataEvent).Name].Update(dataEvent.(DataEvent).Ohlc)
+
+	//Run only once to setup indicators
+	o.Do(func() {
+		log.Info("GENERATIONK>RUN ONCE")
+		k.market.Strategy[0].Setup(k.market)
+		log.WithFields(log.Fields{
+			"strategy": k.market.Strategy[0],
+		}).Debug("Strategy")
+	})
+
+	//Run setup after initperiod is finished
+	if k.market.K < k.market.GetInitPeriod() {
+
+		log.Info("GENERATIONK>EVENTCHANNEL>DATAEVENT> Initializing strategy failed")
+		return
+
+	} else {
+
+		log.Info("GENERATIONK>EVENTCHANNEL> Updating indicators data")
+		updateIndicators(k.market, dataEvent.(DataEvent))
+
+		log.Info("GENERATIONK>EVENTCHANNEL> Leting strategy know")
+		k.market.Strategy[0].Tick(k)
+	}
+
+	log.WithFields(log.Fields{
+		"K: ": k.market.K,
+	}).Info("K")
+
+}
+
+func (k *generationK) Init() {
+	logrus.SetFormatter(&logrus.TextFormatter{ForceColors: true})
+	logrus.SetOutput(ansicolor.NewAnsiColorWriter(os.Stdout))
+
+	lvl, ok := os.LookupEnv("LOG_LEVEL")
+
+	// LOG_LEVEL not set, let's default to debug
+	if !ok {
+		lvl = "info"
+	}
+	// parse string, this is built-in feature of logrus
+	ll, err := logrus.ParseLevel(lvl)
+	if err != nil {
+		ll = logrus.FatalLevel
+	}
+	// set global log level
+	logrus.SetLevel(ll)
+}
+
+func (k *generationK) AddAsset(asset *Asset) {
+	k.market.AddAsset(asset)
+}
+
+func (k *generationK) AddStrategy(strat *Strategy) {
+	k.market.AddStrategy(strat)
+}
+
+func (k *generationK) SetBalance(balance float64) {
+	k.market.Portfolio.SetCash(balance)
+}
+
+func (k *generationK) AddStartDate(startDate time.Time) {
+	k.market.AddStartDate(startDate)
+}
+
+func (k *generationK) AddEndDate(endDate time.Time) {
+	k.market.AddEndDate(endDate)
+}
+
+func (k generationK) OrderSend(assetName string, ordertype OrderType, amount float64, qty int) {
+	log.Debug("GENERATIONK>makeOrder()")
+	orderSend(k.market, ordertype, assetName, k.market.datePointer, amount, qty)
+}
+
+func orderSend(ctx *Context, ordertype OrderType, assetName string, time time.Time, amount float64, qty int) {
 	log.WithFields(log.Fields{
 		"Asset":  assetName,
 		"Time":   time,
@@ -23,7 +143,7 @@ func makeOrder(ctx *Context, ordertype OrderType, assetName string, time time.Ti
 
 	orderStatus, _ := interface{}(ctx.Strategy[0]).(OrderStatus)
 
-	ctx.Broker.PlaceOrder(
+	ctx.Broker.SendOrder(
 		Order{
 			Ordertype: ordertype,
 			Asset:     ctx.AssetMap[assetName],
@@ -36,23 +156,28 @@ func makeOrder(ctx *Context, ordertype OrderType, assetName string, time time.Ti
 
 }
 
-func RunEventBased(ctx *Context) {
+//OwnPosition is used to find out if we have a holding in an asset
+func (k generationK) IsOwning(name string) bool {
+	return k.market.Portfolio.IsOwning(name)
+}
+
+func (k *generationK) RunEventBased() {
 	//Initialize the strategy
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go run(ctx, &wg)
+	go run(k, &wg)
 	wg.Wait()
 }
 
 //Run starts a backtest with the information in context
-func run(ctx *Context, wg *sync.WaitGroup) {
+func run(k *generationK, wg *sync.WaitGroup) {
 	defer wg.Done()
 	var o sync.Once
 	for {
 		select {
-		case orderEvent := <-ctx.OrderChannel():
+		case orderEvent := <-k.market.OrderChannel():
 			log.WithFields(log.Fields{
-				"Number of items": len(ctx.OrderChannel()),
+				"Number of items": len(k.market.OrderChannel()),
 			}).Debug("GENERATIONK>ORDER EVENT PICKED OFF QUEUE")
 
 			switch orderEvent.(type) {
@@ -61,42 +186,42 @@ func run(ctx *Context, wg *sync.WaitGroup) {
 				log.Debug("GENERATIONK>ORDERCHANNEL>ORDER> EVENT PICKED OFF QUEUE")
 				//				go func() {
 				log.Debug("GENERATIONK>ORDERCHANNEL>ORDER>PUTING SUBMITTED ON QUEUE")
-				//ctx.OrderChannel() <- Submitted{}
+				//k.market.OrderChannel() <- Submitted{}
 				//				}()
 
 			case Submitted:
 				log.Debug("GENERATIONK>ORDERCHANNEL>SUBMIT> EVENT PICKED OFF QUEUE")
 
-				//for i := range ctx.Strategy {
-				//ctx.Strategy[0].OrderEvent(orderEvent)
+				//for i := range k.market.Strategy {
+				//k.market.Strategy[0].OrderEvent(orderEvent)
 				//}
 
 			case Accepted:
 				log.Debug("GENERATIONK>ORDERCHANNEL>ACCEPT> EVENT PICKED OFF QUEUE")
 
-				//for i := range ctx.Strategy {
-				//ctx.Strategy[0].OrderEvent(orderEvent)
+				//for i := range k.market.Strategy {
+				//k.market.Strategy[0].OrderEvent(orderEvent)
 				//}
 
 			case PartialFill:
 				log.Debug("GENERATIONK>ORDERCHANNEL>PARTIALFILL> EVENT PICKED OFF QUEUE")
 
-				//for i := range ctx.Strategy {
-				//ctx.Strategy[0].OrderEvent(orderEvent)
+				//for i := range k.market.Strategy {
+				//k.market.Strategy[0].OrderEvent(orderEvent)
 				//}
 
 			case Fill:
 				log.Debug("GENERATIONK>ORDERCHANNEL>FILL> EVENT PICKED OFF QUEUE")
 
-				//for i := range ctx.Strategy {
-				//ctx.Strategy[0].OrderEvent(orderEvent)
+				//for i := range k.market.Strategy {
+				//k.market.Strategy[0].OrderEvent(orderEvent)
 				//}
 
 			case Rejected:
 				log.Debug("GENERATIONK>ORDERCHANNEL>REJECTED> EVENT PICKED OFF QUEUE")
 
-				//for i := range ctx.Strategy {
-				//ctx.Strategy[0].OrderEvent(orderEvent)
+				//for i := range k.market.Strategy {
+				//k.market.Strategy[0].OrderEvent(orderEvent)
 				//}
 			default:
 				log.WithFields(log.Fields{
@@ -106,10 +231,10 @@ func run(ctx *Context, wg *sync.WaitGroup) {
 		default:
 
 			select {
-			case event := <-ctx.EventChannel():
+			case event := <-k.market.EventChannel():
 
 				log.WithFields(log.Fields{
-					"Number of items": len(ctx.EventChannel()),
+					"Number of items": len(k.market.EventChannel()),
 				}).Debug("GENERATIONK>DATA EVENT PICKED OFF QUEUE")
 
 				switch event.(type) {
@@ -118,45 +243,45 @@ func run(ctx *Context, wg *sync.WaitGroup) {
 					log.Debug("GENERATIONK>EVENTCHANNEL> TICK EVENT PICKED OFF QUEUE")
 					//fmt.Printerln("Processing tick data")
 					log.Debug("GENERATIONK>EVENTCHANNEL> Leting strategy know")
-					for i := range ctx.Strategy {
-						ctx.Strategy[i].Tick(ctx)
+					for i := range k.market.Strategy {
+						k.market.Strategy[i].Tick(k)
 					}
 
 				case DataEvent:
-					ctx.datePointer = event.(DataEvent).Ohlc.Time
+					k.market.datePointer = event.(DataEvent).Ohlc.Time
 
-					if ctx.EndDate.After(event.(DataEvent).Ohlc.Time) {
+					if event.(DataEvent).Ohlc.Time.After(k.market.EndDate) {
 						log.Debug("GENERATIONK>EVENTCHANNEL> Ohlc.Time is after the back test end date")
-						ctx.EventChannel() <- Quit{}
+						k.market.EventChannel() <- Quit{}
 						break
 					}
-					ctx.K++
+					k.market.K++
 
 					//Add data to asset
-					if _, ok := ctx.AssetMap[event.(DataEvent).Name]; !ok {
+					if _, ok := k.market.AssetMap[event.(DataEvent).Name]; !ok {
 						log.Debug("GENERATIONK>EVENTCHANNEL>DATAEVENT> CREATING ASSET AND ADDING TO MAP")
 						asset := NewAsset(event.(DataEvent).Name, event.(DataEvent).Ohlc)
-						ctx.AssetMap[event.(DataEvent).Name] = asset
+						k.market.AssetMap[event.(DataEvent).Name] = asset
 					}
 
 					log.WithFields(log.Fields{
 						"(DataEvent).Name": event.(DataEvent).Name,
 					}).Debug("GENERATIONK>EVENTCHANNEL>DATAEVENT> EXISTS IN MAP")
 
-					//ctx.AssetMap[event.(DataEvent).Name].Ohlc = prepend(ctx.AssetMap[event.(DataEvent).Name].Ohlc, event.(DataEvent).Ohlc)
-					ctx.AssetMap[event.(DataEvent).Name].Update(event.(DataEvent).Ohlc)
+					//k.market.AssetMap[event.(DataEvent).Name].Ohlc = prepend(k.market.AssetMap[event.(DataEvent).Name].Ohlc, event.(DataEvent).Ohlc)
+					k.market.AssetMap[event.(DataEvent).Name].Update(event.(DataEvent).Ohlc)
 
 					//Run only once to setup indicators
 					o.Do(func() {
 						log.Debug("GENERATIONK>RUN ONCE")
-						ctx.Strategy[0].Setup(ctx)
+						k.market.Strategy[0].Setup(k.market)
 						log.WithFields(log.Fields{
-							"strategy": ctx.Strategy[0],
+							"strategy": k.market.Strategy[0],
 						}).Debug("Strategy")
 					})
 
 					//Run setup after initperiod is finished
-					if ctx.K < ctx.GetInitPeriod() {
+					if k.market.K < k.market.GetInitPeriod() {
 
 						log.Debug("GENERATIONK>EVENTCHANNEL>DATAEVENT> Initializing strategy failed")
 						break
@@ -164,15 +289,15 @@ func run(ctx *Context, wg *sync.WaitGroup) {
 					} else {
 
 						log.Debug("GENERATIONK>EVENTCHANNEL> Updating indicators data")
-						updateIndicators(ctx, event.(DataEvent))
+						updateIndicators(k.market, event.(DataEvent))
 
 						log.Debug("GENERATIONK>EVENTCHANNEL> Leting strategy know")
-						ctx.Strategy[0].Tick(ctx)
+						k.market.Strategy[0].Tick(k)
 					}
 				case Quit:
 					log.Debug("GENERATIONK>EVENTCHANNEL> QUIT EVENT PICKED OFF QUEUE")
-					close(ctx.OrderChannel())
-					close(ctx.EventChannel())
+					close(k.market.OrderChannel())
+					close(k.market.EventChannel())
 					return
 
 				}
@@ -190,7 +315,7 @@ func Min(x, y int) int {
 }
 
 func updateIndicators(ctx *Context, dataEvent DataEvent) {
-	log.Debug("ctx.AssetIndicatorMap[dataEvent.Name]: ", len(ctx.AssetIndicatorMap[dataEvent.Name]))
+	//log.Debug("ctx.AssetIndicatorMap[dataEvent.Name]: ", len(ctx.AssetIndicatorMap[dataEvent.Name]))
 
 	//If the asset has no data so far ther is no point in doing this
 	data := ctx.AssetMap[dataEvent.Name].CloseArray()
@@ -207,15 +332,13 @@ func updateIndicators(ctx *Context, dataEvent DataEvent) {
 		dataWindow := make([]float64, period)
 		copy(dataWindow, data[:period])
 
-		log.WithFields(log.Fields{
+		/*log.WithFields(log.Fields{
 			"len(dataWindow)": len(dataWindow),
 			"dataWindow":      dataWindow,
-		}).Debug("GENERATIONK>UPDATE INDICATORS>")
+		}).Debug("GENERATIONK>UPDATE INDICATORS>")*/
 
 		//Update the indicator with new data
 		indicator.Update(dataWindow)
-
-		log.Debug("K: ", k)
 	}
 }
 

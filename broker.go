@@ -8,20 +8,17 @@ import (
 type OrderType int
 
 const (
-	//Buy order
-	Buy OrderType = iota
-	//Sell order
-	Sell
-	//SellShort order
-	SellShort
-	//Cover short order
-	Cover
+	//BuyOrder order
+	BuyOrder OrderType = iota
+	//SellOrder order
+	SellOrder
+	//ShortOrder order
+	ShortOrder
+	//CoverOrder short order
+	CoverOrder
 )
 
-//OrderStatus is a callback interface used to recieve information about orders
-type OrderStatus interface {
-	OrderEvent(orderEvent Event)
-}
+
 
 //Broker is used to send orders
 type Broker struct {
@@ -30,8 +27,8 @@ type Broker struct {
 	callback  OrderStatus
 }
 
-//PlaceOrder is used to place an order with the broker
-func (b *Broker) PlaceOrder(order Order, orderstatus OrderStatus) {
+//SendOrder is used to place an order with the broker
+func (b *Broker) SendOrder(order Order, orderstatus OrderStatus) {
 	b.callback = orderstatus
 
 	log.WithFields(log.Fields{
@@ -43,16 +40,16 @@ func (b *Broker) PlaceOrder(order Order, orderstatus OrderStatus) {
 	}).Debug("BROKER>PLACE BUY ORDER")
 
 	switch order.Ordertype {
-	case Buy:
+	case BuyOrder:
 		err := b.buy(order)
 		if err != nil {
 			b.rejected(err)
 		}
-	case Sell:
+	case SellOrder:
 		b.sell(order)
-	case SellShort:
+	case ShortOrder:
 		b.sellshort(order)
-	case Cover:
+	case CoverOrder:
 		b.cover(order)
 	}
 }

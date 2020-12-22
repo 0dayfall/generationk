@@ -3,9 +3,16 @@ package generationk
 import (
 	"fmt"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
+
+type DataHandler interface {
+	DataEvent(dataEvent Event)
+}
+
+//OrderStatus is a callback interface used to recieve information about orders, it is used by the broker
+type OrderStatus interface {
+	OrderEvent(orderEvent Event)
+}
 
 //Event type
 type Event interface {
@@ -20,10 +27,10 @@ type DataEvent struct {
 
 //Handle iM not sure what it si used for
 func (d DataEvent) String() string {
-	log.WithFields(log.Fields{
+	/*log.WithFields(log.Fields{
 		"Name": d.Name,
 		"Ohlc": d.Ohlc,
-	}).Debug("DataEvent$ ")
+	}).Debug("DataEvent$ ")*/
 	return fmt.Sprintf("$DATAEVENT %s", d.Name)
 }
 
@@ -96,20 +103,6 @@ type Tick struct{}
 
 func (t Tick) String() string {
 	return "$TICK"
-}
-
-//Signal event type
-type Signal struct{}
-
-func (s Signal) String() string {
-	return "$SIGNAL"
-}
-
-//Data event type
-type Data struct{}
-
-func (d Data) String() string {
-	return "$DATA"
 }
 
 //Quit event type

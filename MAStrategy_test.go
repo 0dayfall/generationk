@@ -1,14 +1,11 @@
 package generationk
 
 import (
-	"os"
 	"testing"
 	"time"
 
-	indicators "github.com/greenorangebay/generationk/indicators"
-	"github.com/shiena/ansicolor"
+	indicators "github.com/0dayfall/generationk/indicators"
 
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -21,11 +18,16 @@ type MACrossStrategy struct {
 
 //Setup is used to declare what indicators will be used
 func (ma *MACrossStrategy) Setup(ctx *Context) error {
+	//Want access to the latest 5 closing prices
 	ma.close = indicators.NewTimeSeries(indicators.Close, 5)
+	//MA50
 	ma.ma50 = indicators.NewSimpleMovingAverage(indicators.Close, 50)
 
+	//Add indicators to context
 	ctx.AddIndicator(ma.close)
 	ctx.AddIndicator(ma.ma50)
+
+	//The data needed to calculate MA
 	ctx.SetInitPeriod(50)
 
 	return nil
@@ -37,23 +39,23 @@ func (ma *MACrossStrategy) Update(ctx *Context) {
 }
 
 //Tick get called when there is new data coming in
-func (ma *MACrossStrategy) Tick(ctx *Context) {
+func (ma *MACrossStrategy) Tick(broker GenkCallback) {
 
 	if ma.close.ValueAtIndex(0) > ma.ma50.ValueAtIndex(0) {
-		if !ctx.Position("ABB") {
-			MakeOrder(ctx, OrderType(Buy), "ABB", ctx.Time(), 0, 100)
+		if !broker.IsOwning("ABB") {
+			broker.OrderSend("ABB", OrderType(BuyOrder), 0, 100)
 		}
 	}
 
 	if ma.close.ValueAtIndex(0) < ma.ma50.ValueAtIndex(0) {
-		if ctx.Position("ABB") {
-			MakeOrder(ctx, OrderType(Sell), "ABB", ctx.Time(), 0, 100)
+		if broker.IsOwning("ABB") {
+			broker.OrderSend("ABB", OrderType(SellOrder), 0, 100)
 		}
 	}
 
 }
 
-//Orders get called when everything is updated
+//OrderEvent gets called on order events
 func (ma *MACrossStrategy) OrderEvent(orderEvent Event) {
 	log.WithFields(log.Fields{
 		"orderEvent": orderEvent,
@@ -62,39 +64,51 @@ func (ma *MACrossStrategy) OrderEvent(orderEvent Event) {
 
 func TestRun(t *testing.T) {
 
-	logrus.SetFormatter(&logrus.TextFormatter{ForceColors: true})
-	logrus.SetOutput(ansicolor.NewAnsiColorWriter(os.Stdout))
+	genk := NewGenerationK()
+	genk.Init()
 
-	lvl, ok := os.LookupEnv("LOG_LEVEL")
-
-	// LOG_LEVEL not set, let's default to debug
-	if !ok {
-		lvl = "info"
-	}
-	// parse string, this is built-in feature of logrus
-	ll, err := logrus.ParseLevel(lvl)
-	if err != nil {
-		ll = logrus.InfoLevel
-	}
-	// set global log level
-	logrus.SetLevel(ll)
-
-	//Context that the strategy is being run with such as assets
-	market := NewContext()
-	market.AddAsset(NewAsset("ABB", OHLC{}))
-	//Going to run with the following data thingie to collect the data
-	dataManager := NewCSVDataManager(market)
-	dataManager.ReadCSVFileAsync("test/data/ABB.csv")
 	strategy := Strategy(&MACrossStrategy{})
-	market.AddStrategy(&strategy)
-	market.Portfolio.SetCash(100000)
+	//Going to run with the following data thingie to collect the data
+	genk.AddAsset(NewAsset("ABB", OHLC{}))
+	genk.AddAsset(NewAsset("ASSAb", OHLC{}))
+
+	genk.AddStrategy(&strategy)
+	genk.SetBalance(100000)
+
 	now := time.Now()
 	start := now.AddDate(0, -9, -2)
-	market.AddStartDate(start)
+	genk.AddStartDate(start)
 
 	now = time.Now()
 	end := now.AddDate(0, -3, -2)
-	market.AddStartDate(end)
+	genk.AddEndDate(end)
 
-	RunEventBased(market)
+	//genk.RunEventBased()
+	dataManager := NewCSVDataManager(genk)
+	dataManager.ReadCSVFilesAsync([]string{"test/data/ABB.csv", "test/data/ASSAb.csv"})
+}
+
+func BenchmarkRun(t *testing.B) {
+
+	genk := NewGenerationK()
+	genk.Init()
+
+	strategy := Strategy(&MACrossStrategy{})
+	//Going to run with the following data thingie to collect the data
+	genk.AddAsset(NewAsset("ABB", OHLC{}))
+
+	genk.AddStrategy(&strategy)
+	genk.SetBalance(100000)
+
+	now := time.Now()
+	start := now.AddDate(0, -9, -2)
+	genk.AddStartDate(start)
+
+	now = time.Now()
+	end := now.AddDate(0, -3, -2)
+	genk.AddEndDate(end)
+
+	//genk.RunEventBased()
+	dataManager := NewCSVDataManager(genk)
+	dataManager.ReadCSVFile("test/data/ABB.csv")
 }
