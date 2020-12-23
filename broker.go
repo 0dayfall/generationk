@@ -18,8 +18,6 @@ const (
 	CoverOrder
 )
 
-
-
 //Broker is used to send orders
 type Broker struct {
 	portfolio *Portfolio
@@ -81,14 +79,14 @@ func (b *Broker) buy(order Order) error {
 		"Order": order,
 	}).Info("BROKER> BUY")
 	if order.Qty > 0 {
-		err := b.portfolio.checkAndUpdateBalance(-getAmountForQty(order))
+		err := b.portfolio.subtractFromBalance(getAmountForQty(order))
 		if err != nil {
 			b.rejected(err)
 			return err
 		}
 	}
 	if order.Amount > 0.0 {
-		err := b.portfolio.checkAndUpdateBalance(-order.Amount)
+		err := b.portfolio.subtractFromBalance(order.Amount)
 		if err != nil {
 			b.rejected(err)
 			return err
@@ -112,22 +110,11 @@ func (b *Broker) sell(order Order) {
 		"Order": order,
 	}).Info("BROKER> SELL")
 	if order.Qty > 0 {
-		err := b.portfolio.checkAndUpdateBalance(getAmountForQty(order))
-		if err != nil {
-			b.rejected(err)
-			return
-		}
+		b.portfolio.addToBalance(getAmountForQty(order))
 	}
 	if order.Amount > 0.0 {
-		err := b.portfolio.checkAndUpdateBalance(order.Amount)
-		if err != nil {
-			b.rejected(err)
-			return
-		}
-		qty := getQtyForAmount(order)
-		order.Qty = qty
+		b.portfolio.addToBalance(order.Amount)
 	}
-
 	b.accepted(order)
 	b.portfolio.RemoveHolding(Holding{Qty: order.Qty, AssetName: order.Asset.Name, Price: order.Asset.Close(), Time: order.Time})
 	b.callback.OrderEvent(Fill{Qty: -order.Qty, AssetName: order.Asset.Name, Price: order.Asset.Close(), Time: order.Time})

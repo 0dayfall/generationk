@@ -1,6 +1,8 @@
 package generationk
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -11,9 +13,8 @@ import (
 
 //Strategy strategy
 type MACrossStrategy struct {
-	ma50       *indicators.SimpleMovingAverage
-	close      *indicators.TimeSeries
-	initPeriod int
+	ma50  *indicators.SimpleMovingAverage
+	close *indicators.TimeSeries
 }
 
 //Setup is used to declare what indicators will be used
@@ -64,34 +65,46 @@ func (ma *MACrossStrategy) OrderEvent(orderEvent Event) {
 
 func TestRun(t *testing.T) {
 
-	genk := NewGenerationK()
-	genk.Init()
+	files := []string{"test/data/ABB.csv", "test/data/ASSAb.csv", "test/data/BILL.csv"}
 
-	strategy := Strategy(&MACrossStrategy{})
-	//Going to run with the following data thingie to collect the data
-	genk.AddAsset(NewAsset("ABB", OHLC{}))
-	genk.AddAsset(NewAsset("ASSAb", OHLC{}))
+	var wg sync.WaitGroup
+	y := 0
+	for k := range files {
+		genk := NewGenerationK()
+		portfolio := NewPortfolio()
+		genk.AddPortfolio(portfolio)
 
-	genk.AddStrategy(&strategy)
-	genk.SetBalance(100000)
+		strategy := Strategy(&MACrossStrategy{})
 
-	now := time.Now()
-	start := now.AddDate(0, -9, -2)
-	genk.AddStartDate(start)
+		//Going to run with the following data thingie to collect the data
+		genk.AddAsset(NewAsset("ABB", OHLC{}))
+		genk.AddAsset(NewAsset("ASSAb", OHLC{}))
+		genk.AddAsset(NewAsset("BILL", OHLC{}))
+		genk.AddStrategy(&strategy)
 
-	now = time.Now()
-	end := now.AddDate(0, -3, -2)
-	genk.AddEndDate(end)
+		genk.SetBalance(100000)
+		now := time.Now()
+		start := now.AddDate(-15, -9, -2)
+		genk.AddStartDate(start)
+		now = time.Now()
+		end := now.AddDate(0, -3, -2)
+		genk.AddEndDate(end)
 
-	//genk.RunEventBased()
-	dataManager := NewCSVDataManager(genk)
-	dataManager.ReadCSVFilesAsync([]string{"test/data/ABB.csv", "test/data/ASSAb.csv"})
+		//genk.RunEventBased()
+		dataManager := NewCSVDataManager(genk)
+		//genk.AddDataManager(dataManager)
+		wg.Add(1)
+		//dataManager.ReadCSVFilesAsync([]string{"test/data/ABB.csv", "test/data/ASSAb.csv"})
+		go dataManager.ReadCSVFileAsync(files[k], &wg)
+		y++
+	}
+	wg.Wait()
+	fmt.Print(y)
 }
 
 func BenchmarkRun(t *testing.B) {
 
 	genk := NewGenerationK()
-	genk.Init()
 
 	strategy := Strategy(&MACrossStrategy{})
 	//Going to run with the following data thingie to collect the data

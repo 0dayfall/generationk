@@ -29,18 +29,14 @@ type Context struct {
 func newContext() *Context {
 	//eventChannelc := make(chan Event, 1)
 	//orderChannel := make(chan Event, 1)
-	portfolio := Portfolio{
-		Holdings: make([]Holding, 0),
-		cash:     0,
-	}
+
 	ctx := &Context{
 		Asset:             make([]Asset, 1),
 		AssetMap:          make(map[string]*Asset),
 		AssetIndicatorMap: make(map[string][]*indicators.Indicator),
 		//eventChannel:      eventChannelc,
 		//orderChannel:      orderChannel,
-		Portfolio: &portfolio,
-		Broker:    Broker{portfolio: &portfolio},
+		Broker: Broker{},
 	}
 	log.WithFields(log.Fields{
 		"Asset":        ctx.Asset,

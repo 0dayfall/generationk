@@ -122,7 +122,7 @@ func (d CSVDataManager) readCSVFile(file string) []OHLC {
 	return s
 }
 
-func (d CSVDataManager) callbackOnDataEvent(name string, ohlc []OHLC) {
+func (d *CSVDataManager) callbackOnDataEvent(name string, ohlc []OHLC) {
 
 	for k := range ohlc {
 		d.callback.DataEvent(DataEvent{Name: name, Ohlc: ohlc[k]})
@@ -131,15 +131,15 @@ func (d CSVDataManager) callbackOnDataEvent(name string, ohlc []OHLC) {
 	//d.dataChannel <- Quit{}
 }
 
-func (d CSVDataManager) putDataOnChannel(name string, ohlc []OHLC) {
+/*func (d *CSVDataManager) putDataOnChannel(name string, ohlc []OHLC) {
 
 	for k := 0; k < len(ohlc); k++ {
 		d.dataChannel <- DataEvent{Name: name, Ohlc: ohlc[k]}
 	}
 	d.dataChannel <- Quit{}
-}
+}*/
 
-func (d CSVDataManager) read(file string) {
+func (d *CSVDataManager) read(file string) {
 	ohlc := d.readCSVFile(file)
 	name := strings.TrimSuffix(filepath.Base(file), path.Ext(file))
 	//d.putDataOnChannel(name, ohlc)
@@ -147,12 +147,12 @@ func (d CSVDataManager) read(file string) {
 }
 
 //ReadCSVFileAsync is used to start a go thread
-func (d CSVDataManager) ReadCSVFile(file string) {
+func (d *CSVDataManager) ReadCSVFile(file string) {
 	d.read(file)
 }
 
 //ReadCSVFileAsync is used to start a go thread
-func (d CSVDataManager) ReadCSVFileAsync(file string, wg *sync.WaitGroup) {
+func (d *CSVDataManager) ReadCSVFileAsync(file string, wg *sync.WaitGroup) {
 	d.read(file)
 	wg.Done()
 }
