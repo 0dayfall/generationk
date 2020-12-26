@@ -30,12 +30,13 @@ func (b *Broker) SendOrder(order Order, orderstatus OrderStatus) {
 	b.callback = orderstatus
 
 	log.WithFields(log.Fields{
-		"ordertype": order.Ordertype,
-		"asset":     (*order.Asset).Name,
-		"time":      order.Time,
-		"amount":    order.Amount,
-		"qty":       order.Qty,
-	}).Debug("BROKER>PLACE BUY ORDER")
+		"ordertype":                    order.Ordertype,
+		"asset":                        (*order.Asset).Name,
+		"(*order.Asset).Ohlc[0].Close": (*order.Asset).Ohlc[0].Close,
+		"time":                         order.Time,
+		"amount":                       order.Amount,
+		"qty":                          order.Qty,
+	}).Info("BROKER>PLACE ORDER")
 
 	switch order.Ordertype {
 	case BuyOrder:
@@ -70,14 +71,14 @@ func (b Broker) accepted(order Order) {
 func (b Broker) rejected(err error) {
 	log.WithFields(log.Fields{
 		"Error": err,
-	}).Debug("BROKER> REJECTED")
+	}).Info("BROKER> REJECTED")
 	b.callback.OrderEvent(Rejected{err: err})
 }
 
 func (b *Broker) buy(order Order) error {
-	log.WithFields(log.Fields{
+	/*log.WithFields(log.Fields{
 		"Order": order,
-	}).Info("BROKER> BUY")
+	}).Info("BROKER> BUY")*/
 	if order.Qty > 0 {
 		err := b.portfolio.subtractFromBalance(getAmountForQty(order))
 		if err != nil {
@@ -107,7 +108,7 @@ func (b *Broker) buy(order Order) error {
 
 func (b *Broker) sell(order Order) {
 	log.WithFields(log.Fields{
-		"Order": order,
+		"Order": order.Asset.Name,
 	}).Info("BROKER> SELL")
 	if order.Qty > 0 {
 		b.portfolio.addToBalance(getAmountForQty(order))

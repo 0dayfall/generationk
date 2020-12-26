@@ -44,7 +44,7 @@ type Order struct {
 }
 
 func (o Order) String() string {
-	return fmt.Sprintf("$ORDER %v %v %f %d", o.Ordertype, o.Time, o.Amount, o.Qty)
+	return fmt.Sprintf("$ORDER %v %v %v %f %d", o.Ordertype, o.Asset, o.Time, o.Amount, o.Qty)
 }
 
 //Accepted is a status of the order

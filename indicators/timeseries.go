@@ -17,16 +17,16 @@ func (ts TimeSeries) GetDataType() OhlcValue {
 
 //Update is used to initialize indicator with values
 func (ts TimeSeries) Update(values []float64) {
-	/*log.WithFields(log.Fields{
+	log.WithFields(log.Fields{
 		"values length": len(values),
-	}).Debug("TIMESERIES> Update()")*/
+	}).Debug("TIMESERIES> Update()")
 	ts.IndicatorStruct.values = values
 }
 
 //NewTimeSeries is used to create a time series which may be updates
-func NewTimeSeries(value OhlcValue, period int) *TimeSeries {
+func NewTimeSeries(value OhlcValue, period int) TimeSeries {
 
-	ts := &TimeSeries{
+	ts := TimeSeries{
 		IndicatorStruct: &IndicatorStruct{
 			name:   "Time Series",
 			period: period},

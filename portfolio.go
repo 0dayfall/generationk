@@ -83,7 +83,7 @@ func (p *Portfolio) AddHolding(position Holding) {
 		"asset": position.AssetName,
 		"time":  position.Time,
 		"Qty":   position.Qty,
-	}).Debug("PORTFOLIO> Adding position to portfolio")
+	}).Info("PORTFOLIO> Adding position to portfolio")
 	p.Holdings = append(p.Holdings, position)
 }
 
@@ -113,10 +113,12 @@ func (p *Portfolio) subtractFromBalance(cost float64) error {
 	return nil
 }
 
-func (p *Portfolio) SetCash(amount float64) {
+func (p *Portfolio) SetBalance(amount float64) {
+	p.m.Lock()
+	defer p.m.Unlock()
 	p.cash = amount
 }
 
-func (p *Portfolio) GetCash() float64 {
+func (p *Portfolio) GetBalance() float64 {
 	return p.cash
 }

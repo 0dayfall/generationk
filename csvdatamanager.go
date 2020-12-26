@@ -40,9 +40,9 @@ func parseFloat(value string) float64 {
 }
 
 //NewCSVDataManager creates a new data manager object
-func NewCSVDataManager(dataHandler DataHandler) CSVDataManager {
+func NewCSVDataManager(dataHandler DataHandler) *CSVDataManager {
 
-	dm := CSVDataManager{
+	dm := &CSVDataManager{
 		//dataChannel: genk.market.eventChannel,
 		callback: dataHandler,
 	}
@@ -52,23 +52,23 @@ func NewCSVDataManager(dataHandler DataHandler) CSVDataManager {
 	return dm
 }
 
-func (d CSVDataManager) ReadCSVFilesAsync(files []string) {
-	var wg sync.WaitGroup
+//ReadCSVFilesAsync is used to read files asynchronous
+func (d CSVDataManager) ReadCSVFilesAsync(files []string, wg *sync.WaitGroup) {
 	for k := 0; k < len(files); k++ {
 		wg.Add(1)
-		go d.ReadCSVFileAsync(files[k], &wg)
+		go d.ReadCSVFileAsync(files[k], wg)
 	}
 	wg.Wait()
 }
 
 //ReadFolderWithCSVFilesAsync is used to read a folder of files and put them on the queue to the strategy
-func (d CSVDataManager) ReadFolderWithCSVFilesAsync(folder string) {
+func (d CSVDataManager) ReadFolderWithCSVFilesAsync(folder string, wg *sync.WaitGroup) {
 	//var heap OhlcHeap
-	files, err := filepath.Glob("*.csv")
+	files, err := filepath.Glob(folder + "*.csv")
 	if err != nil {
 		log.Fatal(err)
 	}
-	d.ReadCSVFilesAsync(files)
+	d.ReadCSVFilesAsync(files, wg)
 }
 
 //ReadCSVFile reads a CSV file
@@ -122,12 +122,14 @@ func (d CSVDataManager) readCSVFile(file string) []OHLC {
 	return s
 }
 
-func (d *CSVDataManager) callbackOnDataEvent(name string, ohlc []OHLC) {
-
+func (d *CSVDataManager) callbackOnDataEvent(name string, ohlc []OHLC) int {
+	var count int
 	for k := range ohlc {
 		d.callback.DataEvent(DataEvent{Name: name, Ohlc: ohlc[k]})
+		count++
 		//fmt.Printf("%d", k)
 	}
+	return count
 	//d.dataChannel <- Quit{}
 }
 
@@ -139,16 +141,16 @@ func (d *CSVDataManager) callbackOnDataEvent(name string, ohlc []OHLC) {
 	d.dataChannel <- Quit{}
 }*/
 
-func (d *CSVDataManager) read(file string) {
+func (d *CSVDataManager) read(file string) int {
 	ohlc := d.readCSVFile(file)
 	name := strings.TrimSuffix(filepath.Base(file), path.Ext(file))
 	//d.putDataOnChannel(name, ohlc)
-	d.callbackOnDataEvent(name, ohlc)
+	return d.callbackOnDataEvent(name, ohlc)
 }
 
 //ReadCSVFileAsync is used to start a go thread
-func (d *CSVDataManager) ReadCSVFile(file string) {
-	d.read(file)
+func (d *CSVDataManager) ReadCSVFile(file string) int {
+	return d.read(file)
 }
 
 //ReadCSVFileAsync is used to start a go thread

@@ -186,7 +186,11 @@ func (m IndicatorStruct) Value() float64 {
 	return m.values[0]
 }
 
-func (m IndicatorStruct) ValueAtIndex(index int) float64 {
+func (m *IndicatorStruct) ValueAtIndex(index int) float64 {
+	if len((*m).values) < 1 {
+		log.Error("GENERIC> No values in generic indicator")
+		return 0.0
+	}
 	log.WithFields(log.Fields{
 		"index":                  index,
 		"len":                    len(m.values),

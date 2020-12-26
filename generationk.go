@@ -1,6 +1,7 @@
 package generationk
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"sync"
@@ -15,7 +16,8 @@ var o sync.Once
 
 type GenkCallback interface {
 	IsOwning(asset string) bool
-	OrderSend(assetName string, ordertype OrderType, amount float64, qty int)
+	OrderSend(assetName string, ordertype OrderType, amount float64, qty int) error
+	Assets() []string
 }
 
 type generationK struct {
@@ -25,7 +27,7 @@ type generationK struct {
 func NewGenerationK() *generationK {
 
 	generationK := &generationK{
-		market: newContext(),
+		market: NewContext(),
 	}
 
 	generationK.initLog()
@@ -33,11 +35,15 @@ func NewGenerationK() *generationK {
 	return generationK
 }
 
-func (k *generationK) DataEvent(dataEvent Event) {
+func (k *generationK) UpdateIndicators(assetName string) {
+	k.market.updateIndicators(assetName)
+}
 
-	log.WithFields(log.Fields{
+func (k *generationK) DataEvent(dataEvent Event) {
+	assetName := dataEvent.(DataEvent).Name
+	/*log.WithFields(log.Fields{
 		"Number of items": len(k.market.EventChannel()),
-	}).Debug("GENERATIONK>DATA EVENT PICKED OFF QUEUE")
+	}).Debug("GENERATIONK>DATA EVENT PICKED OFF QUEUE")*/
 
 	k.market.datePointer = dataEvent.(DataEvent).Ohlc.Time
 
@@ -48,19 +54,28 @@ func (k *generationK) DataEvent(dataEvent Event) {
 	}
 
 	//Add data to asset
-	if _, ok := k.market.AssetMap[dataEvent.(DataEvent).Name]; !ok {
-		log.Debug("GENERATIONK>EVENTCHANNEL>DATAEVENT> CREATING ASSET AND ADDING TO MAP")
-		asset := NewAsset(dataEvent.(DataEvent).Name, dataEvent.(DataEvent).Ohlc)
-		k.market.AssetMap[dataEvent.(DataEvent).Name] = asset
+	if k.market.AssetMap == nil {
+		log.Info("ASSET MAP == NIL")
 	}
+	if _, ok := k.market.AssetMap[assetName]; !ok {
+		log.Info("GENERATIONK>EVENTCHANNEL>DATAEVENT> CREATING ASSET AND ADDING TO MAP")
+		asset := NewAsset(assetName, dataEvent.(DataEvent).Ohlc)
+		k.AddAsset(asset)
+		//k.market.Asset = append(k.market.Asset, *asset)
+		//k.market.AssetMap[assetName] = asset
+	} else {
 
-	log.WithFields(log.Fields{
-		"(DataEvent).Name": dataEvent.(DataEvent).Name,
-	}).Debug("GENERATIONK>EVENTCHANNEL>DATAEVENT> EXISTS IN MAP")
+		/*log.WithFields(log.Fields{
+			"k.market.AssetMap[dataEvent.(DataEvent).Name].Name": k.market.AssetMap[dataEvent.(DataEvent).Name].Name,
+			"k.market.AssetMap[dataEvent.(DataEvent).Name].Ohlc": k.market.AssetMap[dataEvent.(DataEvent).Name].Ohlc,
+		}).Info("GENERATIONK>EVENTCHANNEL>DATAEVENT> EXISTS IN MAP")*/
 
-	//k.market.AssetMap[event.(DataEvent).Name].Ohlc = prepend(k.market.AssetMap[event.(DataEvent).Name].Ohlc, event.(DataEvent).Ohlc)
-	k.market.AssetMap[dataEvent.(DataEvent).Name].Update(dataEvent.(DataEvent).Ohlc)
+		//k.market.AssetMap[event.(DataEvent).Name].Ohlc = prepend(k.market.AssetMap[event.(DataEvent).Name].Ohlc, event.(DataEvent).Ohlc)
 
+		//k.market.AssetMap[assetName].Update(dataEvent.(DataEvent).Ohlc)
+		k.GetAssetByName(assetName).Update(dataEvent.(DataEvent).Ohlc)
+		k.UpdateIndicators(dataEvent.(DataEvent).Name)
+	}
 	//Run only once to setup indicators
 	o.Do(func() {
 	})
@@ -76,22 +91,17 @@ func (k *generationK) DataEvent(dataEvent Event) {
 
 	//Run setup after initperiod is finished
 	if k.market.K < k.market.GetInitPeriod() {
-
-		log.Info("GENERATIONK>EVENTCHANNEL>DATAEVENT> Initializing strategy failed")
+		log.Debug("GENERATIONK>EVENTCHANNEL>DATAEVENT> Strategy in init period")
 		return
-
 	} else {
-
-		log.Info("GENERATIONK>EVENTCHANNEL> Updating indicators data")
-		updateIndicators(k.market, dataEvent.(DataEvent))
-
-		log.Info("GENERATIONK>EVENTCHANNEL> Leting strategy know")
+		log.Debug("GENERATIONK>EVENTCHANNEL> Updating indicators data")
+		log.Debug("GENERATIONK>EVENTCHANNEL> Leting strategy know")
 		k.market.Strategy[0].Tick(k)
 	}
 
 	log.WithFields(log.Fields{
 		"K: ": k.market.K,
-	}).Info("K")
+	}).Debug("K")
 
 }
 
@@ -116,6 +126,14 @@ func (k *generationK) initLog() {
 
 func (k *generationK) AddDataManager() {}
 
+func (k *generationK) GetAssets() []Asset {
+	return k.market.GetAssets()
+}
+
+func (k *generationK) GetAssetByName(name string) *Asset {
+	return k.market.GetAssetByName(name)
+}
+
 func (k *generationK) AddAsset(asset *Asset) {
 	k.market.AddAsset(asset)
 }
@@ -125,16 +143,16 @@ func (k *generationK) AddPortfolio(portfolio *Portfolio) {
 	k.market.Broker.portfolio = portfolio
 }
 
-func (k *generationK) AddStrategy(strat *Strategy) {
-	err := (*strat).Setup(k.market)
+func (k *generationK) AddStrategy(strat Strategy) {
+	/*err := strat.Setup(k.market)
 	if err != nil {
 		log.Fatal("Could not initialize strategy")
-	}
+	}*/
 	k.market.AddStrategy(strat)
 }
 
 func (k *generationK) SetBalance(balance float64) {
-	k.market.Portfolio.SetCash(balance)
+	k.market.Portfolio.SetBalance(balance)
 }
 
 func (k *generationK) AddStartDate(startDate time.Time) {
@@ -145,25 +163,29 @@ func (k *generationK) AddEndDate(endDate time.Time) {
 	k.market.AddEndDate(endDate)
 }
 
-func (k generationK) OrderSend(assetName string, ordertype OrderType, amount float64, qty int) {
-	log.Debug("GENERATIONK>makeOrder()")
-	orderSend(k.market, ordertype, assetName, k.market.datePointer, amount, qty)
+func (k *generationK) OrderSend(assetName string, ordertype OrderType, amount float64, qty int) error {
+	if asset, ok := k.market.AssetMap[assetName]; ok {
+		//do something here
+		orderSend(k.market, ordertype, asset, k.market.datePointer, amount, qty)
+		return nil
+	}
+	return errors.New("Asset not in map")
 }
 
-func orderSend(ctx *Context, ordertype OrderType, assetName string, time time.Time, amount float64, qty int) {
+func orderSend(ctx *Context, ordertype OrderType, asset *Asset, time time.Time, amount float64, qty int) {
 	log.WithFields(log.Fields{
-		"Asset":  assetName,
-		"Time":   time,
-		"Amount": amount,
-		"Qty":    qty,
-	}).Debug("GENERATIONK>MAKE ORDER>")
+		"Order type": ordertype,
+		"Time":       time,
+		"Amount":     amount,
+		"Qty":        qty,
+	}).Info("GENERATIONK>MAKE ORDER>")
 
 	orderStatus, _ := interface{}(ctx.Strategy[0]).(OrderStatus)
 
 	ctx.Broker.SendOrder(
 		Order{
 			Ordertype: ordertype,
-			Asset:     ctx.AssetMap[assetName],
+			Asset:     asset,
 			Time:      time,
 			Amount:    amount,
 			Qty:       qty,
@@ -173,8 +195,20 @@ func orderSend(ctx *Context, ordertype OrderType, assetName string, time time.Ti
 
 }
 
+func (k *generationK) Assets() []string {
+	log.WithFields(log.Fields{
+		"Length": len(k.market.Asset),
+	}).Debug("Length of assets field")
+	assets := make([]string, len(k.market.Asset))
+	for i, asset := range k.market.Asset {
+		assets[i] = asset.Name
+	}
+	return assets
+	//return []string{"Test", "Test2"}
+}
+
 //OwnPosition is used to find out if we have a holding in an asset
-func (k generationK) IsOwning(name string) bool {
+func (k *generationK) IsOwning(name string) bool {
 	return k.market.Portfolio.IsOwning(name)
 }
 
@@ -184,34 +218,6 @@ func Min(x, y int) int {
 		return y
 	}
 	return x
-}
-
-func updateIndicators(ctx *Context, dataEvent DataEvent) {
-	log.Debug("ctx.AssetIndicatorMap[dataEvent.Name]: ", len(ctx.AssetIndicatorMap[dataEvent.Name]))
-
-	//If the asset has no data so far ther is no point in doing this
-	data := ctx.AssetMap[dataEvent.Name].CloseArray()
-	if len(data) < 1 {
-		return
-	}
-
-	for k := range ctx.AssetIndicatorMap[dataEvent.Name] {
-
-		indicator := (*ctx.AssetIndicatorMap[dataEvent.Name][k])
-
-		//Copy either the data we have available or period much to the indicator
-		period := Min(len(ctx.AssetMap[dataEvent.Name].CloseArray()), indicator.GetPeriod())
-		dataWindow := make([]float64, period)
-		copy(dataWindow, data[:period])
-
-		log.WithFields(log.Fields{
-			"len(dataWindow)": len(dataWindow),
-			"dataWindow":      dataWindow,
-		}).Debug("GENERATIONK>UPDATE INDICATORS>")
-
-		//Update the indicator with new data
-		indicator.Update(dataWindow)
-	}
 }
 
 type EndOfDataError struct {
