@@ -2,6 +2,8 @@ package generationk
 
 import (
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Asset data type
@@ -19,14 +21,6 @@ func NewAsset(name string, ohlc OHLC) *Asset {
 	return &Asset{
 		Name: name,
 		Ohlc: []OHLC{ohlc}}
-}
-
-//Type is the type for ohlc
-type Type struct {
-	Open  string
-	High  string
-	Low   string
-	close string
 }
 
 //DataUpdate is used to update the data in the assets
@@ -59,10 +53,10 @@ func resize(z []OHLC, period int) []OHLC {
 
 //Update interface to be able to get updated by the event queue
 func (a *Asset) Update(ohlc OHLC) {
-	/*	log.WithFields(log.Fields{
+	a.Ohlc = prepend(a.Ohlc, ohlc)
+	/*log.WithFields(log.Fields{
 		"a.Ohlc": a.Ohlc,
 	}).Debug("ASSET> UPDATE")*/
-	a.Ohlc = prepend(a.Ohlc, ohlc)
 	/*log.WithFields(log.Fields{
 		"a.Ohlc": a.Ohlc,
 	}).Debug("ASSET>PREPEND> UPDATE")*/
@@ -96,7 +90,11 @@ func (a *Asset) CloseArray() []float64 {
 
 //Close is used to get the close value
 func (a *Asset) Close() float64 {
-	return a.Ohlc[0].Close
+	if a != nil {
+		return a.Ohlc[0].Close
+	}
+	log.Info("ASSET = NIL")
+	return 0.0
 }
 
 //CloseAtBar is used to get the close value

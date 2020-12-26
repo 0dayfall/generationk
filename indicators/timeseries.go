@@ -24,9 +24,9 @@ func (ts TimeSeries) Update(values []float64) {
 }
 
 //NewTimeSeries is used to create a time series which may be updates
-func NewTimeSeries(value OhlcValue, period int) *TimeSeries {
+func NewTimeSeries(value OhlcValue, period int) TimeSeries {
 
-	ts := &TimeSeries{
+	ts := TimeSeries{
 		IndicatorStruct: &IndicatorStruct{
 			name:   "Time Series",
 			period: period},

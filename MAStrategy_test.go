@@ -1,32 +1,36 @@
 package generationk
 
 import (
-	"os"
+	"fmt"
+	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
-	indicators "github.com/greenorangebay/generationk/indicators"
-	"github.com/shiena/ansicolor"
+	indicators "github.com/0dayfall/generationk/indicators"
 
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
 //Strategy strategy
 type MACrossStrategy struct {
-	ma50       *indicators.SimpleMovingAverage
-	close      *indicators.TimeSeries
-	initPeriod int
+	ma50  indicators.SimpleMovingAverage
+	close indicators.TimeSeries
 }
 
 //Setup is used to declare what indicators will be used
 func (ma *MACrossStrategy) Setup(ctx *Context) error {
+	//Want access to the latest 5 closing prices
 	ma.close = indicators.NewTimeSeries(indicators.Close, 5)
-	ma.ma50 = indicators.NewSimpleMovingAverage(indicators.Close, 9)
+	//MA50
+	ma.ma50 = indicators.NewSimpleMovingAverage(indicators.Close, 50)
 
-	ctx.AddIndicator(ma.close)
-	ctx.AddIndicator(ma.ma50)
-	ctx.SetInitPeriod(9)
+	//Add indicators to context
+	ctx.AddIndicator(&ma.close)
+	ctx.AddIndicator(&ma.ma50)
+
+	//The data needed to calculate MA
+	ctx.SetInitPeriod(50)
 
 	return nil
 }
@@ -37,58 +41,95 @@ func (ma *MACrossStrategy) Update(ctx *Context) {
 }
 
 //Tick get called when there is new data coming in
-func (ma *MACrossStrategy) Tick(ctx *Context) {
+func (ma *MACrossStrategy) Tick(genkC GenkCallback) {
+	/*log.WithFields(
+		log.Fields{
+			"Assets": genkC.Assets(),
+		}).Info("Assets")
 
-	if ma.ma50.ValueAtIndex(0) > ma.close.ValueAtIndex(0) {
-		if !ctx.Position(ctx.AssetMap["ABB"]) {
-			MakeOrder(ctx, OrderType(Buy), ctx.AssetMap["ABB"], ctx.Time(), 1000)
+	log.WithFields(
+		log.Fields{
+			"MA values": ma.ma50.Values(),
+		}).Info("MA")*/
+
+	if ma.close.ValueAtIndex(0) > ma.ma50.ValueAtIndex(0) {
+		if !genkC.IsOwning(genkC.Assets()[0]) {
+			genkC.OrderSend(genkC.Assets()[0], OrderType(BuyOrder), 0, 100)
+		}
+	}
+
+	if ma.close.ValueAtIndex(0) < ma.ma50.ValueAtIndex(0) {
+		if genkC.IsOwning(genkC.Assets()[0]) {
+			genkC.OrderSend(genkC.Assets()[0], OrderType(SellOrder), 0, 100)
 		}
 	}
 
 }
 
-//Orders get called when everything is updated
+//OrderEvent gets called on order events
 func (ma *MACrossStrategy) OrderEvent(orderEvent Event) {
 	log.WithFields(log.Fields{
 		"orderEvent": orderEvent,
 	}).Debug("MAStrategy_test> OrderEvent")
 }
 
-func TestRun(t *testing.T) {
+func readFolder(folderPath string) {
 
-	logrus.SetFormatter(&logrus.TextFormatter{ForceColors: true})
-	logrus.SetOutput(ansicolor.NewAnsiColorWriter(os.Stdout))
-
-	lvl, ok := os.LookupEnv("LOG_LEVEL")
-
-	// LOG_LEVEL not set, let's default to debug
-	if !ok {
-		lvl = "debug"
-	}
-	// parse string, this is built-in feature of logrus
-	ll, err := logrus.ParseLevel(lvl)
+	files, err := filepath.Glob(folderPath + "*.csv")
 	if err != nil {
-		ll = logrus.DebugLevel
+		log.Fatal(err)
 	}
-	// set global log level
-	logrus.SetLevel(ll)
+	fmt.Printf("files %s", files)
+	//d.ReadCSVFilesAsync(files)
+	portfolio := NewPortfolio()
+	portfolio.SetBalance(100000)
 
-	//Context that the strategy is being run with such as assets
-	market := NewContext()
-	market.AddAsset(NewAsset("ABB", OHLC{}))
-	//Going to run with the following data thingie to collect the data
-	dataManager := NewCSVDataManager(market)
-	dataManager.ReadCSVFileAsync("test/data/ABB.csv")
-	strategy := Strategy(&MACrossStrategy{})
-	market.AddStrategy(&strategy)
+	var wg sync.WaitGroup
+	y := 0
+	for _, fileName := range files {
+		wg.Add(1)
+		go func(localFilename string) {
+			genk := NewGenerationK()
+			genk.AddPortfolio(portfolio)
 
-	now := time.Now()
-	start := now.AddDate(0, -9, -2)
-	market.AddStartDate(start)
+			strategy := new(MACrossStrategy)
 
-	now = time.Now()
-	end := now.AddDate(0, -3, -2)
-	market.AddStartDate(end)
+			//Going to run with the following data thingie to collect the data
+			//assetName := strings.TrimSuffix(filepath.Base(fileName), path.Ext(fileName))
+			//genk.AddAsset(NewAsset(assetName, OHLC{}))
+			//genk.AddAsset(NewAsset(assetName, OHLC{}))
+			genk.AddStrategy(strategy)
 
-	RunEventBased(market)
+			//genk.SetBalance(100000)
+			now := time.Now()
+			start := now.AddDate(-15, -9, -2)
+			genk.AddStartDate(start)
+			now = time.Now()
+			end := now.AddDate(0, -3, -2)
+			genk.AddEndDate(end)
+
+			//genk.RunEventBased()
+			dataManager := NewCSVDataManager(genk)
+			//genk.AddDataManager(dataManager)
+
+			//dataManager.ReadCSVFilesAsync([]string{"test/data/ABB.csv", "test/data/ASSAb.csv"})
+			count := dataManager.ReadCSVFile(localFilename)
+			log.WithFields(log.Fields{
+				"count": count,
+			}).Info("Number of lines processed")
+
+			wg.Done()
+		}(fileName)
+		y++
+	}
+	wg.Wait()
+	log.WithFields(log.Fields{
+		"balance": portfolio.GetBalance(),
+	}).Info("Balance")
+}
+
+func TestRun(t *testing.T) {
+	//files := []string{"test/data/ABB.csv", "test/data/ASSAb.csv", "test/data/BILL.csv"}
+
+	readFolder("test/data/")
 }
