@@ -5,13 +5,14 @@ import log "github.com/sirupsen/logrus"
 //SimpleMovingAverage for the basics
 type SimpleMovingAverage struct {
 	*IndicatorStruct
-	value OhlcValue
+	dataType OHLC
 }
 
 //NewSimpleMovingAverage is to start a new moving average
-func NewSimpleMovingAverage(value OhlcValue, period int) SimpleMovingAverage {
+func NewSimpleMovingAverage(value OHLC, period int) SimpleMovingAverage {
 	ma := SimpleMovingAverage{
 		IndicatorStruct: &IndicatorStruct{name: "Simple Moving Average", period: period, values: []float64{}},
+		dataType:        value,
 	}
 
 	log.WithFields(log.Fields{
@@ -33,8 +34,8 @@ func (sma *SimpleMovingAverage) Update(values []float64) {
 }
 
 //GetDataType is used to know which float64 array to use on the indicator
-func (sma SimpleMovingAverage) GetDataType() OhlcValue {
-	return sma.value
+func (sma SimpleMovingAverage) GetDataType() OHLC {
+	return sma.dataType
 }
 
 func (sma *SimpleMovingAverage) ValueAtIndex(ix int) float64 {
