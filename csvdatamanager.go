@@ -108,6 +108,7 @@ func (d CSVDataManager) readCSVFile(file string) []OHLC {
 		record3 := parseFloat(record[3])
 		record4 := parseFloat(record[4])
 		record5 := parseFloat(record[5])
+
 		record6, err := strconv.Atoi(record[6])
 
 		if err != nil {
