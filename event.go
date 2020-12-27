@@ -5,11 +5,15 @@ import (
 	"time"
 )
 
+//DataHandler is the interface used to recieve data
+//from any data producing function. It is internal
+//to generationK
 type DataHandler interface {
 	DataEvent(dataEvent Event)
 }
 
-//OrderStatus is a callback interface used to recieve information about orders, it is used by the broker
+//OrderStatus is a callback interface used to recieve
+//information about orders, it is used by the broker
 type OrderStatus interface {
 	OrderEvent(orderEvent Event)
 }
@@ -19,13 +23,12 @@ type Event interface {
 	String() string
 }
 
-//DataEvent is for sending data
+//DataEvent is a data structure used to inform generationK that new data is available
 type DataEvent struct {
 	Name string
 	Ohlc OHLC
 }
 
-//Handle iM not sure what it si used for
 func (d DataEvent) String() string {
 	/*log.WithFields(log.Fields{
 		"Name": d.Name,
@@ -34,7 +37,7 @@ func (d DataEvent) String() string {
 	return fmt.Sprintf("$DATAEVENT %s", d.Name)
 }
 
-//Order describes an order
+//Order describes an order that is used to buy / sell an asset
 type Order struct {
 	Ordertype OrderType
 	Asset     *Asset
@@ -47,7 +50,7 @@ func (o Order) String() string {
 	return fmt.Sprintf("$ORDER %v %v %v %f %d", o.Ordertype, o.Asset, o.Time, o.Amount, o.Qty)
 }
 
-//Accepted is a status of the order
+//Accepted is a status of the order to indicate that an order has been accepted by the broker.
 type Accepted struct {
 }
 
@@ -55,6 +58,7 @@ func (a Accepted) String() string {
 	return "$ACCEPTED"
 }
 
+//Submitted is a status used after an order is to be processed by the broker
 type Submitted struct {
 }
 
@@ -62,6 +66,7 @@ func (s Submitted) String() string {
 	return "$SUBMITTED"
 }
 
+//PartialFill is used to giv enotice to the strategy that a partial fill took place
 type PartialFill struct {
 }
 
@@ -69,6 +74,7 @@ func (pf PartialFill) String() string {
 	return "$PARTIALFILL"
 }
 
+//Fill is used to indicate to the implementer of OrderStatus that an order has been filled
 type Fill struct {
 	Qty       int
 	Price     float64
@@ -77,12 +83,6 @@ type Fill struct {
 }
 
 func (f Fill) String() string {
-	/*log.WithFields(log.Fields{
-		"Qty":       f.Qty,
-		"Price":     f.Price,
-		"AssetName": f.AssetName,
-		"Time":      f.Time,
-	}).Debug("Fill$")*/
 	return fmt.Sprintf("%d %f %s %v", f.Qty, f.Price, f.AssetName, f.Time)
 }
 
