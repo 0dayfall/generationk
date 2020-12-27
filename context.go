@@ -9,7 +9,6 @@ import (
 
 //Context for this backtester
 type Context struct {
-	//Updateable        []Updateable
 	strategy          []Strategy
 	assets            []Asset
 	assetMap          map[string]*Asset
@@ -157,6 +156,19 @@ func (ctx *Context) GetAssetByName(name string) *Asset {
 //GetAssetIndicatorByName is used to get the indicators assosiated with the asset
 func (ctx *Context) GetAssetIndicatorByName(name string) []indicators.Indicator {
 	return ctx.assetIndicatorMap[name]
+}
+
+func (ctx *Context) GetAssets() []Asset {
+	return ctx.Asset
+}
+
+func (ctx *Context) GetAssetByName(name string) *Asset {
+	return ctx.AssetMap[name]
+}
+
+//GetAssetIndicatorByName is used to get the indicators assosiated with the asset
+func (ctx *Context) GetAssetIndicatorByName(name string) []indicators.Indicator {
+	return ctx.AssetIndicatorMap[name]
 }
 
 //AddAsset is used to add assets that the strategy will use

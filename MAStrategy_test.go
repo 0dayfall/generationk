@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	K "github.com/0dayfall/generationk"
+	K "github.com/0dayfall/generationk"  
 	indicators "github.com/0dayfall/generationk/indicators"
 
 	log "github.com/sirupsen/logrus"

@@ -90,6 +90,8 @@ func (b *Broker) buy(order Order) error {
 
 			return err
 		}
+		qty := getQtyForAmount(order)
+		order.Qty = qty
 	}
 
 	if order.Amount > EMPTY {

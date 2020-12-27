@@ -38,6 +38,14 @@ func NewPortfolio() *Portfolio {
 	return &portfolio
 }
 
+func NewPortfolio() *Portfolio {
+	portfolio := Portfolio{
+		Holdings: make([]Holding, 0),
+		cash:     0,
+	}
+	return &portfolio
+}
+
 //IsOwning is used to find out if a position is already owned in this asset
 func (p *Portfolio) IsOwning(assetName string) bool {
 	p.m.Lock()
@@ -45,6 +53,7 @@ func (p *Portfolio) IsOwning(assetName string) bool {
 
 	for k := range p.holdings {
 		if p.holdings[k].assetName == assetName {
+
 			log.WithFields(log.Fields{
 				"AssetName": assetName,
 			}).Debug("Already owned")
