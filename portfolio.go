@@ -10,6 +10,8 @@ import (
 
 type Direction int
 
+var negativeBalanceErr = errors.New("Balance < 0")
+
 const (
 	Long Direction = iota
 	Short
@@ -17,15 +19,23 @@ const (
 
 type Portfolio struct {
 	m        sync.Mutex
-	Holdings []Holding
+	holdings []Holding
 	cash     float64
 }
 
 type Holding struct {
-	Qty       int
-	AssetName string
-	Price     float64
-	Time      time.Time
+	qty       int
+	assetName string
+	price     float64
+	time      time.Time
+}
+
+func NewPortfolio() *Portfolio {
+	portfolio := Portfolio{
+		holdings: make([]Holding, 0),
+		cash:     0,
+	}
+	return &portfolio
 }
 
 func NewPortfolio() *Portfolio {
@@ -41,8 +51,9 @@ func (p *Portfolio) IsOwning(assetName string) bool {
 	p.m.Lock()
 	defer p.m.Unlock()
 
-	for k := range p.Holdings {
-		if p.Holdings[k].AssetName == assetName {
+	for k := range p.holdings {
+		if p.holdings[k].assetName == assetName {
+
 			log.WithFields(log.Fields{
 				"AssetName": assetName,
 			}).Debug("Already owned")
@@ -57,19 +68,21 @@ func (p *Portfolio) RemoveHolding(position Holding) {
 	defer p.m.Unlock()
 
 	log.WithFields(log.Fields{
-		"asset": position.AssetName,
-		"time":  position.Time,
-		"price": position.Price,
-		"qty":   position.Qty,
+		"asset": position.assetName,
+		"time":  position.time,
+		"price": position.price,
+		"qty":   position.qty,
 	}).Info("PORTFOLIO> Removing position from portfolio")
 
 	pos := -1
-	for k := range p.Holdings {
-		if position.AssetName == p.Holdings[k].AssetName {
+
+	for k := range p.holdings {
+		if position.assetName == p.holdings[k].assetName {
 			pos = k
 		}
 	}
-	p.Holdings = remove(pos, p.Holdings)
+
+	p.holdings = remove(pos, p.holdings)
 }
 
 func remove(ix int, holdings []Holding) []Holding {
@@ -80,17 +93,18 @@ func (p *Portfolio) AddHolding(position Holding) {
 	p.m.Lock()
 	defer p.m.Unlock()
 	log.WithFields(log.Fields{
-		"asset": position.AssetName,
-		"time":  position.Time,
-		"Qty":   position.Qty,
+		"asset": position.assetName,
+		"time":  position.time,
+		"Qty":   position.qty,
 	}).Info("PORTFOLIO> Adding position to portfolio")
-	p.Holdings = append(p.Holdings, position)
+
+	p.holdings = append(p.holdings, position)
 }
 
 func (p *Portfolio) checkBalance(cost float64) error {
 	balance := p.cash + cost
 	if balance < 0 {
-		return errors.New("Balance < 0")
+		return negativeBalanceErr
 	}
 	return nil
 }
@@ -105,11 +119,15 @@ func (p *Portfolio) addToBalance(value float64) {
 func (p *Portfolio) subtractFromBalance(cost float64) error {
 	p.m.Lock()
 	defer p.m.Unlock()
+
 	err := p.checkBalance(cost)
 	if err != nil {
+
 		return err
 	}
+
 	p.cash -= cost
+
 	return nil
 }
 

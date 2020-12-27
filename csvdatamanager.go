@@ -2,6 +2,7 @@ package generationk
 
 import (
 	"encoding/csv"
+	"errors"
 	"io"
 	"os"
 	"path"
@@ -14,28 +15,26 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//CSVDataManager type
+//CSVDataManager type is used to send DataEvents via callback to generationK
 type CSVDataManager struct {
-	dataChannel chan Event
-	callback    DataHandler
+	//dataChannel chan Event
+	callback DataHandler
 }
 
-func (d *CSVDataManager) getData(period int) []float64 {
+/*func (d *CSVDataManager) getData(period int) []float64 {
 	return nil
 }
 
 func (d *CSVDataManager) getLatestData() float64 {
 	return 0.0
-}
+}*/
 
 func parseFloat(value string) float64 {
 	floatValue, err := strconv.ParseFloat(value, 64)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err.Error(),
-		}).Error("Error parsing float")
-		return 0.0
+		log.Fatal(err)
 	}
+
 	return floatValue
 }
 
@@ -58,6 +57,7 @@ func (d CSVDataManager) ReadCSVFilesAsync(files []string, wg *sync.WaitGroup) {
 		wg.Add(1)
 		go d.ReadCSVFileAsync(files[k], wg)
 	}
+
 	wg.Wait()
 }
 
@@ -68,6 +68,7 @@ func (d CSVDataManager) ReadFolderWithCSVFilesAsync(folder string, wg *sync.Wait
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	d.ReadCSVFilesAsync(files, wg)
 }
 
@@ -75,11 +76,13 @@ func (d CSVDataManager) ReadFolderWithCSVFilesAsync(folder string, wg *sync.Wait
 func (d CSVDataManager) readCSVFile(file string) []OHLC {
 
 	csvfile, err := os.Open(file)
-	defer csvfile.Close()
 
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	defer csvfile.Close()
+
 	log.WithFields(log.Fields{
 		"File name": file,
 	}).Debug("CSVDataManager> OPENED FILE")
@@ -88,34 +91,31 @@ func (d CSVDataManager) readCSVFile(file string) []OHLC {
 	r := csv.NewReader(csvfile)
 	records, err := r.ReadAll()
 
-	if err != nil && err != io.EOF {
-		log.WithFields(log.Fields{
-			"error": err.Error(),
-		}).Error("Was not possible to read the file")
+	if err != nil && errors.Is(err, io.EOF) {
+		log.Fatal(err)
 	}
 
 	s := make([]OHLC, len(records))
+
 	for i, record := range records {
 		// Read each record from csv
 		record1, err := time.Parse("1/2/2006 00:00:00", record[0]+" "+record[1])
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		record2 := parseFloat(record[2])
-		record3, err := strconv.ParseFloat(record[3], 64)
-		record4, err := strconv.ParseFloat(record[4], 64)
-		record5, err := strconv.ParseFloat(record[5], 64)
+		record3 := parseFloat(record[3])
+		record4 := parseFloat(record[4])
+		record5 := parseFloat(record[5])
+
 		record6, err := strconv.Atoi(record[6])
 
 		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err.Error(),
-			}).Error("Error in parsing CSV file")
+			log.Fatal(err)
 		}
 
-		ohlc := OHLC{Time: record1, Open: record2, High: record3, Low: record4, Close: record5, Volume: record6}
-		log.WithFields(log.Fields{
-			"Name of file": file,
-			"Ohlc":         ohlc,
-		}).Debug("DataEvent$ ")
-
+		ohlc := OHLC{time: record1, open: record2, high: record3, low: record4, close: record5, volume: record6}
 		s[i] = ohlc
 	}
 
@@ -124,11 +124,13 @@ func (d CSVDataManager) readCSVFile(file string) []OHLC {
 
 func (d *CSVDataManager) callbackOnDataEvent(name string, ohlc []OHLC) int {
 	var count int
+
 	for k := range ohlc {
 		d.callback.DataEvent(DataEvent{Name: name, Ohlc: ohlc[k]})
 		count++
 		//fmt.Printf("%d", k)
 	}
+
 	return count
 	//d.dataChannel <- Quit{}
 }
@@ -148,7 +150,7 @@ func (d *CSVDataManager) read(file string) int {
 	return d.callbackOnDataEvent(name, ohlc)
 }
 
-//ReadCSVFileAsync is used to start a go thread
+//ReadCSVFile is used to start a go thread
 func (d *CSVDataManager) ReadCSVFile(file string) int {
 	return d.read(file)
 }

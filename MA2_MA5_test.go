@@ -7,45 +7,54 @@ import (
 	"testing"
 	"time"
 
-	K "github.com/0dayfall/generationk"  
+	K "github.com/0dayfall/generationk"
 	indicators "github.com/0dayfall/generationk/indicators"
 
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	PERCENT_LIMIT = 0.03
+)
+
 //Strategy strategy
-type MACrossStrategy struct {
-	ma50  indicators.SimpleMovingAverage
-	close indicators.TimeSeries
+type MA2_MA5 struct {
+	ma5 indicators.SimpleMovingAverage
+	ma2 indicators.SimpleMovingAverage
 }
 
 //Setup is used to declare what indicators will be used
-func (ma *MACrossStrategy) Setup(ctx *K.Context) error {
-	//Want access to the latest 5 closing prices
-	ma.close = indicators.NewTimeSeries(indicators.Close, 5)
-	//MA50
-	ma.ma50 = indicators.NewSimpleMovingAverage(indicators.Close, 50)
+func (ma *MA2_MA5) Setup(ctx *K.Context) error {
+	//ma2 is used for moving average 2
+	ma.ma2 = indicators.NewSimpleMovingAverage(indicators.Close, 2)
+	//ma5 is used for moving average 5
+	ma.ma5 = indicators.NewSimpleMovingAverage(indicators.Close, 5)
 
 	//Add indicators to context
-	ctx.AddIndicator(&ma.close)
-	ctx.AddIndicator(&ma.ma50)
+	ctx.AddIndicator(&ma.ma2)
+	ctx.AddIndicator(&ma.ma5)
 
-	//The data needed to calculate MA
-	ctx.SetInitPeriod(50)
+	//The minimum data needed to calculate the moving average
+	ctx.SetInitPeriod(5)
 
 	return nil
 }
 
 //Update gets called when updates arrive
-func (ma *MACrossStrategy) Update(ctx *K.Context) {
+func (ma *MA2_MA5) Update(ctx *K.Context) {
 	ctx.K++
 }
 
 //Tick get called when there is new data coming in
-func (ma *MACrossStrategy) Tick(genkC K.GenkCallback) {
-
-	if ma.close.ValueAtIndex(0) > ma.ma50.ValueAtIndex(0) {
+func (ma *MA2_MA5) Tick(genkC K.GenkCallback) {
+	ma2 := ma.ma2.ValueAtIndex(0)
+	ma5 := ma.ma5.ValueAtIndex(0)
+	diff := ma5 / ma2
+	//If the diff is larger than the PERCENT_LIMIT then try to buy
+	if diff-1 > PERCENT_LIMIT {
+		//If we dont own the asset, then we can process the logic
 		if !genkC.IsOwning(genkC.Assets()[0]) {
+			//Send an order to buy asset
 			err := genkC.OrderSend(genkC.Assets()[0], K.BuyOrder, 0, 100)
 
 			if err != nil {
@@ -54,7 +63,7 @@ func (ma *MACrossStrategy) Tick(genkC K.GenkCallback) {
 		}
 	}
 
-	if ma.close.ValueAtIndex(0) < ma.ma50.ValueAtIndex(0) {
+	if ma.ma2.ValueAtIndex(0) > ma.ma5.ValueAtIndex(0) {
 		if genkC.IsOwning(genkC.Assets()[0]) {
 			err := genkC.OrderSend(genkC.Assets()[0], K.SellOrder, 0, 100)
 
@@ -67,14 +76,13 @@ func (ma *MACrossStrategy) Tick(genkC K.GenkCallback) {
 }
 
 //OrderEvent gets called on order events
-func (ma *MACrossStrategy) OrderEvent(orderEvent K.Event) {
+func (ma *MA2_MA5) OrderEvent(orderEvent K.Event) {
 	log.WithFields(log.Fields{
 		"orderEvent": orderEvent,
-	}).Debug("MAStrategy_test> OrderEvent")
+	}).Info("MAStrategy_test> OrderEvent")
 }
 
-func readFolder(folderPath string) {
-
+func readMAFolder(folderPath string) {
 	files, err := filepath.Glob(folderPath + "*.csv")
 	if err != nil {
 		log.Fatal(err)
@@ -95,7 +103,7 @@ func readFolder(folderPath string) {
 			genk := K.NewGenerationK()
 			genk.AddPortfolio(portfolio)
 
-			strategy := new(MACrossStrategy)
+			strategy := new(MA2_MA5)
 
 			//Going to run with the following data thingie to collect the data
 			//assetName := strings.TrimSuffix(filepath.Base(fileName), path.Ext(fileName))
@@ -133,7 +141,7 @@ func readFolder(folderPath string) {
 	}).Info("Balance")
 }
 
-func TestRun(t *testing.T) {
+func TestMA2MA5Run(t *testing.T) {
 	//t.Parallel()
-	readFolder("test/data/")
+	readMAFolder("test/data/")
 }
