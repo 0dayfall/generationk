@@ -103,7 +103,7 @@ func (k *GenerationK) DataEvent(dataEvent Event) {
 	if k.market.K < k.market.GetInitPeriod() {
 		log.Debug("GENERATIONK>EVENTCHANNEL>DATAEVENT> Strategy in init period")
 
-    return
+		return
 	}
 
 	log.Debug("GENERATIONK>EVENTCHANNEL> Updating indicators data")
@@ -145,6 +145,10 @@ func (k *GenerationK) GetAssetByName(name string) *Asset {
 	return k.market.GetAssetByName(name)
 }
 
+func (k *GenerationK) AddComission(comisson Comission) {
+	k.market.broker
+}
+
 func (k *GenerationK) AddAsset(asset *Asset) {
 	k.market.AddAsset(asset)
 }
@@ -182,17 +186,6 @@ func (k *GenerationK) OrderSend(assetName string, ordertype OrderType, amount fl
 
 		return nil
 	}
-	return errors.New("Asset not in map")
-}
-
-func orderSend(ctx *Context, ordertype OrderType, asset *Asset, time time.Time, amount float64, qty int) {
-	log.WithFields(log.Fields{
-		"Order type": ordertype,
-		"Time":       time,
-		"Amount":     amount,
-		"Qty":        qty,
-	}).Info("GENERATIONK>MAKE ORDER>")
-
 	return AssetDoesNotExist
 }
 

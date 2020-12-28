@@ -26,7 +26,12 @@ const (
 type Broker struct {
 	portfolio *Portfolio
 	//channel   chan Event
-	callback OrderStatus
+	callback  OrderStatus
+	comission Comission
+}
+
+func (b *Broker) SetComission(comission Comission) {
+	b.comission = comission
 }
 
 //SendOrder is used to place an order with the broker
@@ -83,27 +88,24 @@ func (b *Broker) buy(order Order) error {
 	/*log.WithFields(log.Fields{
 		"Order": order,
 	}).Info("BROKER> BUY")*/
+	amount := 0.0
 	if order.Qty > ZERO {
-		err := b.portfolio.subtractFromBalance(getAmountForQty(order))
-		if err != nil {
-			b.rejected(err)
+		amount = getAmountForQty(order)
+	}
 
-			return err
-		}
+	if order.Amount > EMPTY {
+		amount = order.Amount
 		qty := getQtyForAmount(order)
 		order.Qty = qty
 	}
 
-	if order.Amount > EMPTY {
-		err := b.portfolio.subtractFromBalance(order.Amount)
-		if err != nil {
-			b.rejected(err)
+	amount += b.comission.GetComisson(order.Amount, order.Qty)
 
-			return err
-		}
+	err := b.portfolio.subtractFromBalance(amount)
+	if err != nil {
+		b.rejected(err)
 
-		qty := getQtyForAmount(order)
-		order.Qty = qty
+		return err
 	}
 
 	b.accepted(order)
