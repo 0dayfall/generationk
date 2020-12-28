@@ -2,6 +2,7 @@ package generationk
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -9,76 +10,125 @@ import (
 
 type Direction int
 
+var negativeBalanceErr = errors.New("Balance < 0")
+
 const (
 	Long Direction = iota
 	Short
 )
 
 type Portfolio struct {
-	Holdings []Holding
+	m        sync.Mutex
+	holdings []Holding
 	cash     float64
 }
 
 type Holding struct {
-	Qty       int
-	AssetName string
-	Price     float64
-	Time      time.Time
+	qty       int
+	assetName string
+	price     float64
+	time      time.Time
+}
+
+func NewPortfolio() *Portfolio {
+	portfolio := Portfolio{
+		holdings: make([]Holding, 0),
+		cash:     0,
+	}
+	return &portfolio
 }
 
 //IsOwning is used to find out if a position is already owned in this asset
-func (p Portfolio) IsOwning(assetName string) bool {
-	for k := range p.Holdings {
-		if p.Holdings[k].AssetName == assetName {
+func (p *Portfolio) IsOwning(assetName string) bool {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	for k := range p.holdings {
+		if p.holdings[k].assetName == assetName {
+
+			log.WithFields(log.Fields{
+				"AssetName": assetName,
+			}).Debug("Already owned")
 			return true
 		}
 	}
 	return false
 }
 
-func (p *Portfolio) Fill(fill Fill) {
+func (p *Portfolio) RemoveHolding(position Holding) {
+	p.m.Lock()
+	defer p.m.Unlock()
 
-	go p.AddHolding(Holding{Qty: fill.Qty, Price: fill.Price, AssetName: fill.AssetName, Time: fill.Time})
+	log.WithFields(log.Fields{
+		"asset": position.assetName,
+		"time":  position.time,
+		"price": position.price,
+		"qty":   position.qty,
+	}).Info("PORTFOLIO> Removing position from portfolio")
+
+	pos := -1
+
+	for k := range p.holdings {
+		if position.assetName == p.holdings[k].assetName {
+			pos = k
+		}
+	}
+
+	p.holdings = remove(pos, p.holdings)
 }
 
-func (p *Portfolio) SellHolding(position Holding) {
-	log.WithFields(log.Fields{
-		"asset": position.AssetName,
-		"time":  position.Time,
-		"price": position.Price,
-		"qty":   position.Qty,
-	}).Debug("PORTFOLIO> Adding position to portfolio")
-	if p.Holdings != nil {
-		p.Holdings = append(p.Holdings, position)
-	}
-	p.updateCash(+float64(position.Qty) * position.Price)
+func remove(ix int, holdings []Holding) []Holding {
+	return append(holdings[:ix], holdings[ix+1:]...)
 }
 
 func (p *Portfolio) AddHolding(position Holding) {
+	p.m.Lock()
+	defer p.m.Unlock()
 	log.WithFields(log.Fields{
-		"asset": position.AssetName,
-		"time":  position.Time,
-		"Qty":   position.Qty,
-	}).Debug("PORTFOLIO> Adding position to portfolio")
-	if p.Holdings != nil {
-		p.Holdings = append(p.Holdings, position)
-	}
-	p.updateCash(-float64(position.Qty) * position.Price)
+		"asset": position.assetName,
+		"time":  position.time,
+		"Qty":   position.qty,
+	}).Info("PORTFOLIO> Adding position to portfolio")
+
+	p.holdings = append(p.holdings, position)
 }
 
-func (p *Portfolio) updateCash(cost float64) error {
+func (p *Portfolio) checkBalance(cost float64) error {
 	balance := p.cash + cost
 	if balance < 0 {
-		return errors.New("Balance < 0")
+		return negativeBalanceErr
 	}
-	p.cash = balance
 	return nil
 }
 
-func (p *Portfolio) SetCash(amount float64) {
+func (p *Portfolio) addToBalance(value float64) {
+	defer p.m.Unlock()
+	p.m.Lock()
+	p.cash += value
+}
+
+//SubtractFromBalance is used to decrease the amount on the account
+func (p *Portfolio) subtractFromBalance(cost float64) error {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	err := p.checkBalance(cost)
+	if err != nil {
+
+		return err
+	}
+
+	p.cash -= cost
+
+	return nil
+}
+
+func (p *Portfolio) SetBalance(amount float64) {
+	p.m.Lock()
+	defer p.m.Unlock()
 	p.cash = amount
 }
 
-func (p Portfolio) GetCash() float64 {
+func (p *Portfolio) GetBalance() float64 {
 	return p.cash
 }

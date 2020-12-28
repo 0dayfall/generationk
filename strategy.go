@@ -1,13 +1,12 @@
 package generationk
 
-//Updateable takes new data into account
-type Updateable interface {
-	Update([]float64)
-}
-
-//Strategy needs to implement Orders in order to generate them
+//Strategy is the class where the logic is placed to buy and sell assets
+//the two methods that needs to be implemented are Setup and Tick.
+//The Setup method is used to define if any indicators will be used
+//and what period they need to be stable.
+//The Tick method is called for every new data which arrives and is
+//a possibility to make checks and send orders.
 type Strategy interface {
-	Setup(ctx *Context) error
-	Tick(ctx *Context)
-	OrderEvent(orderEvent Event)
+	Once(ctx *Context) error
+	PerBar(genk GenkCallback)
 }
