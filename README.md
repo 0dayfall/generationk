@@ -24,28 +24,45 @@ end so I decided to use callbacks instead.
 
 ## The Crossing MA example looks like this
 ```golang
+//Strategy strategy
 type MACrossStrategy struct {
-	ma50       *indicators.SimpleMovingAverage
-	close      *indicators.TimeSeries
-	initPeriod int
+	ma50  indicators.SimpleMovingAverage
+	close indicators.TimeSeries
 }
 
-func (m *MACrossStrategy) Once(ctx *Context) error {
-	m.close, e = NewTimeSeries(OHLC.Close, 5)
-	m.ma50, e = NewSimpleMovingAverage(OHLC.Close, 50)
-	if e != nil {
-		return e
-	}
-	ctx.AddUpdatable(m.close, m.ma50)
+//Setup is used to declare what indicators will be used
+func (ma *MACrossStrategy) Once(ctx *K.Context) error {
+	//Want access to the latest 5 closing prices
+	ma.close = indicators.NewTimeSeries(indicators.Close, 5)
+	//MA50
+	ma.ma50 = indicators.NewSimpleMovingAverage(indicators.Close, 50)
+
+	//Add indicators to context
+	ctx.AddIndicator(&ma.close)
+	ctx.AddIndicator(&ma.ma50)
+
+	//The data needed to calculate MA
+	ctx.SetInitPeriod(50)
+
+	return nil
 }
 
-func (m *MACrossStrategy) PerBar(callback Callback) {
-	if m.ma50.Current() < m.close.Current() {
+//Tick get called when there is new data coming in
+func (ma *MACrossStrategy) PerBar(callback K.Callback) {
+
+	if ma.close.Current() > ma.ma50.Current() {
 		if !callback.IsOwning("ABB") {
-			callback.OrderSend("ABB", OrderDirection(Long), OrderType(Buy), 0, 1000)
+			err := callback.OrderSend("ABB", K.BuyOrder, K.MarketOrder, 0, 100)
+
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
-}
+
+	if ma.close.Current() < ma.ma50.Current() {
+		if callback.IsOwning("ABB") {
+			err := callback.OrderSend("ABB", K.SellOrder, K.MarketOrder, 0, 100)
 ```
 
 There is also coded needed to create the strategy and run the backtest.
