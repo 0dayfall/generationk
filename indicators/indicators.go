@@ -1,11 +1,5 @@
 package indicators
 
-import (
-	"fmt"
-
-	log "github.com/sirupsen/logrus"
-)
-
 //OHLC is the value which will be used for the indicator
 type OHLC int
 
@@ -68,14 +62,8 @@ func (m IndicatorStruct) Value() float64 {
 
 func (m *IndicatorStruct) ValueAtIndex(index int) float64 {
 	if len((*m).values) < 1 {
-		log.Error("GENERIC> No values in generic indicator")
 		return 0.0
 	}
-	log.WithFields(log.Fields{
-		"index":                  index,
-		"len":                    len(m.values),
-		"m.defaultValues[index]": m.values[index],
-	}).Debug("GENERIC INDICATOR>ValueAtIndex()")
 	return m.values[index]
 }
 
@@ -85,7 +73,6 @@ func (m IndicatorStruct) Values() []float64 {
 
 //LargerThan the larger than operator
 func (m IndicatorStruct) LargerThanValue(ind Indicator) bool {
-	fmt.Printf("Larger than Value is used\n")
 	return m.Value() > m.Value()
 }
 

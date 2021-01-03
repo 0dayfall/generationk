@@ -1,10 +1,7 @@
 package indicators
 
-import (
-	log "github.com/sirupsen/logrus"
-)
-
-//TimeSeries structure is used to create a time series which may be updated
+//TimeSeries structure is used to create a time series which may be updated,
+//Should be used with open, high, low, close or volume
 type TimeSeries struct {
 	*IndicatorStruct
 	dataType OHLC
@@ -20,18 +17,11 @@ func NewTimeSeries(value OHLC, period int) TimeSeries {
 		dataType: value,
 	}
 
-	log.WithFields(log.Fields{
-		"type of value in time series": value,
-	}).Debug("TIMESERIES> CREATED")
-
 	return ts
 }
 
 //Update is used to initialize indicator with values
 func (ts TimeSeries) Update(values []float64) {
-	log.WithFields(log.Fields{
-		"values length": len(values),
-	}).Debug("TIMESERIES> Update()")
 	ts.IndicatorStruct.values = values
 }
 

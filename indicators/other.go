@@ -2,6 +2,7 @@ package indicators
 
 import "math"
 
+//This is not used
 type mfloat []float64
 
 // Ema calculates exponential moving average of a slice for a certain

@@ -2,8 +2,6 @@ package generationk
 
 import (
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type OhlcConst int

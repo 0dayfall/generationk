@@ -6,8 +6,7 @@ import (
 )
 
 //DataHandler is the interface used to recieve data
-//from any data producing function. It is internal
-//to generationK
+//from any data producing function. It can be used to feed data to generationK
 type DataHandler interface {
 	DataEvent(dataEvent Event)
 }
@@ -23,17 +22,13 @@ type Event interface {
 	String() string
 }
 
-//DataEvent is a data structure used to inform generationK that new data is available
+//DataEvent is a data structure used to carry OHLC data
 type DataEvent struct {
 	Name string
 	Ohlc OHLC
 }
 
 func (d DataEvent) String() string {
-	/*log.WithFields(log.Fields{
-		"Name": d.Name,
-		"Ohlc": d.Ohlc,
-	}).Debug("DataEvent$ ")*/
 	return fmt.Sprintf("$DATAEVENT %s", d.Name)
 }
 
@@ -75,7 +70,8 @@ func (pf PartialFill) String() string {
 	return "$PARTIALFILL"
 }
 
-//Fill is used to indicate to the implementer of OrderStatus that an order has been filled
+//Fill is used to indicate to the implementer of OrderStatus that an
+//order has been filled
 type Fill struct {
 	Qty       int
 	Price     float64

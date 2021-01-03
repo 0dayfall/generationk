@@ -1,8 +1,6 @@
 package indicators
 
-import log "github.com/sirupsen/logrus"
-
-//SimpleMovingAverage for the basics
+//SimpleMovingAverage is the simple moving average
 type SimpleMovingAverage struct {
 	*IndicatorStruct
 	dataType OHLC
@@ -15,22 +13,12 @@ func NewSimpleMovingAverage(value OHLC, period int) SimpleMovingAverage {
 		dataType:        value,
 	}
 
-	log.WithFields(log.Fields{
-		"type of value in moving average series": value,
-	}).Debug("MA> CREATED")
-
 	return ma
 }
 
 //Update is used to give data to the indicator
 func (sma *SimpleMovingAverage) Update(values []float64) {
-	log.WithFields(log.Fields{
-		"values length": len(values),
-	}).Debug("MA> Update()")
 	sma.IndicatorStruct.values = values
-	log.WithFields(log.Fields{
-		"sma.IndicatorStruct.values": len(sma.IndicatorStruct.values),
-	}).Debug("MA> Update()")
 }
 
 //GetDataType is used to know which float64 array to use on the indicator
@@ -38,9 +26,9 @@ func (sma SimpleMovingAverage) GetDataType() OHLC {
 	return sma.dataType
 }
 
+//Return the value at ix
 func (sma *SimpleMovingAverage) ValueAtIndex(ix int) float64 {
 	if len((*sma.IndicatorStruct).values) < 1 {
-		log.Error("No values in SimpleMovingAverage")
 		return 0.0
 	}
 	var sum float64
@@ -48,8 +36,5 @@ func (sma *SimpleMovingAverage) ValueAtIndex(ix int) float64 {
 		sum += sma.IndicatorStruct.values[k]
 	}
 	returnValue := sum / float64(sma.period)
-	log.WithFields(log.Fields{
-		"sma.IndicatorStruct.values[ix]": returnValue,
-	}).Debug("MA> ValueAtIndex()")
 	return returnValue
 }
