@@ -27,10 +27,6 @@ type Asset struct {
 	ohlc []OHLC
 }
 
-/*func (a Asset) length() int {
-	return len(a.ohlc)
-}*/
-
 //NewAsset is used to create a new asset-
 func NewAsset(name string, ohlc OHLC) *Asset {
 	return &Asset{
@@ -58,20 +54,11 @@ func dateEqual(date1, date2 time.Time) bool {
 	return y1 == y2 && m1 == m2 && d1 == d2
 }
 
+//Prepend is used to add the newest data first
 func prepend(x []OHLC, y OHLC) []OHLC {
 	return append([]OHLC{y}, x...)
-	/*length := len(x) + 1
-	newSlice := make([]OHLC, length)
-	newSlice[0] = y
-	for i := 1; i < length-2; i++ {
-		newSlice[i] = x[i]
-	}
-	return newSlice*/
-}
 
-/*func resize(z []OHLC, period int) []OHLC {
-	return z[:len(z)-period]
-}*/
+}
 
 //Update interface to be able to get updated by the event queue
 func (a *Asset) Update(ohlc OHLC, size int) {
@@ -80,14 +67,10 @@ func (a *Asset) Update(ohlc OHLC, size int) {
 	} else {
 		a.ohlc = prepend(a.ohlc[:size], ohlc)
 	}
-	/*log.WithFields(log.Fields{
-		"a.Ohlc": a.Ohlc,
-	}).Debug("ASSET> UPDATE")*/
-	/*log.WithFields(log.Fields{
-		"a.Ohlc": a.Ohlc,
-	}).Debug("ASSET>PREPEND> UPDATE")*/
+
 }
 
+//GetData is used to return historic data of the OhlcConst type
 func (a *Asset) GetData(ohlcValue OhlcConst, period int) []float64 {
 	switch ohlcValue {
 	case Open:
@@ -104,15 +87,6 @@ func (a *Asset) GetData(ohlcValue OhlcConst, period int) []float64 {
 	return nil
 }
 
-/*func (a *Asset) Shift(time time.Time) (int, error) {
-	var i int
-	for ok := true; ok; ok = a.Ohlc[0].Time.Before(time) && len(a.Ohlc) > 0 {
-		a.Ohlc = a.Ohlc[1:]
-		i++
-	}
-	return i, nil
-}*/
-
 //CloseArray is used to get the close series
 func (a *Asset) sliceOfCloseArray(period int) []float64 {
 	s := make([]float64, period)
@@ -121,13 +95,11 @@ func (a *Asset) sliceOfCloseArray(period int) []float64 {
 		return nil
 	}
 
-	period = Min(len(a.ohlc), period)
+	period = min(len(a.ohlc), period)
 	for i := 0; i < period; i++ {
 		s[i] = a.ohlc[i].close
 	}
-	/*log.WithFields(log.Fields{
-		"CloseArray() length": len(s),
-	}).Debug("ASSET> CloseArray()")*/
+
 	return s
 }
 
@@ -142,9 +114,7 @@ func (a *Asset) CloseArray() []float64 {
 	for i, ohlc := range a.ohlc {
 		s[i] = ohlc.close
 	}
-	/*log.WithFields(log.Fields{
-		"CloseArray() length": len(s),
-	}).Debug("ASSET> CloseArray()")*/
+
 	return s
 }
 

@@ -52,7 +52,7 @@ func (ctx *Context) AddIndicatorOnAsset(asset *Asset, indicator indicators.Indic
 
 //AddIndicator will add it to all assets
 func (ctx *Context) AddIndicator(indicator indicators.Indicator) {
-	for name, asset := range ctx.assetMap {
+	for name := range ctx.assetMap {
 		ctx.assetIndicatorMap[name] = append(ctx.assetIndicatorMap[name], indicator)
 	}
 }

@@ -1,11 +1,4 @@
-<p align="right">
-  <a href="http://godoc.org/github.com/rocketlaunchr/dataframe-go"><img src="http://godoc.org/github.com/rocketlaunchr/dataframe-go?status.svg" /></a>
-  <a href="https://goreportcard.com/report/github.com/rocketlaunchr/dataframe-go"><img src="https://goreportcard.com/badge/github.com/rocketlaunchr/dataframe-go" /></a>
-  <a href="https://gocover.io/github.com/rocketlaunchr/dataframe-go"><img src="http://gocover.io/_badge/github.com/rocketlaunchr/dataframe-go" /></a>
-</p>
-
-
-⚠️ The package is ready to be uesd for backtesting, but the API is not stable yet. Once stability is reached, version `1.0.0` will be tagged.
+⚠️ The package can be used for backtesting, but the API is not stable yet. Once stability is reached, version `1.0.0` will be tagged.
 It is recommended your package manager locks to a commit id instead of the master branch directly. ⚠️
 
 # Features

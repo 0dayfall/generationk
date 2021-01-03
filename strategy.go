@@ -8,5 +8,5 @@ package generationk
 //a possibility to make checks and send orders.
 type Strategy interface {
 	Once(ctx *Context) error
-	PerBar(genk GenkCallback)
+	PerBar(genk Callback)
 }
