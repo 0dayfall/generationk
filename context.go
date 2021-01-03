@@ -4,7 +4,6 @@ import (
 	"time"
 
 	indicators "github.com/0dayfall/generationk/indicators"
-	log "github.com/sirupsen/logrus"
 )
 
 //Context holds holds the strategy, assets, indicators per asset, start date, end date, the portfolio
@@ -38,15 +37,6 @@ func NewContext() *Context {
 		broker: Broker{},
 	}
 
-	log.WithFields(log.Fields{
-		"Asset":    ctx.assets,
-		"AssetMap": ctx.assetMap,
-		/*		"eventChannel": ctx.eventChannel,
-				"orderChannel": ctx.orderChannel,*/
-		"Portfolio": &ctx.portfolio,
-		"Broker":    ctx.broker,
-	}).Info("Created context")
-
 	return ctx
 }
 
@@ -64,15 +54,6 @@ func (ctx *Context) AddIndicatorOnAsset(asset *Asset, indicator indicators.Indic
 func (ctx *Context) AddIndicator(indicator indicators.Indicator) {
 	for name, asset := range ctx.assetMap {
 		ctx.assetIndicatorMap[name] = append(ctx.assetIndicatorMap[name], indicator)
-
-		log.WithFields(log.Fields{
-			"ctx.AssetIndicatorMap[k]":    indicator.GetName(),
-			"ctx.AssetMap":                asset.name,
-			"ctx.AssetIndicatorMap[name]": ctx.assetIndicatorMap[name],
-		}).Info("Adding indicator to asset")
-		/*if indicator.GetDataType() == indicators.Close {
-			indicator.Update(asset.CloseArray())
-		}*/
 	}
 }
 
@@ -96,18 +77,10 @@ func (ctx *Context) AddStrategy(strategy Strategy) {
 //shoul be used
 func (ctx *Context) SetInitPeriod(period int) {
 	ctx.initPeriod = period
-
-	log.WithFields(log.Fields{
-		"period": ctx.initPeriod,
-	}).Info("Setting the init period")
 }
 
 //GetInitPeriod returns the period
 func (ctx *Context) GetInitPeriod() int {
-	log.WithFields(log.Fields{
-		"period": ctx.initPeriod,
-	}).Debug("Returning the init period")
-
 	return ctx.initPeriod
 }
 
@@ -131,16 +104,10 @@ func (ctx *Context) AddAsset(asset *Asset) {
 	ctx.assets = append(ctx.assets, *asset)
 	ctx.assetMap[asset.name] = asset
 	ctx.assetIndicatorMap[asset.name] = nil
-
-	log.WithFields(log.Fields{
-		"Asset": asset.name,
-	}).Debug("Asset added to context")
 }
 
 //updateIndicators is used by generationK to update the data
 func (ctx *Context) updateIndicators(assetName string) {
-	log.Debug("ctx.AssetIndicatorMap[assetName]: ", len(ctx.GetAssetIndicatorByName(assetName)))
-
 	for _, indicator := range ctx.GetAssetIndicatorByName(assetName) {
 
 		//Copy period amount of data to update indicator with
