@@ -1,6 +1,6 @@
 package generationk
 
-// An OhlcHeap is a min-heap of ints.
+// An OhlcHeap is a min-heap of ints. Not used
 type OhlcHeap []OHLC
 
 func (h OhlcHeap) Len() int           { return len(h) }

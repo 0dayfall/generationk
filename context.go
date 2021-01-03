@@ -7,7 +7,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//Context for this backtester
+//Context holds holds the strategy, assets, indicators per asset, start date, end date, the portfolio
+//the current date and the unstable period
 type Context struct {
 	strategy          []Strategy
 	assets            []Asset
@@ -49,31 +50,10 @@ func NewContext() *Context {
 	return ctx
 }
 
-//EventChannel return the channel for events
-/*func (ctx *Context) EventChannel() chan Event {
-	return ctx.eventChannel
-}*/
-
-//OrderChannel returns the channel for orders
-/*func (ctx *Context) OrderChannel() chan Event {
-	return ctx.orderChannel
-}*/
-
-//Time returns the time
+//Time returns the time of the current bar
 func (ctx *Context) Time() time.Time {
 	return ctx.datePointer
 }
-
-//IncOneDay is used to step time forward
-/*func (ctx *Context) IncOneDay() {
-	old := ctx.datePointer
-	ctx.datePointer = ctx.datePointer.AddDate(0, 0, 1)
-	log.WithFields(log.Fields{
-		"old": old,
-		"new": ctx.datePointer,
-	}).Debug("New day")
-	ctx.shift()
-}*/
 
 //AddIndicatorOnAsset will add an indicator on the asset
 func (ctx *Context) AddIndicatorOnAsset(asset *Asset, indicator indicators.Indicator) {
@@ -96,27 +76,12 @@ func (ctx *Context) AddIndicator(indicator indicators.Indicator) {
 	}
 }
 
-//AddUpdatable add an updatable interface
-/*func (ctx *Context) AddUpdatable(indicators ...Updateable) {
-	//ctx.Updateable = indicators
-}*/
-
-/*func (ctx *Context) shift() {
-	for i := range ctx.Asset {
-		numberOfShifts, _ := ctx.Asset[i].Shift(ctx.datePointer)
-		ctx.K += numberOfShifts
-	}
-	for _, element := range ctx.AssetMap {
-		element.Shift(ctx.datePointer)
-	}
-}*/
-
-//AddEndDate is used to set the strategy that will be run
+//AddEndDate is used to set the end date
 func (ctx *Context) AddEndDate(endTime time.Time) {
 	ctx.endDate = endTime
 }
 
-//AddStartDate is used to set the strategy that will be run
+//AddStartDate is used to set the start date
 func (ctx *Context) AddStartDate(startTime time.Time) {
 	ctx.startDate = startTime
 	ctx.datePointer = startTime
@@ -127,7 +92,8 @@ func (ctx *Context) AddStrategy(strategy Strategy) {
 	ctx.strategy = append(ctx.strategy, strategy)
 }
 
-//SetInitPeriod is used to set the priod for which
+//SetInitPeriod is used to set the unstable period, the longest period
+//shoul be used
 func (ctx *Context) SetInitPeriod(period int) {
 	ctx.initPeriod = period
 
@@ -145,15 +111,17 @@ func (ctx *Context) GetInitPeriod() int {
 	return ctx.initPeriod
 }
 
+//GetAssets returns the assets used in the strategy
 func (ctx *Context) GetAssets() []Asset {
 	return ctx.assets
 }
 
+//GetAssetByName return a specific strategy
 func (ctx *Context) GetAssetByName(name string) *Asset {
 	return ctx.assetMap[name]
 }
 
-//GetAssetIndicatorByName is used to get the indicators assosiated with the asset
+//GetAssetIndicatorByName is used to get the indicators associated with the asset
 func (ctx *Context) GetAssetIndicatorByName(name string) []indicators.Indicator {
 	return ctx.assetIndicatorMap[name]
 }
@@ -169,6 +137,7 @@ func (ctx *Context) AddAsset(asset *Asset) {
 	}).Debug("Asset added to context")
 }
 
+//updateIndicators is used by generationK to update the data
 func (ctx *Context) updateIndicators(assetName string) {
 	log.Debug("ctx.AssetIndicatorMap[assetName]: ", len(ctx.GetAssetIndicatorByName(assetName)))
 
@@ -182,16 +151,3 @@ func (ctx *Context) updateIndicators(assetName string) {
 		indicator.Update(dataSlice)
 	}
 }
-
-/*func copyData(prices []float64, period int) []float64 {
-	//Copy either the data we have available or period much to the indicator
-	minPeriod := Min(len(prices), period)
-	dataWindow := make([]float64, minPeriod)
-	copy(dataWindow, prices[:period])
-
-	log.WithFields(log.Fields{
-		"len(dataWindow)": len(dataWindow),
-		"dataWindow":      dataWindow,
-	}).Debug("GENERATIONK>UPDATE INDICATORS>")
-	return dataWindow
-}*/

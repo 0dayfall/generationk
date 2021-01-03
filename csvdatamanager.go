@@ -17,18 +17,11 @@ import (
 
 //CSVDataManager type is used to send DataEvents via callback to generationK
 type CSVDataManager struct {
-	//dataChannel chan Event
 	callback DataHandler
 }
 
-/*func (d *CSVDataManager) getData(period int) []float64 {
-	return nil
-}
-
-func (d *CSVDataManager) getLatestData() float64 {
-	return 0.0
-}*/
-
+//pasetFloat is used to parse the floats from the CSV files and is a better way to
+//to handle errors
 func parseFloat(value string) float64 {
 	floatValue, err := strconv.ParseFloat(value, 64)
 	if err != nil {
@@ -45,9 +38,7 @@ func NewCSVDataManager(dataHandler DataHandler) *CSVDataManager {
 		//dataChannel: genk.market.eventChannel,
 		callback: dataHandler,
 	}
-	/*log.WithFields(log.Fields{
-		"dataChannel": dm.dataChannel,
-	}).Debug("Created CSVDataManager")*/
+
 	return dm
 }
 
@@ -61,7 +52,7 @@ func (d CSVDataManager) ReadCSVFilesAsync(files []string, wg *sync.WaitGroup) {
 	wg.Wait()
 }
 
-//ReadFolderWithCSVFilesAsync is used to read a folder of files and put them on the queue to the strategy
+//ReadFolderWithCSVFilesAsync is used to read a folder of files
 func (d CSVDataManager) ReadFolderWithCSVFilesAsync(folder string, wg *sync.WaitGroup) {
 	//var heap OhlcHeap
 	files, err := filepath.Glob(folder + "*.csv")
@@ -72,7 +63,7 @@ func (d CSVDataManager) ReadFolderWithCSVFilesAsync(folder string, wg *sync.Wait
 	d.ReadCSVFilesAsync(files, wg)
 }
 
-//ReadCSVFile reads a CSV file
+//ReadCSVFile reads a CSV file and maps the records according to this method
 func (d CSVDataManager) readCSVFile(file string) []OHLC {
 
 	csvfile, err := os.Open(file)
@@ -122,40 +113,31 @@ func (d CSVDataManager) readCSVFile(file string) []OHLC {
 	return s
 }
 
+//callbackOnDataEvent is used to send each row read from the CSV file to the callback
 func (d *CSVDataManager) callbackOnDataEvent(name string, ohlc []OHLC) int {
 	var count int
 
 	for k := range ohlc {
 		d.callback.DataEvent(DataEvent{Name: name, Ohlc: ohlc[k]})
 		count++
-		//fmt.Printf("%d", k)
 	}
 
 	return count
-	//d.dataChannel <- Quit{}
 }
 
-/*func (d *CSVDataManager) putDataOnChannel(name string, ohlc []OHLC) {
-
-	for k := 0; k < len(ohlc); k++ {
-		d.dataChannel <- DataEvent{Name: name, Ohlc: ohlc[k]}
-	}
-	d.dataChannel <- Quit{}
-}*/
-
+//read is used to read a single file and feed back the data to the callback
 func (d *CSVDataManager) read(file string) int {
 	ohlc := d.readCSVFile(file)
 	name := strings.TrimSuffix(filepath.Base(file), path.Ext(file))
-	//d.putDataOnChannel(name, ohlc)
 	return d.callbackOnDataEvent(name, ohlc)
 }
 
-//ReadCSVFile is used to start a go thread
+//ReadCSVFile is used to read a single file
 func (d *CSVDataManager) ReadCSVFile(file string) int {
 	return d.read(file)
 }
 
-//ReadCSVFileAsync is used to start a go thread
+//ReadCSVFileAsync is a sigle file asynchronously
 func (d *CSVDataManager) ReadCSVFileAsync(file string, wg *sync.WaitGroup) {
 	d.read(file)
 	wg.Done()

@@ -50,11 +50,11 @@ const (
 //Broker is used to send orders
 type Broker struct {
 	portfolio *Portfolio
-	//channel   chan Event
 	callback  OrderStatus
 	comission Comission
 }
 
+//SetComission is used to set a comission scheme
 func (b *Broker) SetComission(comission Comission) {
 	b.comission = comission
 }
@@ -62,15 +62,6 @@ func (b *Broker) SetComission(comission Comission) {
 //SendOrder is used to place an order with the broker
 func (b *Broker) SendOrder(order Order, orderstatus OrderStatus) {
 	b.callback = orderstatus
-
-	/*log.WithFields(log.Fields{
-		"ordertype":                 order.orderType,
-		"asset":                     order.Asset.name,
-		"order.Asset.Ohlc[0].Close": order.Asset.ohlc[0].close,
-		"time":                      order.Time,
-		"amount":                    order.Amount,
-		"qty":                       order.Qty,
-	}).Info("BROKER>PLACE ORDER")*/
 
 	switch order.direction {
 	case BuyOrder:
@@ -87,32 +78,29 @@ func (b *Broker) SendOrder(order Order, orderstatus OrderStatus) {
 	}
 }
 
+//getAmountForQty is used to get the amount needed to buy a certain quantity
 func getAmountForQty(order Order) float64 {
 	return order.Asset.Close() * float64(order.Qty)
 }
 
+//getQtyForAmount is used to get how many many stocks we get for a certain amount
 func getQtyForAmount(order Order) int {
 	return int(order.Amount / order.Asset.Close())
 }
 
+//accpeted is used to send an order event with an accepted event
 func (b Broker) accepted(order Order) {
-	/*WithFields(log.Fields{
-		"Order": order,
-	}).Debug("BROKER> ACCEPTED")*/
 	b.callback.OrderEvent(Accepted{})
 }
 
+//rejected is used to send a rejected order event
 func (b Broker) rejected(err error) {
-	/*log.WithFields(log.Fields{
-		"Error": err,
-	}).Info("BROKER> REJECTED")*/
 	b.callback.OrderEvent(Rejected{err: err})
 }
 
+//buy is used to buy a qty or a possible qty from an amount, if a comission is
+// set is will be used and deducted from the account
 func (b *Broker) buy(order Order) error {
-	/*log.WithFields(log.Fields{
-		"Order": order,
-	}).Info("BROKER> BUY")*/
 	amount := 0.0
 	if order.Qty > ZERO {
 		amount = getAmountForQty(order)
@@ -144,7 +132,6 @@ func (b *Broker) buy(order Order) error {
 		price:     order.Asset.Close(),
 		time:      order.Time,
 	})
-	//log.Debug("Calling the order event")
 
 	b.callback.OrderEvent(Fill{
 		Qty:       order.Qty,
@@ -153,12 +140,10 @@ func (b *Broker) buy(order Order) error {
 		Time:      order.Time,
 	})
 
-	/*log.Debug("Coming back after it")
-	log.Debug("BROKER> Put FILL EVENT in queue")*/
-
 	return nil
 }
 
+//sell is used to sell a holding and book and the profits or losses
 func (b *Broker) sell(order Order) {
 	log.WithFields(log.Fields{
 		"Order": order.Asset.name,
@@ -190,14 +175,12 @@ func (b *Broker) sell(order Order) {
 	log.Debug("BROKER> Put FILL EVENT in queue")
 }
 
+//sellshort is not implemented
 func (b *Broker) sellshort(order Order) {
-	log.WithFields(log.Fields{
-		"Order": order,
-	}).Debug("BROKER> SELLSHORT")
+	//TODO: Implement
 }
 
+//cover is used to cover a short, not implemented
 func (b *Broker) cover(order Order) {
-	log.WithFields(log.Fields{
-		"Order": order,
-	}).Debug("BROKER> COVER")
+	//TODO: Implement
 }

@@ -1,6 +1,6 @@
 package datasource
 
-//DataInterface can be from CVS or from real time
+//DataInterface can be from CVS or from real time, not used
 type DataInterface interface {
 	getData(period int) []float64
 	getLatestData() float64
