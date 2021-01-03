@@ -31,8 +31,8 @@ type Comparison interface {
 
 //Indicator Interface for all indicators
 type Indicator interface {
-	ValueAtIndex(index int) float64
-	Value() float64
+	Historic(index int) float64
+	Current() float64
 	Values() []float64
 	Update(values []float64)
 	GetDataType() OHLC
@@ -56,11 +56,11 @@ func (m IndicatorStruct) GetPeriod() int {
 	return m.period
 }
 
-func (m IndicatorStruct) Value() float64 {
+func (m IndicatorStruct) Current() float64 {
 	return m.values[0]
 }
 
-func (m *IndicatorStruct) ValueAtIndex(index int) float64 {
+func (m *IndicatorStruct) Historic(index int) float64 {
 	if len((*m).values) < 1 {
 		return 0.0
 	}
@@ -73,14 +73,14 @@ func (m IndicatorStruct) Values() []float64 {
 
 //LargerThan the larger than operator
 func (m IndicatorStruct) LargerThanValue(ind Indicator) bool {
-	return m.Value() > m.Value()
+	return m.Current() > m.Current()
 }
 
 //LargerThanInd
 func (m IndicatorStruct) LargerThanInd(ind Indicator) []bool {
 	result := make([]bool, len(m.Values()))
 	for i, j := range m.Values() {
-		result[i] = m.ValueAtIndex(i) > j
+		result[i] = m.Historic(i) > j
 	}
 	return result
 }
