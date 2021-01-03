@@ -42,7 +42,7 @@ func (m *MACrossStrategy) Once(ctx *Context) error {
 func (m *MACrossStrategy) PerBar(callback Callback) {
 	if m.ma50.Current() < m.close.Current() {
 		if !callback.IsOwning("ABB") {
-			genk.OrderSend("ABB", OrderDirection(Long), OrderType(Buy), 0, 1000)
+			callback.OrderSend("ABB", OrderDirection(Long), OrderType(Buy), 0, 1000)
 		}
 	}
 }
