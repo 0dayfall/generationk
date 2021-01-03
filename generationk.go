@@ -13,8 +13,8 @@ var o sync.Once
 
 var AssetDoesNotExist = errors.New("Asset does not exist")
 
-//GenkCallback is used in the strategy to give actions back to the backtest in progress
-type GenkCallback interface {
+//Callback is used in the strategy to give actions back to the backtest in progress
+type Callback interface {
 	IsOwning(asset string) bool
 	OrderSend(assetName string, direction Directon, orderType OrderType, amount float64, qty int) error
 	Assets() []string
