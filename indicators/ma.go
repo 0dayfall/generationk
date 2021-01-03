@@ -27,7 +27,7 @@ func (sma SimpleMovingAverage) GetDataType() OHLC {
 }
 
 //Return the value at ix
-func (sma *SimpleMovingAverage) ValueAtIndex(ix int) float64 {
+func (sma *SimpleMovingAverage) Historic(ix int) float64 {
 	if len((*sma.IndicatorStruct).values) < 1 {
 		return 0.0
 	}

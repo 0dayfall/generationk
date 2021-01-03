@@ -31,18 +31,18 @@ type MACrossStrategy struct {
 }
 
 func (m *MACrossStrategy) Once(ctx *Context) error {
-	m.close, e = NewTimeSeries(ctx.AssetMap["ABB"])
-	m.ma50, e = NewSimpleMovingAverage(ctx.AssetMap["ABB"], Close, 5)
+	m.close, e = NewTimeSeries(OHLC.Close, 5)
+	m.ma50, e = NewSimpleMovingAverage(OHLC.Close, 50)
 	if e != nil {
 		return e
 	}
 	ctx.AddUpdatable(m.close, m.ma50)
 }
 
-func (m *MACrossStrategy) PerBar(ctx *Context) {
-	if m.ma50.ValueAtIndex(0) > m.close.ValueAtIndex(0) {
-		if !ctx.Position(ctx.AssetMap["ABB"]) {
-			MakeOrder(ctx, OrderType(Buy), ctx.AssetMap["ABB"], ctx.Time(), 1000)
+func (m *MACrossStrategy) PerBar(callback Callback) {
+	if m.ma50.Current() < m.close.Current() {
+		if !callback.IsOwning("ABB") {
+			genk.OrderSend("ABB", OrderDirection(Long), OrderType(Buy), 0, 1000)
 		}
 	}
 }
