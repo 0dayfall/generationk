@@ -3,7 +3,7 @@ It is recommended your package manager locks to a commit id instead of the maste
 
 # Features
 
-1. Read CVS file with historic data and back test
+1. Read CVS file with historic data and back test in parallell. Testing ~5000 daily data per 100 CSV files can take about 1 sec. to complete.
 
 # ToDo
 
