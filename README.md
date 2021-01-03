@@ -1,8 +1,33 @@
+<p align="right">
+  <a href="http://godoc.org/github.com/rocketlaunchr/dataframe-go"><img src="http://godoc.org/github.com/rocketlaunchr/dataframe-go?status.svg" /></a>
+  <a href="https://goreportcard.com/report/github.com/rocketlaunchr/dataframe-go"><img src="https://goreportcard.com/badge/github.com/rocketlaunchr/dataframe-go" /></a>
+  <a href="https://gocover.io/github.com/rocketlaunchr/dataframe-go"><img src="http://gocover.io/_badge/github.com/rocketlaunchr/dataframe-go" /></a>
+</p>
+
+
+⚠️ The package is ready to be uesd for backtesting, but the API is not stable yet. Once stability is reached, version `1.0.0` will be tagged.
+It is recommended your package manager locks to a commit id instead of the master branch directly. ⚠️
+
+# Features
+
+1. Read CVS file with historic data and back test
+
+# ToDo
+
+1. To set entry and exit conditions independently to be able to combine many different ones
+2. To be able to try which parameters are the best ones for an indicator
+3. 
+
 # generationk
-The inspiration for this project took place after using a few other backtesting frameworks in Python. I was tired of waiting for results and concluded that I want the fast feeling of a compiled language and I also want to make use the multiple processor cores that often is available but rarely used.
+The inspiration for this project took place after using a few other backtesting frameworks in Python. 
+
+I was tired of waiting for results and concluded that I want the fast feeling of a compiled language and I wanted all processor cores to be used.
+
+I looked at a few different ones in Golang but they where either very complex for simple tasks or did not really appeal to the context.
 
 ## Design choices
-Going for event driven in the end came more from a point of being able to split the program up to run on multiple computers for performance reasons rather than a needs for realism (but implictly contributes to realism). Another choice was working with float arrays as arguments to all indicators to keep it as simple as possible.
+The very first version was based on channels and real time but it very rarely stock data is real time in backtesting, even a minute is considered very granular and 5 minutes or 10 minutes are much more common. In that case reading a 2-3 data points will advance time 20-30 minutes just for placing an order which is not realistic in the
+end so I decided to use callbacks instead.
 
 ## The Crossing MA example looks like this
 ```golang
@@ -12,16 +37,16 @@ type MACrossStrategy struct {
 	initPeriod int
 }
 
-func (m *MACrossStrategy) Setup(ctx *Context) error {
-	m.close, e = NewTimeSeries(ctx.AssetMap["AAPL"])
-	m.ma50, e = NewSimpleMovingAverage(ctx.AssetMap["AAPL"], Close, 5)
+func (m *MACrossStrategy) Once(ctx *Context) error {
+	m.close, e = NewTimeSeries(ctx.AssetMap["ABB"])
+	m.ma50, e = NewSimpleMovingAverage(ctx.AssetMap["ABB"], Close, 5)
 	if e != nil {
 		return e
 	}
 	ctx.AddUpdatable(m.close, m.ma50)
 }
 
-func (m *MACrossStrategy) Tick(ctx *Context) {
+func (m *MACrossStrategy) PerBar(ctx *Context) {
 	if m.ma50.ValueAtIndex(0) > m.close.ValueAtIndex(0) {
 		if !ctx.Position(ctx.AssetMap["ABB"]) {
 			MakeOrder(ctx, OrderType(Buy), ctx.AssetMap["ABB"], ctx.Time(), 1000)
