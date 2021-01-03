@@ -1,9 +1,5 @@
 package generationk
 
-import (
-	log "github.com/sirupsen/logrus"
-)
-
 //Directon is used to describe an order
 type Directon int
 
@@ -145,9 +141,6 @@ func (b *Broker) buy(order Order) error {
 
 //sell is used to sell a holding and book and the profits or losses
 func (b *Broker) sell(order Order) {
-	log.WithFields(log.Fields{
-		"Order": order.Asset.name,
-	}).Info("BROKER> SELL")
 
 	if order.Qty > ZERO {
 		b.portfolio.addToBalance(getAmountForQty(order))
@@ -172,7 +165,6 @@ func (b *Broker) sell(order Order) {
 		Time:  order.Time,
 	})
 
-	log.Debug("BROKER> Put FILL EVENT in queue")
 }
 
 //sellshort is not implemented
