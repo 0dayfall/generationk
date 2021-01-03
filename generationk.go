@@ -3,10 +3,9 @@ package generationk
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"sync"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 var o sync.Once
@@ -16,7 +15,7 @@ var AssetDoesNotExist = errors.New("Asset does not exist")
 //Callback is used in the strategy to give actions back to the backtest in progress
 type Callback interface {
 	IsOwning(asset string) bool
-	OrderSend(assetName string, direction Directon, orderType OrderType, amount float64, qty int) error
+	OrderSend(assetName string, direction Direction, orderType OrderType, amount float64, qty int) error
 	Assets() []string
 }
 
@@ -42,9 +41,9 @@ func (k *GenerationK) UpdateIndicators(assetName string) {
 //DataEvent is used to implement the datahandler interface and called when reading a file
 func (k *GenerationK) DataEvent(dataEvent Event) {
 	assetName := dataEvent.(DataEvent).Name
-	k.market.datePointer = dataEvent.(DataEvent).Ohlc.time
+	k.market.datePointer = dataEvent.(DataEvent).Ohlc.Time
 
-	if dataEvent.(DataEvent).Ohlc.time.After(k.market.endDate) {
+	if dataEvent.(DataEvent).Ohlc.Time.After(k.market.endDate) || dataEvent.(DataEvent).Ohlc.Time.Before(k.market.startDate) {
 		return
 	}
 
@@ -59,7 +58,7 @@ func (k *GenerationK) DataEvent(dataEvent Event) {
 	if k.market.K < 1 {
 		err := k.market.strategy[0].Once(k.market)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println(err.Error())
 		}
 	}
 	k.market.K++
@@ -69,7 +68,7 @@ func (k *GenerationK) DataEvent(dataEvent Event) {
 		return
 	}
 
-	k.market.strategy[0].PerBar(k)
+	k.market.strategy[0].PerBar(dataEvent.(DataEvent).Ohlc, (k))
 }
 
 //AddDataManager is currently not used
@@ -122,7 +121,7 @@ func (k *GenerationK) AddEndDate(endDate time.Time) {
 }
 
 //OrderSend is used to send an order to the broker, return an error if the asset does not exist
-func (k *GenerationK) OrderSend(assetName string, direction Directon, orderType OrderType, amount float64, qty int) error {
+func (k *GenerationK) OrderSend(assetName string, direction Direction, orderType OrderType, amount float64, qty int) error {
 	if asset, ok := k.market.assetMap[assetName]; ok {
 		orderSend(k.market, direction, orderType, asset, k.market.datePointer, amount, qty)
 
@@ -132,7 +131,7 @@ func (k *GenerationK) OrderSend(assetName string, direction Directon, orderType 
 }
 
 //orderSend is used to send an order to the broker
-func orderSend(ctx *Context, direction Directon, orderType OrderType, asset *Asset, time time.Time, amount float64, qty int) {
+func orderSend(ctx *Context, direction Direction, orderType OrderType, asset *Asset, time time.Time, amount float64, qty int) {
 	orderStatus, _ := interface{}(ctx.strategy[0]).(OrderStatus)
 
 	ctx.broker.SendOrder(
@@ -160,6 +159,7 @@ func (k *GenerationK) Assets() []string {
 }
 
 //OwnPosition is used to find out if we have a holding in an asset
+//and the assumption is that the strategy is using multiple assets
 func (k *GenerationK) IsOwning(name string) bool {
 	return k.market.portfolio.IsOwning(name)
 }
@@ -173,10 +173,60 @@ func min(x, y int) int {
 	return x
 }
 
+//Owning is used to find out if we have a holding and we are
+//only processing 1 asset
+func (k *GenerationK) Owning() bool {
+	return k.market.portfolio.IsOwning(k.market.assets[0].name)
+}
+
 type EndOfDataError struct {
 	Description string
 }
 
 func (e *EndOfDataError) Error() string {
 	return fmt.Sprintf("End of data: %s", e.Description)
+}
+
+func RunStrategyOnAssets(strategy Strategy, folderPath string) {
+	files, err := filepath.Glob(folderPath + "*.csv")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Printf("files %s", files)
+	//d.ReadCSVFilesAsync(files)
+	portfolio := NewPortfolio()
+	portfolio.SetBalance(100000)
+
+	var wg sync.WaitGroup
+
+	y := 0
+
+	for _, fileName := range files {
+		wg.Add(1)
+		go func(localFilename string) {
+			genk := NewGenerationK()
+			genk.AddPortfolio(portfolio)
+			genk.AddStrategy(strategy)
+
+			now := time.Now()
+			start := now.AddDate(-15, -9, -2)
+			genk.AddStartDate(start)
+			now = time.Now()
+			end := now.AddDate(0, -3, -2)
+			genk.AddEndDate(end)
+
+			//genk.RunEventBased()
+			dataManager := NewCSVDataManager(genk)
+			//dataManager.SetHandler(genk)
+			//genk.AddDataManager(dataManager)
+
+			//dataManager.ReadCSVFilesAsync([]string{"test/data/ABB.csv", "test/data/ASSAb.csv"})
+			dataManager.ReadCSVFile(localFilename)
+
+			wg.Done()
+		}(fileName)
+		y++
+	}
+	wg.Wait()
 }

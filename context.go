@@ -19,22 +19,16 @@ type Context struct {
 	broker            Broker
 	K                 int
 	datePointer       time.Time
-	/*eventChannel      chan Event
-	orderChannel      chan Event*/
-	initPeriod int
+	initPeriod        int
 }
 
 //NewContext creates a new context
 func NewContext() *Context {
-	//eventChannelc := make(chan Event, 1)
-	//orderChannel := make(chan Event, 1)
 	ctx := &Context{
 		assets:            []Asset{},
 		assetMap:          make(map[string]*Asset),
 		assetIndicatorMap: make(map[string][]indicators.Indicator),
-		//eventChannel:      eventChannelc,
-		//orderChannel:      orderChannel,
-		broker: Broker{},
+		broker:            Broker{},
 	}
 
 	return ctx
@@ -57,7 +51,14 @@ func (ctx *Context) AddIndicator(indicator indicators.Indicator) {
 	}
 }
 
-//AddEndDate is used to set the end date
+//AddIndicator will add it to all assets
+func (ctx *Context) AddIndicatorWithParams(indicator indicators.Indicator, param indicators.Param) {
+	for name := range ctx.assetMap {
+		ctx.assetIndicatorMap[name] = append(ctx.assetIndicatorMap[name], indicator)
+	}
+}
+
+//AddEndDate is used to set the strategy that will be run
 func (ctx *Context) AddEndDate(endTime time.Time) {
 	ctx.endDate = endTime
 }
@@ -111,7 +112,7 @@ func (ctx *Context) updateIndicators(assetName string) {
 	for _, indicator := range ctx.GetAssetIndicatorByName(assetName) {
 
 		//Copy period amount of data to update indicator with
-		dataSlice := ctx.GetAssetByName(assetName).GetData(
+		dataSlice := ctx.GetAssetByName(assetName).Historic(
 			OhlcConst(indicator.GetDataType()),
 			indicator.GetPeriod(),
 		)

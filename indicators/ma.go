@@ -16,6 +16,14 @@ func NewSimpleMovingAverage(value OHLC, period int) SimpleMovingAverage {
 	return ma
 }
 
+func NewSimpleMovingAverageParams(value OHLC, params Param) SimpleMovingAverage {
+	ma := SimpleMovingAverage{
+		IndicatorStruct: &IndicatorStruct{name: "Simple Moving Average", values: []float64{}, params: params},
+		dataType:        value,
+	}
+	return ma
+}
+
 //Update is used to give data to the indicator
 func (sma *SimpleMovingAverage) Update(values []float64) {
 	sma.IndicatorStruct.values = values
@@ -36,5 +44,6 @@ func (sma *SimpleMovingAverage) Historic(ix int) float64 {
 		sum += sma.IndicatorStruct.values[k]
 	}
 	returnValue := sum / float64(sma.period)
+
 	return returnValue
 }

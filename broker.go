@@ -5,7 +5,7 @@ type Directon int
 
 const (
 	//BuyOrder order
-	BuyOrder Directon = iota
+	BuyOrder Direction = iota
 	//SellOrder order
 	SellOrder
 	//ShortOrder order
@@ -33,6 +33,8 @@ const (
 	// execution. A limit order may be appropriate when you think you can
 	// buy at a price lower than—or sell at a price higher than—the
 	// current quote.
+	// Maximum price for buys, or minimum price for sells, at which the
+	// order should be filled.
 	LimitOrder
 
 	// A stop order is an order to buy or sell a stock at the market price once
@@ -40,7 +42,14 @@ const (
 	// If the stock reaches the stop price, the order becomes a market order and
 	// is filled at the next available market price. If the stock fails to reach
 	// the stop price, the order is not executed.
+	// For sells, the order will be placed if market price falls below this value.
+	// For buys, the order will be placed if market price rises above this value.
 	StopOrder
+
+	// A stop order is an order to buy or sell a stock at the market price once
+	// the stock has traded at or through a specified price (the “stop price”).
+	// If the stock reaches the stop price, a limit order is placed
+	StopLimitOrder
 )
 
 //Broker is used to send orders
@@ -141,7 +150,6 @@ func (b *Broker) buy(order Order) error {
 
 //sell is used to sell a holding and book and the profits or losses
 func (b *Broker) sell(order Order) {
-
 	if order.Qty > ZERO {
 		b.portfolio.addToBalance(getAmountForQty(order))
 	}
@@ -164,15 +172,12 @@ func (b *Broker) sell(order Order) {
 		Price: order.Asset.Close(),
 		Time:  order.Time,
 	})
-
 }
 
 //sellshort is not implemented
 func (b *Broker) sellshort(order Order) {
-	//TODO: Implement
 }
 
 //cover is used to cover a short, not implemented
 func (b *Broker) cover(order Order) {
-	//TODO: Implement
 }

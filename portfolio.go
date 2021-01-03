@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 )
 
 type Direction int
@@ -53,9 +53,9 @@ func (p *Portfolio) IsOwning(assetName string) bool {
 	for k := range p.holdings {
 		if p.holdings[k].assetName == assetName {
 
-			log.WithFields(log.Fields{
+			/*log.WithFields(log.Fields{
 				"AssetName": assetName,
-			}).Debug("Already owned")
+			}).Debug("Already owned")*/
 			return true
 		}
 	}
@@ -67,12 +67,12 @@ func (p *Portfolio) RemoveHolding(position Holding) {
 	p.m.Lock()
 	defer p.m.Unlock()
 
-	log.WithFields(log.Fields{
-		"asset": position.assetName,
-		"time":  position.time,
-		"price": position.price,
-		"qty":   position.qty,
-	}).Info("PORTFOLIO> Removing position from portfolio")
+	log.Info().
+		Str("asset", position.assetName).
+		Time("time", position.time).
+		Float64("price", position.price).
+		Int("Qty", position.qty).
+		Msg("PORTFOLIO> Adding position to portfolio")
 
 	pos := -1
 
@@ -93,11 +93,11 @@ func remove(ix int, holdings []Holding) []Holding {
 func (p *Portfolio) AddHolding(position Holding) {
 	p.m.Lock()
 	defer p.m.Unlock()
-	log.WithFields(log.Fields{
-		"asset": position.assetName,
-		"time":  position.time,
-		"Qty":   position.qty,
-	}).Info("PORTFOLIO> Adding position to portfolio")
+	log.Info().
+		Str("asset", position.assetName).
+		Time("time", position.time).
+		Int("Qty", position.qty).
+		Msg("PORTFOLIO> Adding position to portfolio")
 
 	p.holdings = append(p.holdings, position)
 }

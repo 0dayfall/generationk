@@ -34,7 +34,7 @@ func (d DataEvent) String() string {
 
 //Order describes an order that is used to buy / sell an asset
 type Order struct {
-	direction Directon
+	direction Direction
 	orderType OrderType
 	Asset     *Asset
 	Time      time.Time

@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 )
 
 //CSVDataManager type is used to send DataEvents via callback to generationK
@@ -25,7 +25,8 @@ type CSVDataManager struct {
 func parseFloat(value string) float64 {
 	floatValue, err := strconv.ParseFloat(value, 64)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().
+			Err(err)
 	}
 
 	return floatValue
@@ -40,6 +41,10 @@ func NewCSVDataManager(dataHandler DataHandler) *CSVDataManager {
 	}
 
 	return dm
+}
+
+func (d *CSVDataManager) SetHandler(dataHandler DataHandler) {
+	d.callback = dataHandler
 }
 
 //ReadCSVFilesAsync is used to read files asynchronous
@@ -57,7 +62,8 @@ func (d CSVDataManager) ReadFolderWithCSVFilesAsync(folder string, wg *sync.Wait
 	//var heap OhlcHeap
 	files, err := filepath.Glob(folder + "*.csv")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().
+			Err(err)
 	}
 
 	d.ReadCSVFilesAsync(files, wg)
@@ -69,21 +75,19 @@ func (d CSVDataManager) readCSVFile(file string) []OHLC {
 	csvfile, err := os.Open(file)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().
+			Err(err)
 	}
 
 	defer csvfile.Close()
-
-	log.WithFields(log.Fields{
-		"File name": file,
-	}).Debug("CSVDataManager> OPENED FILE")
 
 	// Parse the file
 	r := csv.NewReader(csvfile)
 	records, err := r.ReadAll()
 
 	if err != nil && errors.Is(err, io.EOF) {
-		log.Fatal(err)
+		log.Fatal().
+			Err(err)
 	}
 
 	s := make([]OHLC, len(records))
@@ -92,21 +96,17 @@ func (d CSVDataManager) readCSVFile(file string) []OHLC {
 		// Read each record from csv
 		record1, err := time.Parse("1/2/2006 00:00:00", record[0]+" "+record[1])
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal().
+				Err(err)
 		}
 
 		record2 := parseFloat(record[2])
 		record3 := parseFloat(record[3])
 		record4 := parseFloat(record[4])
 		record5 := parseFloat(record[5])
+		record6 := parseFloat(record[6])
 
-		record6, err := strconv.Atoi(record[6])
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		ohlc := OHLC{time: record1, open: record2, high: record3, low: record4, close: record5, volume: record6}
+		ohlc := OHLC{Time: record1, Open: record2, High: record3, Low: record4, Close: record5, Volume: record6}
 		s[i] = ohlc
 	}
 

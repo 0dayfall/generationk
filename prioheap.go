@@ -4,7 +4,7 @@ package generationk
 type OhlcHeap []OHLC
 
 func (h OhlcHeap) Len() int           { return len(h) }
-func (h OhlcHeap) Less(i, j int) bool { return h[i].time.Before(h[j].time) }
+func (h OhlcHeap) Less(i, j int) bool { return h[i].Time.Before(h[j].Time) }
 func (h OhlcHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
 
 //Push is used to to put items on the heap

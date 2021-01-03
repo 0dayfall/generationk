@@ -18,6 +18,11 @@ const (
 	Default
 )
 
+type Param struct {
+	low  float64
+	high float64
+}
+
 //Updatable tells generatinok this it is possible to run Update()
 type Updatable interface {
 	Update()
@@ -46,6 +51,7 @@ type IndicatorStruct struct {
 	name   string
 	period int
 	values []float64
+	params Param
 }
 
 func (m IndicatorStruct) GetName() string {
@@ -67,13 +73,21 @@ func (m *IndicatorStruct) Historic(index int) float64 {
 	return m.values[index]
 }
 
+func (m *IndicatorStruct) SetParams(low float64, high float64) {
+	m.params = Param{low: low, high: high}
+}
+
+func (m IndicatorStruct) GetParams() Param {
+	return m.params
+}
+
 func (m IndicatorStruct) Values() []float64 {
 	return m.values
 }
 
 //LargerThan the larger than operator
 func (m IndicatorStruct) LargerThanValue(ind Indicator) bool {
-	return m.Current() > m.Current()
+	return m.Current() > ind.Current()
 }
 
 //LargerThanInd
@@ -82,5 +96,6 @@ func (m IndicatorStruct) LargerThanInd(ind Indicator) []bool {
 	for i, j := range m.Values() {
 		result[i] = m.Historic(i) > j
 	}
+
 	return result
 }
