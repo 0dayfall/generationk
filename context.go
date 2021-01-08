@@ -10,6 +10,8 @@ import (
 //the current date and the unstable period
 type Context struct {
 	strategy          []Strategy
+	assetName         string
+	asset             *Asset
 	assets            []Asset
 	assetMap          map[string]*Asset
 	assetIndicatorMap map[string][]indicators.Indicator
@@ -102,20 +104,12 @@ func (ctx *Context) GetAssetIndicatorByName(name string) []indicators.Indicator 
 
 //AddAsset is used to add assets that the strategy will use
 func (ctx *Context) AddAsset(asset *Asset) {
+	ctx.asset = asset
 	ctx.assets = append(ctx.assets, *asset)
 	ctx.assetMap[asset.name] = asset
 	ctx.assetIndicatorMap[asset.name] = nil
-}
-
-//updateIndicators is used by generationK to update the data
-func (ctx *Context) updateIndicators(assetName string) {
-	for _, indicator := range ctx.GetAssetIndicatorByName(assetName) {
-
-		//Copy period amount of data to update indicator with
-		dataSlice := ctx.GetAssetByName(assetName).Historic(
-			OhlcConst(indicator.GetDataType()),
-			indicator.GetPeriod(),
-		)
-		indicator.Update(dataSlice)
-	}
+	/*length := len(asset.ohlc.Close)
+	if length > ctx.K {
+		ctx.K = length
+	}*/
 }

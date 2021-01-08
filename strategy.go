@@ -7,11 +7,12 @@ package generationk
 //The Tick method is called for every new data which arrives and is
 //a possibility to make checks and send orders.
 type Strategy interface {
-	Once(ctx *Context) error
-	PerBar(ohlc OHLC, callback Callback)
+	Once(ctx *Context, ohlc *OHLC) error
+	Update(k *int) error
+	PerBar(k int, callback Callback)
 }
 
 type MultiStrategy interface {
-	Once(ctx *Context) error
-	PerBar(callback Callback)
+	Once(ctx *Context, ohlc OHLC) error
+	PerBar(k *int, callback Callback)
 }

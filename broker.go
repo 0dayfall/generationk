@@ -85,13 +85,13 @@ func (b *Broker) SendOrder(order Order, orderstatus OrderStatus) {
 
 //getAmountForQty is used to get the amount needed to buy a certain quantity
 func getAmountForQty(order Order) float64 {
-	return order.Asset.Close() * float64(order.Qty)
+	return order.Price * float64(order.Qty)
 }
 
 //getQtyForAmount is used to get how many many stocks we get for a certain amount
-func getQtyForAmount(order Order) int {
+/*func getQtyForAmount(order Order) int {
 	return int(order.Amount / order.Asset.Close())
-}
+}*/
 
 //accpeted is used to send an order event with an accepted event
 func (b Broker) accepted(order Order) {
@@ -111,14 +111,14 @@ func (b *Broker) buy(order Order) error {
 		amount = getAmountForQty(order)
 	}
 
-	if order.Amount > EMPTY {
+	/*if order.Amount > EMPTY {
 		amount = order.Amount
 		qty := getQtyForAmount(order)
 		order.Qty = qty
-	}
+	}*/
 
 	if b.comission != nil {
-		amount += b.comission.GetComisson(order.Amount, order.Qty)
+		amount += b.comission.GetComisson(order.Price, order.Qty)
 	} else {
 		//log.Warning("Placing order without comission")
 	}
@@ -133,15 +133,15 @@ func (b *Broker) buy(order Order) error {
 	b.accepted(order)
 	b.portfolio.AddHolding(Holding{
 		qty:       order.Qty,
-		assetName: order.Asset.name,
-		price:     order.Asset.Close(),
+		assetName: order.Asset,
+		price:     order.Price,
 		time:      order.Time,
 	})
 
 	b.callback.OrderEvent(Fill{
 		Qty:       order.Qty,
-		AssetName: order.Asset.name,
-		Price:     order.Asset.Close(),
+		AssetName: order.Asset,
+		Price:     order.Price,
 		Time:      order.Time,
 	})
 
@@ -154,22 +154,18 @@ func (b *Broker) sell(order Order) {
 		b.portfolio.addToBalance(getAmountForQty(order))
 	}
 
-	if order.Amount > EMPTY {
-		b.portfolio.addToBalance(order.Amount)
-	}
-
 	b.accepted(order)
 
 	b.portfolio.RemoveHolding(Holding{
 		qty:       order.Qty,
-		assetName: order.Asset.name,
-		price:     order.Asset.Close(),
+		assetName: order.Asset,
+		price:     order.Price,
 		time:      order.Time,
 	})
 
 	b.callback.OrderEvent(Fill{
-		Qty: -order.Qty, AssetName: order.Asset.name,
-		Price: order.Asset.Close(),
+		Qty: -order.Qty, AssetName: order.Asset,
+		Price: order.Price,
 		Time:  order.Time,
 	})
 }
