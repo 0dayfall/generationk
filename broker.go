@@ -1,5 +1,9 @@
 package generationk
 
+import (
+	"errors"
+)
+
 //Directon is used to describe an order
 type Directon int
 
@@ -8,15 +12,17 @@ const (
 	BuyOrder Direction = iota
 	//SellOrder order
 	SellOrder
-	//ShortOrder order
+	//ShortOrder order to short
 	ShortOrder
-	//CoverOrder short order
+	//CoverOrder to cover a shrot
 	CoverOrder
 	//Zero = 0
 	ZERO = 0
 	//Empty account
 	EMPTY = 0.0
 )
+
+var UnknownDirection = errors.New("Unknown type of direction for order - should be Buy, Sell, Short or Cover")
 
 type OrderType int
 
@@ -65,7 +71,7 @@ func (b *Broker) SetComission(comission Comission) {
 }
 
 //SendOrder is used to place an order with the broker
-func (b *Broker) SendOrder(order Order, orderstatus OrderStatus) {
+func (b *Broker) SendOrder(order Order, orderstatus OrderStatus) error {
 	b.callback = orderstatus
 
 	switch order.direction {
@@ -80,7 +86,10 @@ func (b *Broker) SendOrder(order Order, orderstatus OrderStatus) {
 		b.sellshort(order)
 	case CoverOrder:
 		b.cover(order)
+	default:
+		return UnknownDirection
 	}
+	return nil
 }
 
 //getAmountForQty is used to get the amount needed to buy a certain quantity
@@ -120,6 +129,7 @@ func (b *Broker) buy(order Order) error {
 	if b.comission != nil {
 		amount += b.comission.GetComisson(order.Price, order.Qty)
 	} else {
+		//fmt.Println("Buying without comission")
 		//log.Warning("Placing order without comission")
 	}
 

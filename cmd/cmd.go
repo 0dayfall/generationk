@@ -65,13 +65,13 @@ func main() {
 
 	flag.StringVar(&folderFlag, "Folder", ".", "Directory with data files.")
 	//flag.FileFormatVar(&folderFlag, "Folder", ".", "Directory with data files.")
-	flag.StringVar(&startDate, "StartDate", "2001-01-02 15:04:05 -0700", "Date and time of the start of the backtest.")
-	flag.StringVar(&endDate, "EndDate", "2020-01-02 15:04:05 -0700", "Date and time of the end of the backtest.")
+	flag.StringVar(&startDate, "StartDate", "2001-01-02 15:04:05", "Date and time of the start of the backtest.")
+	flag.StringVar(&endDate, "EndDate", time.Now().Format("2006-01-02 15:04:05"), "Date and time of the end of the backtest.")
 	flag.BoolVar(&parallel, "Parallel", true, "If set to false, files in the universe will be processed not in parallel as separate input, but as in one batch.")
 
 	flag.Parse()
 
-	layout := "2006-01-02 15:04:05 -0700"
+	layout := "2006-01-02 15:04:05"
 	t1, err := time.Parse(layout, startDate)
 	if err != nil {
 		fmt.Println("Error while parsing date :", err)

@@ -2,6 +2,18 @@ package indicators
 
 import "math"
 
+// Sum returns the sum of all elements of 'data'.
+func Sum(data []float64) float64 {
+
+	var sum float64
+
+	for _, value := range data {
+		sum += value
+	}
+
+	return sum
+}
+
 //This is not used
 type mfloat []float64
 
@@ -40,18 +52,6 @@ func (slice mfloat) SMA(period int) []float64 {
 func Avg(data []float64) float64 {
 
 	return Sum(data) / float64(len(data))
-}
-
-// Sum returns the sum of all elements of 'data'.
-func Sum(data []float64) float64 {
-
-	var sum float64
-
-	for _, x := range data {
-		sum += x
-	}
-
-	return sum
 }
 
 // Std returns standard deviation of a slice.

@@ -9,7 +9,7 @@ package generationk
 type Strategy interface {
 	Once(ctx *Context, ohlc *OHLC) error
 	Update(k *int) error
-	PerBar(k int, callback Callback)
+	PerBar(k int, callback Callback) error
 }
 
 type MultiStrategy interface {

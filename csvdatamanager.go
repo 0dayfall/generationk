@@ -11,8 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/rs/zerolog/log"
 )
 
 //CSVDataManager type is used to send DataEvents via callback to generationK
@@ -25,8 +23,7 @@ type CSVDataManager struct {
 func parseFloat(value string) float64 {
 	floatValue, err := strconv.ParseFloat(value, 64)
 	if err != nil {
-		log.Fatal().
-			Err(err)
+		fmt.Println(err)
 	}
 
 	return floatValue
@@ -47,7 +44,7 @@ func (d *CSVDataManager) SetHandler(dataHandler DataHandler) {
 }
 
 //ReadCSVFile reads a CSV file and maps the records according to this method
-func (d CSVDataManager) ReadCSVFile(file string) *Asset {
+func (d *CSVDataManager) ReadCSVFile(file string) (*Asset, error) {
 
 	csvfile, err := os.Open(file)
 	if err != nil {
@@ -61,23 +58,26 @@ func (d CSVDataManager) ReadCSVFile(file string) *Asset {
 	records, err := r.ReadAll()
 
 	if err != nil && errors.Is(err, io.EOF) {
-		log.Fatal().
-			Err(err)
+		fmt.Println(err)
+		return nil, err
 	}
 
 	size := len(records)
+	fmt.Printf("size: %d\n\n", size)
 	var ohlc OHLC
+	ohlc.Time = make([]time.Time, size)
 	ohlc.Open = make([]float64, size)
 	ohlc.High = make([]float64, size)
+	ohlc.Low = make([]float64, size)
 	ohlc.Close = make([]float64, size)
 	ohlc.Volume = make([]float64, size)
 
 	for i := size - 1; i >= 0; i-- {
 		// Read each record from csv
-		record1, err := time.Parse("1/2/2006 00:00:00", records[i][0]+" "+records[i][0])
+		record1, err := time.Parse("1/2/2006 00:00:00", records[i][0]+" "+records[i][1])
 		if err != nil {
-			log.Fatal().
-				Err(err)
+			fmt.Printf("\n\n%s: %v\n", file, err)
+			return nil, err
 		}
 
 		record2 := parseFloat(records[i][2])
@@ -95,5 +95,5 @@ func (d CSVDataManager) ReadCSVFile(file string) *Asset {
 	}
 	assetName := strings.TrimSuffix(filepath.Base(file), path.Ext(file))
 
-	return NewAsset(assetName, &ohlc, size)
+	return NewAsset(assetName, &ohlc, size), nil
 }

@@ -23,7 +23,7 @@ const (
 //be able to use the same portfolio when testing many assets in parallell but
 //updating the account on a single portfolio
 type Portfolio struct {
-	m        sync.Mutex
+	sync.Mutex
 	holdings []Holding
 	cash     float64
 }
@@ -39,6 +39,7 @@ type Holding struct {
 //Is used to create a new portfolio
 func NewPortfolio() *Portfolio {
 	portfolio := Portfolio{
+
 		holdings: make([]Holding, 0),
 		cash:     0,
 	}
@@ -47,8 +48,8 @@ func NewPortfolio() *Portfolio {
 
 //IsOwning is used to find out if a position is already owned in this asset
 func (p *Portfolio) IsOwning(assetName string) bool {
-	p.m.Lock()
-	defer p.m.Unlock()
+	p.Lock()
+	defer p.Unlock()
 
 	for k := range p.holdings {
 		if p.holdings[k].assetName == assetName {
@@ -64,15 +65,14 @@ func (p *Portfolio) IsOwning(assetName string) bool {
 
 //Remove a holding, its sold
 func (p *Portfolio) RemoveHolding(position Holding) {
-	p.m.Lock()
-	defer p.m.Unlock()
-
+	p.Lock()
+	defer p.Unlock()
 	log.Info().
 		Str("asset", position.assetName).
 		Time("time", position.time).
 		Float64("price", position.price).
 		Int("Qty", position.qty).
-		Msg("PORTFOLIO> Adding position to portfolio")
+		Msg("PORTFOLIO> Removing position from portfolio")
 
 	pos := -1
 
@@ -91,20 +91,22 @@ func remove(ix int, holdings []Holding) []Holding {
 
 //AddHolding, its been bought
 func (p *Portfolio) AddHolding(position Holding) {
-	p.m.Lock()
-	defer p.m.Unlock()
 	log.Info().
 		Str("asset", position.assetName).
 		Time("time", position.time).
 		Int("Qty", position.qty).
 		Msg("PORTFOLIO> Adding position to portfolio")
 
+	p.Lock()
 	p.holdings = append(p.holdings, position)
+	p.Unlock()
 }
 
 //checkBalance is used to check the balance before buying
 func (p *Portfolio) checkBalance(cost float64) error {
+	p.Lock()
 	balance := p.cash + cost
+	p.Unlock()
 	if balance < 0 {
 		return negativeBalanceErr
 	}
@@ -113,31 +115,27 @@ func (p *Portfolio) checkBalance(cost float64) error {
 
 //addToBalance is used to add to the account after selling with profit
 func (p *Portfolio) addToBalance(value float64) {
-	defer p.m.Unlock()
-	p.m.Lock()
+	p.Lock()
 	p.cash += value
+	p.Unlock()
 }
 
 //SubtractFromBalance is used to decrease the amount on the account
 func (p *Portfolio) subtractFromBalance(cost float64) error {
-	p.m.Lock()
-	defer p.m.Unlock()
-
 	err := p.checkBalance(cost)
 	if err != nil {
-
 		return err
 	}
 
+	p.Lock()
 	p.cash -= cost
+	p.Unlock()
 
 	return nil
 }
 
 //SetBalance is used to set the starting balance of the account
 func (p *Portfolio) SetBalance(amount float64) {
-	p.m.Lock()
-	defer p.m.Unlock()
 	p.cash = amount
 }
 

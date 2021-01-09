@@ -3,19 +3,25 @@ package generationk
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
 )
 
-var o sync.Once
+//var o sync.Once
 
 var AssetDoesNotExist = errors.New("Asset does not exist")
+var FFToStartDate = errors.New("Fast forwarding to start date")
+var EndOfBacktest = errors.New("End of backtest")
+var EndOfData = errors.New("End of data")
+var UnstablePeriod = errors.New("The stable period is not yet reached")
+var Initialization = errors.New("Initialization in Once() failed")
 
 //Callback is used in the strategy to give actions back to the backtest in progress
 type Callback interface {
 	Owning() bool
-	IsOwning(assetName string) bool
+	IsOwning(assetName string) (bool, error)
 	SendOrder(direction Direction, orderType OrderType, qty int) error
 	SendOrderFor(assetName string, direction Direction, orderType OrderType, qty int) error
 	Assets() []string
@@ -35,27 +41,61 @@ func NewGenerationK() *GenerationK {
 	return generationK
 }
 
-func (g *GenerationK) NextGen() {
+func (g *GenerationK) inc() {
+	g.ctx.K++
+}
+
+func (g *GenerationK) nextGen() error {
+	defer g.inc()
 	g.ctx.datePointer = g.ctx.asset.ohlc.Time[g.ctx.K]
 
-	if g.ctx.asset.ohlc.Time[g.ctx.K].After(g.ctx.endDate) || g.ctx.asset.ohlc.Time[g.ctx.K].Before(g.ctx.startDate) {
-		return
-	}
-
+	//Have to run this first so that we dont increase k by FF
 	if g.ctx.K < 1 {
+		fmt.Printf("Once executed for %s\n\n", g.ctx.asset.name)
 		err := g.ctx.strategy[0].Once(g.ctx, g.ctx.asset.ohlc)
 		if err != nil {
-			fmt.Println(err.Error())
+			return err
 		}
 	}
-	g.ctx.K++
+
+	if g.ctx.asset.ohlc.Time[g.ctx.K].Before(g.ctx.startDate) {
+		return FFToStartDate
+	}
+
+	if g.ctx.asset.ohlc.Time[g.ctx.K].After(g.ctx.endDate) {
+		return EndOfBacktest
+	}
 
 	//Run setup after initperiod is finished
 	if g.ctx.K < g.ctx.GetInitPeriod() {
-		return
+		return UnstablePeriod
 	}
 
-	g.ctx.strategy[0].PerBar(g.ctx.K, g)
+	return g.ctx.strategy[0].PerBar(g.ctx.K, g)
+}
+
+func (k *GenerationK) Run() error {
+
+	for k.ctx.K < k.ctx.length-1 {
+
+		err := k.nextGen()
+		if err != nil {
+			switch err {
+			case EndOfBacktest:
+				return err
+			case FFToStartDate:
+				continue
+			case UnstablePeriod:
+				continue
+			default:
+				fmt.Println(err)
+				return err
+			}
+		}
+
+	}
+
+	return nil
 }
 
 //AddDataManager is currently not used
@@ -113,44 +153,43 @@ func (k *GenerationK) SetEndDate(endDate time.Time) {
 }
 
 //OrderSend is used to send an order to the broker, return an error if the asset does not exist
-func (k GenerationK) SendOrderFor(assetName string, direction Direction, orderType OrderType, qty int) error {
-	if asset, ok := k.ctx.assetMap[k.ctx.assetName]; ok {
-		sendOrder(k.ctx, direction, orderType, asset, k.ctx.datePointer, qty)
-
-		return nil
+func (k *GenerationK) SendOrderFor(assetName string, direction Direction, orderType OrderType, qty int) error {
+	if asset, ok := k.ctx.assetMap[k.ctx.asset.name]; ok {
+		return k.sendOrder(k.ctx, direction, orderType, asset, k.ctx.datePointer, qty)
 	}
+
 	return AssetDoesNotExist
 }
 
 //OrderSend is used to send an order to the broker, return an error if the asset does not exist
-func (k GenerationK) SendOrder(direction Direction, orderType OrderType, qty int) error {
-	if asset, ok := k.ctx.assetMap[k.ctx.assetName]; ok {
-		sendOrder(k.ctx, direction, orderType, asset, k.ctx.datePointer, qty)
-
-		return nil
+func (k *GenerationK) SendOrder(direction Direction, orderType OrderType, qty int) error {
+	if asset, ok := k.ctx.assetMap[k.ctx.asset.name]; ok {
+		return k.sendOrder(k.ctx, direction, orderType, asset, k.ctx.datePointer, qty)
 	}
+
 	return AssetDoesNotExist
 }
 
 //orderSend is used to send an order to the broker
-func sendOrder(ctx *Context, direction Direction, orderType OrderType, asset *Asset, time time.Time, qty int) {
+func (k *GenerationK) sendOrder(ctx *Context, direction Direction, orderType OrderType, asset *Asset, time time.Time, qty int) error {
 	orderStatus, _ := interface{}(ctx.strategy[0]).(OrderStatus)
 
-	ctx.broker.SendOrder(
+	err := ctx.broker.SendOrder(
 		Order{
 			direction: direction,
 			orderType: orderType,
 			Asset:     asset.name,
+			Price:     asset.ohlc.Close[ctx.K],
 			Time:      time,
 			Qty:       qty,
 		},
 		orderStatus,
 	)
-
+	return err
 }
 
 //Assets returns an array of assets
-func (k GenerationK) Assets() []string {
+func (k *GenerationK) Assets() []string {
 	assets := make([]string, len(k.ctx.assets))
 	for i, asset := range k.ctx.assets {
 		assets[i] = asset.name
@@ -167,14 +206,17 @@ func (k GenerationK) Assets() []string {
 
 //OwnPosition is used to find out if we have a holding in an asset
 //and the assumption is that the strategy is using multiple assets
-func (k GenerationK) IsOwning(name string) bool {
-	return k.ctx.portfolio.IsOwning(name)
+func (k *GenerationK) IsOwning(assetName string) (bool, error) {
+	if _, ok := k.ctx.assetMap[assetName]; ok {
+		return k.ctx.portfolio.IsOwning(assetName), nil
+	}
+	return false, AssetDoesNotExist
 }
 
 //Owning is used to find out if we have a holding and we are
 //only processing 1 asset
-func (k GenerationK) Owning() bool {
-	return k.ctx.portfolio.IsOwning(k.ctx.assets[0].name)
+func (k *GenerationK) Owning() bool {
+	return k.ctx.portfolio.IsOwning(k.ctx.asset.name)
 }
 
 //min returns the smaller of x or y.
@@ -186,21 +228,13 @@ func min(x, y int) int {
 	return x
 }
 
-type EndOfDataError struct {
-	Description string
-}
-
-func (e *EndOfDataError) Error() string {
-	return fmt.Sprintf("End of data: %s", e.Description)
-}
-
 func RunStrategyOnAssets(strategy Strategy, folderPath string) {
 	files, err := filepath.Glob(folderPath + "*.csv")
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	fmt.Printf("files %s", files)
+	fmt.Printf("files %s\n\n\n", files)
 	//d.ReadCSVFilesAsync(files)
 	portfolio := NewPortfolio()
 	portfolio.SetBalance(100000)
@@ -229,12 +263,15 @@ func RunStrategyOnAssets(strategy Strategy, folderPath string) {
 			//genk.AddDataManager(dataManager)
 
 			//dataManager.ReadCSVFilesAsync([]string{"test/data/ABB.csv", "test/data/ASSAb.csv"})
-			asset := dataManager.ReadCSVFile(localFilename)
+			asset, err := dataManager.ReadCSVFile(localFilename)
+			if err != nil {
+				fmt.Print(err.Error())
+				os.Exit(0)
+			}
 			genk.AddAsset(asset)
 
-			for i := 0; i < asset.length; i++ {
-				genk.NextGen()
-			}
+			runErr := genk.Run()
+			fmt.Print(runErr.Error())
 
 			wg.Done()
 		}(fileName, strategy)
