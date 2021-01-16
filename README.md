@@ -1,5 +1,4 @@
-⚠️ The package can be used for backtesting, but the API is not stable yet. Once stability is reached, version `1.0.0` will be tagged.
-It is recommended your package manager locks to a commit id instead of the master branch directly. ⚠️
+⚠️ The package can be used for backtesting, but the API is not stable yet. This is a work in progress. Once stability is reached, version `1.0.0` will be tagged. Please check back then ⚠️
 
 # Features
 
