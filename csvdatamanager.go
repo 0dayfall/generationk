@@ -30,17 +30,10 @@ func parseFloat(value string) float64 {
 }
 
 //NewCSVDataManager creates a new data manager object
-func NewCSVDataManager(dataHandler DataHandler) *CSVDataManager {
-
-	dm := &CSVDataManager{
-		callback: dataHandler,
-	}
+func NewCSVDataManager() *CSVDataManager {
+	dm := &CSVDataManager{}
 
 	return dm
-}
-
-func (d *CSVDataManager) SetHandler(dataHandler DataHandler) {
-	d.callback = dataHandler
 }
 
 //ReadCSVFile reads a CSV file and maps the records according to this method

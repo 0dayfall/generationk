@@ -4,8 +4,6 @@ import (
 	"errors"
 	"sync"
 	"time"
-
-	"github.com/rs/zerolog/log"
 )
 
 type Direction int
@@ -67,12 +65,12 @@ func (p *Portfolio) IsOwning(assetName string) bool {
 func (p *Portfolio) RemoveHolding(position Holding) {
 	p.Lock()
 	defer p.Unlock()
-	log.Info().
-		Str("asset", position.assetName).
-		Time("time", position.time).
-		Float64("price", position.price).
-		Int("Qty", position.qty).
-		Msg("PORTFOLIO> Removing position from portfolio")
+	/*log.Info().
+	Str("asset", position.assetName).
+	Time("time", position.time).
+	Float64("price", position.price).
+	Int("Qty", position.qty).
+	Msg("PORTFOLIO> Removing position from portfolio")*/
 
 	pos := -1
 
@@ -91,11 +89,11 @@ func remove(ix int, holdings []Holding) []Holding {
 
 //AddHolding, its been bought
 func (p *Portfolio) AddHolding(position Holding) {
-	log.Info().
-		Str("asset", position.assetName).
-		Time("time", position.time).
-		Int("Qty", position.qty).
-		Msg("PORTFOLIO> Adding position to portfolio")
+	/*log.Info().
+	Str("asset", position.assetName).
+	Time("time", position.time).
+	Int("Qty", position.qty).
+	Msg("PORTFOLIO> Adding position to portfolio")*/
 
 	p.Lock()
 	p.holdings = append(p.holdings, position)

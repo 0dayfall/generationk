@@ -47,14 +47,11 @@ func ExponentialMovingAverage(series []float64, period int) []float64 {
 	seriesLength := len(series)
 	returnSeries := make([]float64, seriesLength)
 
-	decay := 2.0/float64(period) + 1
+	decay := 2.0 / (float64(period) + 1)
 
-	for i := 0; i < seriesLength; i++ {
-		if i == 0 {
-			returnSeries[i] = (series[i] * decay) + (series[0] * (1.0 - decay))
-		} else {
-			returnSeries[i] = (series[i] * decay) + (returnSeries[i-1] * (1.0 - decay))
-		}
+	returnSeries[0] = (series[0] * decay) + (series[0] * (1.0 - decay))
+	for i := 1; i < seriesLength; i++ {
+		returnSeries[i] = (series[i] * decay) + (returnSeries[i-1] * (1.0 - decay))
 	}
 
 	return returnSeries

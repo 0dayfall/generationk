@@ -1,7 +1,6 @@
 package generationk
 
 import (
-	"fmt"
 	"time"
 
 	indicators "github.com/0dayfall/generationk/indicators"
@@ -110,7 +109,7 @@ func (ctx *Context) GetAssetIndicatorByName(name string) []indicators.Indicator 
 
 //AddAsset is used to add assets that the strategy will use
 func (ctx *Context) AddAsset(asset *Asset) {
-	fmt.Printf("Adding asset: %s\n\n", asset.name)
+	//fmt.Printf("Adding asset: %s\n\n", asset.name)
 	ctx.asset = asset
 	ctx.assets = append(ctx.assets, *asset)
 	ctx.assetMap[asset.name] = asset
@@ -119,7 +118,7 @@ func (ctx *Context) AddAsset(asset *Asset) {
 	//Save the length of the longest asset
 	if ctx.length < ctx.asset.length {
 		ctx.length = ctx.asset.length
-		fmt.Printf("Length of asset after adding in ctx %d\n\n", ctx.length)
+		//fmt.Printf("Length of asset after adding in ctx %d\n\n", ctx.length)
 	}
 	/*length := len(asset.ohlc.Close)
 	if length > ctx.K {
