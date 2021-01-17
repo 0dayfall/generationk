@@ -1,4 +1,4 @@
-⚠️ The package can be used for backtesting, but the API is not stable yet. This is a work in progress. Once stability is reached, version `1.0.0` will be tagged. Please check back then ⚠️
+⚠️ This is an early version. The package can be used for backtesting, but the API is not stable yet. This is a work in progress. Once stability is reached, version `1.0.0` will be tagged. Please check back then. ⚠️
 
 # Features
 
@@ -7,8 +7,11 @@
 # ToDo
 
 1. To set entry and exit conditions independently to be able to combine many different ones
-2. To be able to try which parameters are the best ones for an indicator
-3. 
+2. To be able to try which parameters are the best ones for an indicator (simplified branch)
+3. Use a genetic algo to scan the search space for most profitable parameters
+4. Optimize for other functions than profit, drawdown, volatility
+5. Make a WS API, deploy as lambda functions
+6. Once a bit stable create a test parc 
 
 # generationk
 The inspiration for this project took place after using a few other backtesting frameworks in Python. 
