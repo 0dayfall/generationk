@@ -23,16 +23,14 @@ type RMICrossStrategy struct {
 func (rmi *RMICrossStrategy) GetParams() []*K.Params {
 	//Test which of the buy params are the best ones
 	rmi.buyParam = K.Params{
-		Low:   -30,
-		High:  -20,
-		Value: -25,
+		Low:  -30,
+		High: -20,
 	}
 
 	//Test in combination with the selling params
 	rmi.sellParam = K.Params{
-		Low:   10,
-		High:  30,
-		Value: 25,
+		Low:  10,
+		High: 30,
 	}
 
 	return []*K.Params{&rmi.buyParam, &rmi.sellParam}
@@ -124,5 +122,5 @@ func (rmi *RMICrossStrategy) OrderEvent(orderEvent K.Event) {}
 
 func TestRMI(t *testing.T) {
 	//var cross RMICrossStrategy
-	K.Run("datarepo/", new(RMICrossStrategy))
+	K.Run("data/", new(RMICrossStrategy))
 }
