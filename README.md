@@ -6,7 +6,7 @@
 
 # ToDo
 
-1. To set entry and exit conditions independently to be able to combine many different ones
+1. To set entry and exit conditions independently to be able to combine many different ones, ex. entry RSI < 20; exit MA2 > MA5
 2. To be able to try which parameters are the best ones for an indicator (simplified branch)
 3. Use a genetic algo to scan the search space for most profitable parameters
 4. Optimize for other functions than profit, drawdown, volatility
