@@ -1,11 +1,10 @@
-package generationk_test
+package strategies
 
 import (
-	"testing"
+	"log"
 
 	K "github.com/0dayfall/generationk"
 	indicators "github.com/0dayfall/generationk/indicators"
-	"github.com/rs/zerolog/log"
 )
 
 //Strategy strategy
@@ -29,7 +28,7 @@ func (rmi *RMICrossStrategy) GetParams() []*K.Params {
 
 	//Test in combination with the selling params
 	rmi.sellParam = K.Params{
-		Low:  10,
+		Low:  20,
 		High: 30,
 	}
 
@@ -63,8 +62,7 @@ func (rmi *RMICrossStrategy) PerBar(k int, callback K.Callback) error {
 			err := callback.SendOrder(K.BuyOrder, K.MarketOrder, 100)
 
 			if err != nil {
-				log.Fatal().
-					Err(err)
+				log.Fatal(err)
 
 				return err
 			}
@@ -76,8 +74,7 @@ func (rmi *RMICrossStrategy) PerBar(k int, callback K.Callback) error {
 			err := callback.SendOrder(K.SellOrder, K.MarketOrder, 100)
 
 			if err != nil {
-				log.Fatal().
-					Err(err)
+				log.Fatal(err)
 
 				return err
 			}
@@ -120,7 +117,66 @@ func (rmi *RMICrossStrategy) OrderEvent(orderEvent K.Event) {}
 	}
 }*/
 
-func TestRMI(t *testing.T) {
+/*func TestRMI(t *testing.T) {
 	//var cross RMICrossStrategy
-	K.Run("data/", new(RMICrossStrategy))
+	dataManager := K.DataManager{
+		Folder:      "../data/CSV1/",
+		MappingFunc: mapping,
+	}
+	K.Run(dataManager, new(RMICrossStrategy))
+
 }
+
+func mapping(file string, headers bool, records [][]string) *K.Asset {
+	//return mapping(file, records), nil
+	size := len(records)
+	var ohlc K.OHLC
+	ohlc.Time = make([]time.Time, size)
+	ohlc.Open = make([]float64, size)
+	ohlc.High = make([]float64, size)
+	ohlc.Low = make([]float64, size)
+	ohlc.Close = make([]float64, size)
+	ohlc.Volume = make([]float64, size)
+
+	h := 0
+	//Headers are used; dont read the last line = 0
+	if headers {
+		h = 1
+	}
+	for i := size - 1; i >= h; i-- {
+		// Read each record from csv
+		//record1, err := time.Parse("1/2/2006 15:04:05", records[i][0]+" "+records[i][1])
+		record1, err := time.Parse("2006-01-02 15:04:05", records[i][0])
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		record2 := ParseFloat(records[i][1])
+		record3 := ParseFloat(records[i][2])
+		record4 := ParseFloat(records[i][3])
+		record5 := ParseFloat(records[i][4])
+		record6 := ParseFloat(records[i][5])
+
+		ohlc.Time[i] = record1
+		ohlc.Open[i] = record2
+		ohlc.High[i] = record3
+		ohlc.Low[i] = record4
+		ohlc.Close[i] = record5
+		ohlc.Volume[i] = record6
+	}
+
+	assetName := strings.TrimSuffix(filepath.Base(file), path.Ext(file))
+
+	return K.NewAsset(assetName, &ohlc, size)
+}
+
+//pasetFloat is used to parse the floats from the CSV files and is a better way to
+//to handle errors
+func ParseFloat(value string) float64 {
+	floatValue, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return floatValue
+}*/

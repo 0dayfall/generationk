@@ -1,4 +1,4 @@
-module generationk/cmd
+module generationk/strategies
 
 go 1.15
 

@@ -11,9 +11,10 @@ type Strategy interface {
 	Once(ctx *Context, ohlc *OHLC) error
 	Update(k *int) error
 	PerBar(k int, callback Callback) error
+	//Run()
 }
 
-type MultiStrategy interface {
+type RebalanceStrategy interface {
 	Once(ctx *Context, ohlc OHLC) error
 	PerBar(k *int, callback Callback)
 }

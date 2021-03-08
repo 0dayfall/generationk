@@ -2,94 +2,74 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"generationk/strategies"
+	"log"
 	"os"
 	"time"
+
+	K "github.com/0dayfall/generationk"
 )
 
-// Define a type named "assets" as a slice of string
-type universe []string
-
-// Now, for our new type, implement the two methods of
-// the flag.Value interface...
-// The first method is String() string
-func (a *universe) String() string {
-	return fmt.Sprintf("%s", *a)
-}
-
-// The second method is Set(assetName string) error
-func (a *universe) Set(assetName string) error {
-	fmt.Printf("%s\n", assetName)
-	*a = append(*a, assetName)
-	return nil
-}
-
-var universeFlag universe
-
-func init() {
-	flag.Var(&universeFlag, "Universe", "Symbols to process e.g. AAPL, TSLA, V, X. Should be a comma separated list. Can also be ALL for all files in a directory.")
-}
-
-var usage = func() {
-	fmt.Fprintf(os.Stderr, "Usage: %s[post_count]\n", os.Args[0])
-	flag.PrintDefaults()
-}
-
-/*
-genk := NewGenerationK()
-			genk.SetPortfolio(portfolio)
-			genk.AddStrategy(strategy)
-
-			now := time.Now()
-			start := now.AddDate(-15, -9, -2)
-			genk.SetStartDate(start)
-			now = time.Now()
-			end := now.AddDate(0, -3, -2)
-			genk.SetEndDate(end)
-
-			//genk.RunEventBased()
-			dataManager := NewCSVDataManager(genk)
-			//dataManager.SetHandler(genk)
-			//genk.AddDataManager(dataManager)
-
-			//dataManager.ReadCSVFilesAsync([]string{"test/data/ABB.csv", "test/data/ASSAb.csv"})
-			ohlc := dataManager.ReadCSVFile(localFilename)
-*/
-
 func main() {
-	var folderFlag string
-	//var fileFormatFlag string
-	var startDate string
-	var endDate string
-	var parallel bool
 
-	flag.StringVar(&folderFlag, "Folder", ".", "Directory with data files.")
-	//flag.FileFormatVar(&folderFlag, "Folder", ".", "Directory with data files.")
-	flag.StringVar(&startDate, "StartDate", "2001-01-02 15:04:05", "Date and time of the start of the backtest.")
-	flag.StringVar(&endDate, "EndDate", time.Now().Format("2006-01-02 15:04:05"), "Date and time of the end of the backtest.")
-	flag.BoolVar(&parallel, "Parallel", true, "If set to false, files in the universe will be processed not in parallel as separate input, but as in one batch.")
+	hurstCmd := flag.NewFlagSet("hurst", flag.ExitOnError)
+	/*hurstDir := hurstCmd.String("dir", "", "Directory")
+	hurstFromDate := hurstCmd.String("fromDate", "01/01/2015", "From date")
+	hurstToDate := hurstCmd.String("toDate", time.Now().Format("02/01/2006"), "To date")*/
 
-	flag.Parse()
+	backtestCmd := flag.NewFlagSet("backtest", flag.ExitOnError)
+	backtestFile := backtestCmd.String("test", "", "Name of the struct with backtest")
+	backtestDir := backtestCmd.String("dir", "", "Directory name")
+	backtestFromDate := backtestCmd.String("fromDate", "01/01/2015", "From date")
+	backtestToDate := backtestCmd.String("toDate", time.Now().Format("02/01/2006"), "To date")
 
-	layout := "2006-01-02 15:04:05"
-	t1, err := time.Parse(layout, startDate)
-	if err != nil {
-		fmt.Println("Error while parsing date :", err)
-		os.Exit(1)
-	}
-	fmt.Print(t1)
+	switch os.Args[1] {
+	case hurstCmd.Name():
+		hurstCmd.Parse(os.Args[2:])
 
-	t2, err := time.Parse(layout, endDate)
-	if err != nil {
-		fmt.Println("Error while parsing date :", err)
-		os.Exit(1)
-	}
-	fmt.Print(t2)
-
-	if len(flag.Args()) == 0 {
-		usage()
 		os.Exit(0)
-	}
 
-	//	genk.GetAssets()
+	case backtestCmd.Name():
+		backtestCmd.Parse(os.Args[2:])
+
+		ctx := K.NewContext()
+
+		startDate, err := time.Parse("1/2/2006", *backtestFromDate)
+		if err != nil {
+			log.Fatal("Could not parse date format in ", *backtestFromDate)
+		}
+		ctx.SetStartDate(startDate)
+
+		//Its OK to not set the to date
+		endDate, err := time.Parse("1/2/2006", *backtestToDate)
+		if err != nil {
+			log.Fatal("Could not parse date format in ", *backtestToDate)
+		}
+		ctx.SetEndDate(endDate)
+
+		ctx.SetDataPath(*backtestDir)
+
+		switch *backtestFile {
+
+		case "MACrossStrategy":
+			break
+
+		case "RMIStrategy":
+			dataManager := K.DataManager{
+				Folder: *backtestDir,
+				//Folder:      "../data/CSV1/",
+				MappingFunc: nil,
+			}
+			K.Run(ctx, dataManager, new(strategies.RMICrossStrategy))
+
+			break
+
+		default:
+			log.Fatal("Could not find a strategy with that name in /strategies")
+		}
+
+	default:
+		log.Fatal("Please use any of the commands")
+
+	}
 }

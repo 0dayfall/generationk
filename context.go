@@ -23,6 +23,7 @@ type Context struct {
 	datePointer       time.Time
 	initPeriod        int
 	length            int
+	dataPath          string
 }
 
 //NewContext creates a new context
@@ -66,12 +67,12 @@ func (ctx *Context) AddIndicatorWithParams(indicator indicators.Indicator, param
 }
 
 //AddEndDate is used to set the strategy that will be run
-func (ctx *Context) AddEndDate(endTime time.Time) {
+func (ctx *Context) SetEndDate(endTime time.Time) {
 	ctx.endDate = endTime
 }
 
 //AddStartDate is used to set the start date
-func (ctx *Context) AddStartDate(startTime time.Time) {
+func (ctx *Context) SetStartDate(startTime time.Time) {
 	ctx.startDate = startTime
 	ctx.datePointer = startTime
 }
@@ -124,4 +125,8 @@ func (ctx *Context) AddAsset(asset *Asset) {
 	if length > ctx.K {
 		ctx.K = length
 	}*/
+}
+
+func (ctx *Context) SetDataPath(path string) {
+	ctx.dataPath = path
 }
