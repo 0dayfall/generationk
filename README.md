@@ -67,6 +67,12 @@ func (ma *MACrossStrategy) PerBar(k int, callback K.Callback) error {
 			callback.SendOrder(K.BuyOrder, K.MarketOrder, 100)
 
 ```
+
+to run the above strategy a command like this could be used:
+```bash
+go run generationk/cmd backtest -test MACrossStrategy -dir ../test/data/CSV2/ -fromDate 01/01/2015
+```
+
 ## Strategies
 I want the strategies directory to contain working trading strategies that are actually used in the market. There are many working ones and the hard part is to trade the system, actually not find a system that is profitable. If you find something interesting, please share it. Sharing is caring 🤗
 
