@@ -8,7 +8,7 @@ import (
 //DataHandler is the interface used to recieve data
 //from any data producing function. It can be used to feed data to generationK
 type DataHandler interface {
-	DataEvent(dataEvent Event)
+	AddAsset(asset *Asset)
 }
 
 //OrderStatus is a callback interface used to recieve
@@ -34,16 +34,16 @@ func (d DataEvent) String() string {
 
 //Order describes an order that is used to buy / sell an asset
 type Order struct {
+	Asset     string
 	direction Direction
 	orderType OrderType
-	Asset     *Asset
 	Time      time.Time
-	Amount    float64
+	Price     float64
 	Qty       int
 }
 
 func (o Order) String() string {
-	return fmt.Sprintf("$ORDER %v %v %v %f %d", o.orderType, o.Asset, o.Time, o.Amount, o.Qty)
+	return fmt.Sprintf("$ORDER %s %v %v %v %f %d", o.Asset, o.direction, o.orderType, o.Time, o.Price, o.Qty)
 }
 
 //Accepted is a status of the order to indicate that an order has been accepted by the broker.

@@ -2,166 +2,289 @@ package generationk
 
 import (
 	"errors"
-	"fmt"
-	"path/filepath"
-	"sync"
+	"log"
 	"time"
 )
 
-var o sync.Once
+//var o sync.Once
 
 var AssetDoesNotExist = errors.New("Asset does not exist")
+var FFToStartDate = errors.New("Fast forwarding to start date")
+var EndOfBacktest = errors.New("End of backtest")
+var EndOfData = errors.New("End of data")
+var UnstablePeriod = errors.New("The stable period is not yet reached")
+var Initialization = errors.New("Initialization in Once() failed")
 
 //Callback is used in the strategy to give actions back to the backtest in progress
 type Callback interface {
-	IsOwning(asset string) bool
-	OrderSend(assetName string, direction Direction, orderType OrderType, amount float64, qty int) error
+	Owning() bool
+	IsOwning(assetName string) (bool, error)
+	SendOrder(direction Direction, orderType OrderType, qty int) error
+	SendOrderFor(assetName string, direction Direction, orderType OrderType, qty int) error
 	Assets() []string
 }
 
 type GenerationK struct {
-	market *Context
+	ctx *Context
 }
 
 //NewGenerationK is used to create a new backtest
 func NewGenerationK() *GenerationK {
 
 	generationK := &GenerationK{
-		market: NewContext(),
+		ctx: NewContext(),
 	}
 
 	return generationK
 }
 
-//Is used to update the indicator with the assetName
-func (k *GenerationK) UpdateIndicators(assetName string) {
-	k.market.updateIndicators(assetName)
+func (g *GenerationK) inc() {
+	g.ctx.K++
 }
 
-//DataEvent is used to implement the datahandler interface and called when reading a file
-func (k *GenerationK) DataEvent(dataEvent Event) {
-	assetName := dataEvent.(DataEvent).Name
-	k.market.datePointer = dataEvent.(DataEvent).Ohlc.Time
+type intervalFunc func(oldTime time.Time, newTime time.Time) bool
 
-	if dataEvent.(DataEvent).Ohlc.Time.After(k.market.endDate) || dataEvent.(DataEvent).Ohlc.Time.Before(k.market.startDate) {
-		return
+func determineInterval(interval string) intervalFunc {
+	switch interval {
+	case "D":
+
+		return func(timeOld time.Time, timeNew time.Time) bool {
+			_, _, dayOld := timeOld.Date()
+			_, _, dayNew := timeNew.Date()
+
+			return dayNew > dayOld
+		}
+
+	case "M":
+
+		return func(timeOld time.Time, timeNew time.Time) bool {
+			_, monthOld, _ := timeOld.Date()
+			_, monthNew, _ := timeNew.Date()
+
+			return monthNew > monthOld
+		}
+
+	case "Q":
+
+		return func(timeOld time.Time, timeNew time.Time) bool {
+			_, monthNew, _ := timeNew.Date()
+
+			return monthNew == 1 || monthNew == 4 ||
+				monthNew == 7 || monthNew == 10
+		}
+
 	}
 
-	if _, ok := k.market.assetMap[assetName]; !ok {
-		asset := NewAsset(assetName, dataEvent.(DataEvent).Ohlc)
-		k.AddAsset(asset)
-	} else {
-		k.GetAssetByName(assetName).Update(dataEvent.(DataEvent).Ohlc, k.market.initPeriod)
-		k.UpdateIndicators(dataEvent.(DataEvent).Name)
-	}
+	return nil
+}
 
-	if k.market.K < 1 {
-		err := k.market.strategy[0].Once(k.market)
+var timer intervalFunc
+
+func (g *GenerationK) nextGen() error {
+	defer g.inc()
+	g.ctx.datePointer = g.ctx.asset.ohlc.Time[g.ctx.K]
+
+	//Have to run this first so that we dont increase k by FF
+	if g.ctx.K < 1 {
+		//fmt.Printf("Once executed for %s\n\n", g.ctx.asset.name)
+		err := g.ctx.strategy[0].Once(g.ctx, g.ctx.asset.ohlc)
 		if err != nil {
-			fmt.Println(err.Error())
+			return err
+		}
+
+		// Determine which function to use for rebalancing: Daily, Monthly or Quarterly
+		v, ok := interface{}(g.ctx.strategy[0]).(RebalanceStrategy)
+		if ok {
+			timer = determineInterval(v.GetInterval())
 		}
 	}
-	k.market.K++
 
-	//Run setup after initperiod is finished
-	if k.market.K < k.market.GetInitPeriod() {
-		return
+	if g.ctx.asset.ohlc.Time[g.ctx.K].Before(g.ctx.startDate) {
+		return FFToStartDate
 	}
 
-	k.market.strategy[0].PerBar(dataEvent.(DataEvent).Ohlc, (k))
+	if g.ctx.asset.ohlc.Time[g.ctx.K].After(g.ctx.endDate) {
+		return EndOfBacktest
+	}
+
+	//Run setup after initperiod is finished
+	if g.ctx.K < g.ctx.GetInitPeriod() {
+		return UnstablePeriod
+	}
+
+	// Check if the timer function is set
+	// Check if the interface implementents rebalance function
+	// Call the rebalance with the date as an additional parameter
+	if timer != nil {
+
+		if timer(g.ctx.asset.ohlc.Time[g.ctx.K-1], g.ctx.asset.ohlc.Time[g.ctx.K]) {
+
+			v, ok := interface{}(g.ctx.strategy[0]).(RebalanceStrategy)
+
+			if ok {
+
+				err := v.Rebalance(g.ctx.K, g.ctx.datePointer, g)
+				if err != nil {
+					log.Fatal(0)
+				}
+
+			}
+		}
+	}
+	return g.ctx.strategy[0].PerBar(g.ctx.K, g)
+}
+
+func (k *GenerationK) Run() error {
+
+	for k.ctx.K < k.ctx.length-1 {
+
+		err := k.nextGen()
+
+		if err != nil {
+
+			switch err {
+
+			case EndOfBacktest:
+				return err
+
+			case FFToStartDate:
+				continue
+
+			case UnstablePeriod:
+				continue
+
+			default:
+				log.Print(err.Error())
+
+				return err
+
+			}
+		}
+
+	}
+
+	return nil
 }
 
 //AddDataManager is currently not used
-func (k *GenerationK) AddDataManager() {}
+func (k *GenerationK) SetDataManager() {}
+
+//Returns an array of all assets
+func (k *GenerationK) GetAsset() Asset {
+	return k.ctx.GetAssets()[0]
+}
 
 //Returns an array of all assets
 func (k *GenerationK) GetAssets() []Asset {
-	return k.market.GetAssets()
+	return k.ctx.GetAssets()
 }
 
 //GetAssetByName returns a pointer to the asset by that name
 func (k *GenerationK) GetAssetByName(name string) *Asset {
-	return k.market.GetAssetByName(name)
+	return k.ctx.GetAssetByName(name)
 }
 
 //SetComission is used to set the comission scheme is there is one
-func (k *GenerationK) AddComission(comission Comission) {
-	k.market.broker.SetComission(comission)
+func (k *GenerationK) SetComission(comission Comission) {
+	k.ctx.broker.SetComission(comission)
 }
 
 //AddAsset is used to add a pointer to an asset
 func (k *GenerationK) AddAsset(asset *Asset) {
-	k.market.AddAsset(asset)
+	k.ctx.AddAsset(asset)
 }
 
 //AddPortfolio is used to add a pointer to a portfolio to the backtest
-func (k *GenerationK) AddPortfolio(portfolio *Portfolio) {
-	k.market.portfolio = portfolio
-	k.market.broker.portfolio = portfolio
+func (k *GenerationK) SetPortfolio(portfolio *Portfolio) {
+	k.ctx.portfolio = portfolio
+	k.ctx.broker.portfolio = portfolio
 }
 
 //AddStrategy is used to add a strategy to the backtest
 func (k *GenerationK) AddStrategy(strat Strategy) {
-	k.market.AddStrategy(strat)
+	k.ctx.SetStrategy(strat)
 }
 
 //SetBalance is used to set the balance when the backtest is started
 func (k *GenerationK) SetBalance(balance float64) {
-	k.market.portfolio.SetBalance(balance)
+	k.ctx.portfolio.SetBalance(balance)
 }
 
 //AddStartDate is used to set the end date for the backtest
-func (k *GenerationK) AddStartDate(startDate time.Time) {
-	k.market.AddStartDate(startDate)
+func (k *GenerationK) SetStartDate(startDate time.Time) {
+	k.ctx.SetStartDate(startDate)
 }
 
 //AddEndDate is used to set the end date for the backtest
-func (k *GenerationK) AddEndDate(endDate time.Time) {
-	k.market.AddEndDate(endDate)
+func (k *GenerationK) SetEndDate(endDate time.Time) {
+	k.ctx.SetEndDate(endDate)
 }
 
 //OrderSend is used to send an order to the broker, return an error if the asset does not exist
-func (k *GenerationK) OrderSend(assetName string, direction Direction, orderType OrderType, amount float64, qty int) error {
-	if asset, ok := k.market.assetMap[assetName]; ok {
-		orderSend(k.market, direction, orderType, asset, k.market.datePointer, amount, qty)
-
-		return nil
+func (k *GenerationK) SendOrderFor(assetName string, direction Direction, orderType OrderType, qty int) error {
+	if asset, ok := k.ctx.assetMap[k.ctx.asset.name]; ok {
+		return k.sendOrder(k.ctx, direction, orderType, asset, k.ctx.datePointer, qty)
 	}
+
+	return AssetDoesNotExist
+}
+
+//OrderSend is used to send an order to the broker, return an error if the asset does not exist
+func (k *GenerationK) SendOrder(direction Direction, orderType OrderType, qty int) error {
+	if asset, ok := k.ctx.assetMap[k.ctx.asset.name]; ok {
+		return k.sendOrder(k.ctx, direction, orderType, asset, k.ctx.datePointer, qty)
+	}
+
 	return AssetDoesNotExist
 }
 
 //orderSend is used to send an order to the broker
-func orderSend(ctx *Context, direction Direction, orderType OrderType, asset *Asset, time time.Time, amount float64, qty int) {
+func (k *GenerationK) sendOrder(ctx *Context, direction Direction, orderType OrderType, asset *Asset, time time.Time, qty int) error {
 	orderStatus, _ := interface{}(ctx.strategy[0]).(OrderStatus)
 
-	ctx.broker.SendOrder(
+	err := ctx.broker.SendOrder(
 		Order{
 			direction: direction,
 			orderType: orderType,
-			Asset:     asset,
+			Asset:     asset.name,
+			Price:     asset.ohlc.Close[ctx.K],
 			Time:      time,
-			Amount:    amount,
 			Qty:       qty,
 		},
 		orderStatus,
 	)
-
+	return err
 }
 
 //Assets returns an array of assets
 func (k *GenerationK) Assets() []string {
-	assets := make([]string, len(k.market.assets))
-	for i, asset := range k.market.assets {
+	assets := make([]string, len(k.ctx.assets))
+	for i, asset := range k.ctx.assets {
 		assets[i] = asset.name
 	}
 
 	return assets
 }
 
+/*func (k *GenerationK) SetUniverse(assets []string) {
+	for i := range assets {
+		k.AddAsset(NewAsset(assets[i], nil))
+	}
+}*/
+
 //OwnPosition is used to find out if we have a holding in an asset
 //and the assumption is that the strategy is using multiple assets
-func (k *GenerationK) IsOwning(name string) bool {
-	return k.market.portfolio.IsOwning(name)
+func (k *GenerationK) IsOwning(assetName string) (bool, error) {
+	if _, ok := k.ctx.assetMap[assetName]; ok {
+		return k.ctx.portfolio.IsOwning(assetName), nil
+	}
+	return false, AssetDoesNotExist
+}
+
+//Owning is used to find out if we have a holding and we are
+//only processing 1 asset
+func (k *GenerationK) Owning() bool {
+	return k.ctx.portfolio.IsOwning(k.ctx.asset.name)
 }
 
 //min returns the smaller of x or y.
@@ -171,62 +294,4 @@ func min(x, y int) int {
 	}
 
 	return x
-}
-
-//Owning is used to find out if we have a holding and we are
-//only processing 1 asset
-func (k *GenerationK) Owning() bool {
-	return k.market.portfolio.IsOwning(k.market.assets[0].name)
-}
-
-type EndOfDataError struct {
-	Description string
-}
-
-func (e *EndOfDataError) Error() string {
-	return fmt.Sprintf("End of data: %s", e.Description)
-}
-
-func RunStrategyOnAssets(strategy Strategy, folderPath string) {
-	files, err := filepath.Glob(folderPath + "*.csv")
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	fmt.Printf("files %s", files)
-	//d.ReadCSVFilesAsync(files)
-	portfolio := NewPortfolio()
-	portfolio.SetBalance(100000)
-
-	var wg sync.WaitGroup
-
-	y := 0
-
-	for _, fileName := range files {
-		wg.Add(1)
-		go func(localFilename string) {
-			genk := NewGenerationK()
-			genk.AddPortfolio(portfolio)
-			genk.AddStrategy(strategy)
-
-			now := time.Now()
-			start := now.AddDate(-15, -9, -2)
-			genk.AddStartDate(start)
-			now = time.Now()
-			end := now.AddDate(0, -3, -2)
-			genk.AddEndDate(end)
-
-			//genk.RunEventBased()
-			dataManager := NewCSVDataManager(genk)
-			//dataManager.SetHandler(genk)
-			//genk.AddDataManager(dataManager)
-
-			//dataManager.ReadCSVFilesAsync([]string{"test/data/ABB.csv", "test/data/ASSAb.csv"})
-			dataManager.ReadCSVFile(localFilename)
-
-			wg.Done()
-		}(fileName)
-		y++
-	}
-	wg.Wait()
 }

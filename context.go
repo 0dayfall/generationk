@@ -9,7 +9,9 @@ import (
 //Context holds holds the strategy, assets, indicators per asset, start date, end date, the portfolio
 //the current date and the unstable period
 type Context struct {
-	strategy          []Strategy
+	strategy []Strategy
+	//	assetName         string
+	asset             *Asset
 	assets            []Asset
 	assetMap          map[string]*Asset
 	assetIndicatorMap map[string][]indicators.Indicator
@@ -20,6 +22,8 @@ type Context struct {
 	K                 int
 	datePointer       time.Time
 	initPeriod        int
+	length            int
+	dataPath          string
 }
 
 //NewContext creates a new context
@@ -29,6 +33,10 @@ func NewContext() *Context {
 		assetMap:          make(map[string]*Asset),
 		assetIndicatorMap: make(map[string][]indicators.Indicator),
 		broker:            Broker{},
+		K:                 0,          //The first evolution
+		initPeriod:        -1,         //Dont update strategy until K > initPeriod
+		endDate:           time.Now(), //We are not time travellers, only back testers
+		length:            0,
 	}
 
 	return ctx
@@ -59,12 +67,12 @@ func (ctx *Context) AddIndicatorWithParams(indicator indicators.Indicator, param
 }
 
 //AddEndDate is used to set the strategy that will be run
-func (ctx *Context) AddEndDate(endTime time.Time) {
+func (ctx *Context) SetEndDate(endTime time.Time) {
 	ctx.endDate = endTime
 }
 
 //AddStartDate is used to set the start date
-func (ctx *Context) AddStartDate(startTime time.Time) {
+func (ctx *Context) SetStartDate(startTime time.Time) {
 	ctx.startDate = startTime
 	ctx.datePointer = startTime
 }
@@ -102,20 +110,23 @@ func (ctx *Context) GetAssetIndicatorByName(name string) []indicators.Indicator 
 
 //AddAsset is used to add assets that the strategy will use
 func (ctx *Context) AddAsset(asset *Asset) {
+	//fmt.Printf("Adding asset: %s\n\n", asset.name)
+	ctx.asset = asset
 	ctx.assets = append(ctx.assets, *asset)
 	ctx.assetMap[asset.name] = asset
 	ctx.assetIndicatorMap[asset.name] = nil
+
+	//Save the length of the longest asset
+	if ctx.length < ctx.asset.length {
+		ctx.length = ctx.asset.length
+		//fmt.Printf("Length of asset after adding in ctx %d\n\n", ctx.length)
+	}
+	/*length := len(asset.ohlc.Close)
+	if length > ctx.K {
+		ctx.K = length
+	}*/
 }
 
-//updateIndicators is used by generationK to update the data
-func (ctx *Context) updateIndicators(assetName string) {
-	for _, indicator := range ctx.GetAssetIndicatorByName(assetName) {
-
-		//Copy period amount of data to update indicator with
-		dataSlice := ctx.GetAssetByName(assetName).Historic(
-			OhlcConst(indicator.GetDataType()),
-			indicator.GetPeriod(),
-		)
-		indicator.Update(dataSlice)
-	}
+func (ctx *Context) SetDataPath(path string) {
+	ctx.dataPath = path
 }

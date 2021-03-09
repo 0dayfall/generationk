@@ -2,6 +2,18 @@ package indicators
 
 import "math"
 
+// Sum returns the sum of all elements of 'data'.
+func Sum(data []float64) float64 {
+
+	var sum float64
+
+	for _, value := range data {
+		sum += value
+	}
+
+	return sum
+}
+
 //This is not used
 type mfloat []float64
 
@@ -42,30 +54,30 @@ func Avg(data []float64) float64 {
 	return Sum(data) / float64(len(data))
 }
 
-// Sum returns the sum of all elements of 'data'.
-func Sum(data []float64) float64 {
-
-	var sum float64
-
-	for _, x := range data {
-		sum += x
-	}
-
-	return sum
+func Std(slice []float64, period int) float64 {
+	return StandardDeviation(slice, period)
 }
 
 // Std returns standard deviation of a slice.
-func Std(slice []float64) float64 {
+func StandardDeviation(series []float64, period int) float64 {
 
-	var result []float64
+	lengthSeries := len(series)
+	result := make([]float64, lengthSeries)
 
-	mean := Avg(slice)
+	//The average is the starting point
+	ma := MA(series, period)
 
-	for i := 0; i < len(slice); i++ {
-		result = append(result, math.Pow(slice[i]-mean, 2))
+	//The difference between each data point and the average is calculated and then the values are ^2
+	for i := 0; i < lengthSeries; i++ {
+		result[i] = math.Pow(series[i]-ma[i], 2)
 	}
 
-	return math.Sqrt(Sum(result) / float64(len(result)))
+	/*TODO: FINISH THIS*/
+	for i := 0; i < lengthSeries; i++ {
+		result[i] = math.Sqrt(Sum(result) / float64(period))
+	}
+	//The variance is the average of these values and the standard deviation is the square root of the variance
+	return math.Sqrt(Sum(result) / float64(lengthSeries))
 }
 
 // AddToAll adds a value to all slice elements.
