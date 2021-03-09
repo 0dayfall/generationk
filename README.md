@@ -8,7 +8,9 @@
 
 1. To set entry and exit conditions independently to be able to combine many different ones
 2. To be able to try which parameters are the best ones for an indicator
-3. 
+3. Many indicators can be implemented
+4. Many candles can be implemented too
+5. It would be interesting to output some common statistics about back test except profit etc.
 
 # generationk
 The inspiration for this project took place after using a few other backtesting frameworks in Python. 
@@ -27,8 +29,7 @@ realistic feeling. A main argument is that it is not possible to peek at future 
 I think a backtest that peeks into future data stands out in the results as amazing and is actually easy to spot. I also felt that everything gets very slow and the reason is not strong enough since backtests are not
 realistic anyway. My main priority is to check statistics to see if there is an edge and get a quick overview and then to see how I could manually trade a system.
 
-3. In the third version which is the current basically is a for loop which loops over data. I have also tried to remove all kinds of encapsulation and special 'types' specific to this backtester. I try to as much as possible only work with float64. I want to always just have access to the raw data and numbers instead of
-a 'LinearNumberSeries' struct and so on...
+3. In the third version which is the current what is provided is basically a for loop which loops over data. I have also tried to remove all kinds of encapsulation and special 'types'. I try to as much as possible only work with float64. Because it gives a degree of freedom and any functions can be written to work on numbers. So I want to as much as possible have access to the raw data and numbers instead of a 'LinearNumberSeries' struct and so on...
 
 ## The Crossing MA example looks like this
 ```golang
@@ -37,26 +38,32 @@ type MACrossStrategy struct {
 	close []float64
 }
 
-//Setup is used to declare what indicators will be used
+//Once is used to declare what indicators will be used; it's run once
 func (ma *MACrossStrategy) Once(ctx *K.Context, ohlc *K.OHLC) error {
 
 	//The closing prices
 	ma.close = ohlc.Close
 
-	//The Simple Moving Average length 50 periods, the ones from 0 to 50 will be registred in the array as well
+	//The Simple Moving Average length 50 periods, the ones from 0 to 50 
+	//will be registred in the array as well
 	ma.ma50 = indicators.SimpleMovingAverage(ohlc.Close, 50)
 
-	//If the init period is set PerBar will not be called until the InitPeriod is reached
+	//If the init period is set, the PerBar function below will not be called 
+	//until the InitPeriod is reached
 	ctx.SetInitPeriod(50)
 
+	//No errors to my knowledge
 	return nil
 }
 
 //PerBar gets called when there is new data coming in
 func (ma *MACrossStrategy) PerBar(k int, callback K.Callback) error {
 
+	//Closing price breaks the MA50
 	if ma.close[k] > ma.ma50[k] {
+		//Are we owning this stock since before?
 		if !callback.Owning() {
+			//No. Then we can buy 100 stocks with a marketorder
 			callback.SendOrder(K.BuyOrder, K.MarketOrder, 100)
 
 ```
@@ -65,4 +72,4 @@ I want the strategies directory to contain working trading strategies that are a
 
 # Future implementation
 * To use genetic algorithms to find the best trading system for a stocks / stocks
-* The plug in machine learning
+* To plug in machine learning
