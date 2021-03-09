@@ -128,9 +128,6 @@ func (b *Broker) buy(order Order) error {
 
 	if b.comission != nil {
 		amount += b.comission.GetComisson(order.Price, order.Qty)
-	} else {
-		//fmt.Println("Buying without comission")
-		//log.Warning("Placing order without comission")
 	}
 
 	err := b.portfolio.subtractFromBalance(amount)

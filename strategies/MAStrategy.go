@@ -1,12 +1,7 @@
 package strategies
 
 import (
-	"fmt"
 	"log"
-	"os"
-	"path/filepath"
-	"sync"
-	"time"
 
 	K "github.com/0dayfall/generationk"
 	indicators "github.com/0dayfall/generationk/indicators"
@@ -77,7 +72,7 @@ func (ma *MACrossStrategy) Update(k *int) error { return nil }
 //OrderEvent gets called on order events
 func (ma *MACrossStrategy) OrderEvent(orderEvent K.Event) {}
 
-func readFolder(folderPath string) {
+/*func readFolder(folderPath string) {
 	files, err := filepath.Glob(folderPath + "*.csv")
 	if err != nil {
 		fmt.Println(err)
@@ -129,7 +124,7 @@ func readFolder(folderPath string) {
 	wg.Wait()
 
 	fmt.Printf("balance %f\n", portfolio.GetBalance())
-}
+}*/
 
 /*func TestRun(t *testing.T) {
 	//defer profile.Start().Stop()

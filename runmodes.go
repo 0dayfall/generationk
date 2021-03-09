@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"sync"
-	"time"
 )
 
 type Job interface {
@@ -41,18 +40,18 @@ func (j *JobStruct) SetParams(params ...Params) {
 	j.Params = params
 }
 
-func produce(dm DataManager, jobs chan<- *JobStruct) {
+func produce(ctx *Context, dm *DataManager, jobs chan<- *JobStruct) {
 	// Generate jobs:
-	files, err := filepath.Glob(dm.Folder + "*.csv")
+	files, err := filepath.Glob(ctx.dataPath + "*.csv")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	id := 0
-
+	//fmt.Println(files)
 	for _, fileName := range files {
 		id++
-
+		//fmt.Println(fileName)
 		jobs <- &JobStruct{
 			Id:       id,
 			FileName: fileName,
@@ -64,18 +63,21 @@ func produce(dm DataManager, jobs chan<- *JobStruct) {
 	close(jobs)
 }
 
-func consume(id int, strategy Strategy, jobs <-chan *JobStruct, results chan<- *JobStruct, wg *sync.WaitGroup) {
+func consume(id int, ctx *Context, dm *DataManager, jobs <-chan *JobStruct, results chan<- *JobStruct, wg *sync.WaitGroup) {
 	defer wg.Done()
+
+	//fmt.Printf("Ranging jobs")
+
 	for job := range jobs {
 
 		//fmt.Printf("READING JOBS %v", job)
 
 		//Perform work
-		asset := ReadCSVFile(job.FileName, false, nil)
+		asset := dm.ReadCSVFile(job.FileName)
 
 		//Clunky way to check parameters
-		//cross := new(RMICrossStrategy)
-		val := reflect.ValueOf(strategy)
+		//cross := new(RebalanceStrategy)
+		val := reflect.ValueOf(ctx.GetStrategy())
 		if val.Kind() == reflect.Ptr {
 			val = reflect.Indirect(val)
 		}
@@ -83,33 +85,28 @@ func consume(id int, strategy Strategy, jobs <-chan *JobStruct, results chan<- *
 
 		params := newThing.GetParams()
 
-		fmt.Printf("%f %f %f\n", params[0].High, params[0].Low, params[0].Value)
-		fmt.Printf("%f %f %f\n\n", params[1].High, params[1].Low, params[1].Value)
-		fmt.Printf("SIZE: %d\n\n", len(params))
+		//fmt.Printf("%f %f %f\n", params[0].High, params[0].Low, params[0].Value)
+		//fmt.Printf("%f %f %f\n\n", params[1].High, params[1].Low, params[1].Value)
+		//		fmt.Printf("SIZE: %d\n\n", len(params))
 
 		for i := 0; i < len(params); i++ {
 			for s := params[0].Low; s < params[0].High; s += 1 {
 				for k := params[1].Low; k < params[1].High; k += 1 {
-					fmt.Printf("PARAMS VÄRDE I LOOPEN: %v", params[0].GetValue())
+					//fmt.Printf("PARAMS VÄRDE I LOOPEN: %v", params[0].GetValue())
 					params[0].Value = s
 					params[1].Value = k
-					fmt.Printf("PARAMS VÄRDE I LOOPEN: %v", params[0].GetValue())
-					fmt.Printf("PARAMS VÄRDE I LOOPEN: %v", params[1].GetValue())
+					//fmt.Printf("PARAMS VÄRDE I LOOPEN: %v", params[0].GetValue())
+					//fmt.Printf("PARAMS VÄRDE I LOOPEN: %v", params[1].GetValue())
 					portfolio := NewPortfolio()
 					portfolio.SetBalance(100000)
 					genk := NewGenerationK()
 					genk.SetPortfolio(portfolio)
-					fmt.Print(portfolio)
+					//fmt.Print(portfolio)
 
-					//fmt.Printf("PARAMS VÄRDE I LOOPEN: %v", strategy)
+					//fmt.Printf("PARAMS VÄRDE I LOOPEN:")
 					genk.AddStrategy(newThing)
-
-					now := time.Now()
-					start := now.AddDate(-15, -9, -2)
-					genk.SetStartDate(start)
-					now = time.Now()
-					end := now.AddDate(0, -3, -2)
-					genk.SetEndDate(end)
+					genk.SetStartDate(ctx.GetStartDate())
+					genk.SetEndDate(ctx.GetEndDate())
 					genk.AddAsset(asset)
 
 					err := genk.Run()
@@ -118,10 +115,10 @@ func consume(id int, strategy Strategy, jobs <-chan *JobStruct, results chan<- *
 					}
 
 					//Fill out the result
-					fmt.Print(portfolio)
+					//fmt.Print(portfolio)
 					job.Result = portfolio.GetBalance()
-					fmt.Printf("====>%v", job.Result)
-					fmt.Println(portfolio.GetBalance())
+					//fmt.Printf("====>%v", job.Result)
+					//fmt.Println(portfolio.GetBalance())
 					job.SetParams(*params[0], *params[1])
 					//Send the results back
 					results <- job
@@ -167,7 +164,7 @@ func analyze(results <-chan *JobStruct, wg2 *sync.WaitGroup) {
 
 }
 
-func Run(ctx *Context, dm DataManager, strategy Strategy) {
+func Run(ctx *Context, dm *DataManager) {
 	//defer profile.Start().Stop()
 	//t.Parallel()
 	jobs := make(chan *JobStruct, 100)    // Buffered channel
@@ -178,10 +175,10 @@ func Run(ctx *Context, dm DataManager, strategy Strategy) {
 	// Start consumers:
 	for i := 0; i < 5; i++ { // 5 consumers
 		wg.Add(1)
-		go consume(i, strategy, jobs, results, &wg)
+		go consume(i, ctx, dm, jobs, results, &wg)
 	}
 
-	go produce(dm, jobs)
+	go produce(ctx, dm, jobs)
 
 	wg2.Add(1)
 	go analyze(results, &wg2)
@@ -192,8 +189,8 @@ func Run(ctx *Context, dm DataManager, strategy Strategy) {
 	wg2.Wait()
 }
 
-func RunStrategyOnAssets(strategy Strategy, folderPath string) {
-	files, err := filepath.Glob(folderPath + "*.csv")
+func RunStrategyOnAssets(ctx *Context, dm *DataManager) {
+	files, err := filepath.Glob(ctx.dataPath + "*.csv")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -209,17 +206,13 @@ func RunStrategyOnAssets(strategy Strategy, folderPath string) {
 
 	for _, fileName := range files {
 		wg.Add(1)
-		go func(localFilename string, strategy Strategy) {
+		go func(localFilename string, ctx *Context, dm *DataManager) {
 			genk := NewGenerationK()
 			genk.SetPortfolio(portfolio)
-			genk.AddStrategy(strategy)
+			genk.AddStrategy(ctx.GetStrategy())
 
-			now := time.Now()
-			start := now.AddDate(-15, -9, -2)
-			genk.SetStartDate(start)
-			now = time.Now()
-			end := now.AddDate(0, -3, -2)
-			genk.SetEndDate(end)
+			genk.SetStartDate(ctx.GetStartDate())
+			genk.SetEndDate(ctx.GetEndDate())
 
 			//genk.RunEventBased()
 			//dataManager := NewCSVDataManager()
@@ -227,14 +220,14 @@ func RunStrategyOnAssets(strategy Strategy, folderPath string) {
 			//genk.AddDataManager(dataManager)
 
 			//dataManager.ReadCSVFilesAsync([]string{"test/data/ABB.csv", "test/data/ASSAb.csv"})
-			asset := ReadCSVFile(localFilename, false, nil)
+			asset := dm.ReadCSVFile(localFilename)
 			genk.AddAsset(asset)
 
 			runErr := genk.Run()
 			log.Fatal(runErr)
 
 			wg.Done()
-		}(fileName, strategy)
+		}(fileName, ctx, dm)
 		y++
 	}
 	wg.Wait()

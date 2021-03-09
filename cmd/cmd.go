@@ -2,12 +2,13 @@ package main
 
 import (
 	"flag"
-	"generationk/strategies"
+	"fmt"
 	"log"
 	"os"
 	"time"
 
 	K "github.com/0dayfall/generationk"
+	S "github.com/0dayfall/generationk/strategies"
 )
 
 func main() {
@@ -19,6 +20,7 @@ func main() {
 
 	backtestCmd := flag.NewFlagSet("backtest", flag.ExitOnError)
 	backtestFile := backtestCmd.String("test", "", "Name of the struct with backtest")
+	backtestMapping := backtestCmd.String("mapping", "", "Mapping function")
 	backtestDir := backtestCmd.String("dir", "", "Directory name")
 	backtestFromDate := backtestCmd.String("fromDate", "01/01/2015", "From date")
 	backtestToDate := backtestCmd.String("toDate", time.Now().Format("02/01/2006"), "To date")
@@ -49,27 +51,41 @@ func main() {
 
 		ctx.SetDataPath(*backtestDir)
 
+		var dm *K.DataManager
+
+		switch *backtestMapping {
+
+		case "investing":
+			fmt.Println("Using investing.com mapping")
+			dm = K.NewCSVDataManager(*backtestDir, true, K.MapRecordsInvesting)
+
+		default:
+			fmt.Println("Using default mapping")
+			dm = K.NewCSVDataManager(*backtestDir, false, nil)
+
+		}
+
 		switch *backtestFile {
 
 		case "MACrossStrategy":
-			break
+			ctx.SetStrategy(new(S.MACrossStrategy))
+			K.Run(ctx, dm)
 
-		case "RMIStrategy":
-			dataManager := K.DataManager{
-				Folder: *backtestDir,
-				//Folder:      "../data/CSV1/",
-				MappingFunc: nil,
-			}
-			K.Run(ctx, dataManager, new(strategies.RMICrossStrategy))
+		case "RMICrossStrategy":
+			ctx.SetStrategy(new(S.RMICrossStrategy))
+			K.Run(ctx, dm)
 
-			break
+		case "RebalanceStrategy":
+			ctx.SetStrategy(new(S.RebalanceStrat))
+			K.Run(ctx, dm)
 
 		default:
 			log.Fatal("Could not find a strategy with that name in /strategies")
+
 		}
 
 	default:
-		log.Fatal("Please use any of the commands")
+		log.Fatal("Example usage: backtest -test RMIStrategy -dir ..\\test\\data\\CSV2 -fromDate 01/01/2015")
 
 	}
 }

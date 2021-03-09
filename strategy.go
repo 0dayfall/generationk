@@ -1,5 +1,7 @@
 package generationk
 
+import "time"
+
 //Strategy is the class where the logic is placed to buy and sell assets
 //the two methods that needs to be implemented are Setup and Tick.
 //The Setup method is used to define if any indicators will be used
@@ -14,7 +16,15 @@ type Strategy interface {
 	//Run()
 }
 
+type MultiStrategy interface {
+	GetParams() []*Params
+	Once(ctx *Context, assets []*Asset) error
+	Update(k *int) error
+	PerBar(k int, callback Callback) error
+	//Run()
+}
+
 type RebalanceStrategy interface {
-	Once(ctx *Context, ohlc OHLC) error
-	PerBar(k *int, callback Callback)
+	GetInterval() string
+	Rebalance(k int, date time.Time, callback Callback) error
 }
