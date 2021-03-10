@@ -4,7 +4,7 @@ import (
 	"log"
 
 	K "github.com/0dayfall/generationk"
-	indicators "github.com/0dayfall/generationk/indicators"
+	I "github.com/0dayfall/generationk/indicators"
 )
 
 //Strategy strategy
@@ -24,7 +24,7 @@ func (ma *MACrossStrategy) Once(ctx *K.Context, ohlc *K.OHLC) error {
 	ma.close = ohlc.Close
 
 	//The Simple Moving Average length 50 periods, the ones from 0 to 50 will be registred in the array as well
-	ma.ma50 = indicators.SimpleMovingAverage(ohlc.Close, 50)
+	ma.ma50 = I.SimpleMovingAverage(ohlc.Close, 50)
 
 	//If the init period is set PerBar will not be called until the InitPeriod is reached
 	ctx.SetInitPeriod(50)

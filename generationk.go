@@ -286,12 +286,3 @@ func (k *GenerationK) IsOwning(assetName string) (bool, error) {
 func (k *GenerationK) Owning() bool {
 	return k.ctx.portfolio.IsOwning(k.ctx.asset.name)
 }
-
-//min returns the smaller of x or y.
-func min(x, y int) int {
-	if x > y {
-		return y
-	}
-
-	return x
-}

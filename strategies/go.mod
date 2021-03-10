@@ -1,4 +1,4 @@
-module generationk/strategies
+module github.com/0dayfall/generationk/strategies
 
 go 1.15
 

@@ -71,15 +71,32 @@ func (ctx *Context) SetEndDate(endTime time.Time) {
 	ctx.endDate = endTime
 }
 
+func (ctx *Context) GetEndDate() time.Time {
+	return ctx.endDate
+}
+
 //AddStartDate is used to set the start date
 func (ctx *Context) SetStartDate(startTime time.Time) {
 	ctx.startDate = startTime
 	ctx.datePointer = startTime
 }
 
+func (ctx *Context) GetStartDate() time.Time {
+	return ctx.startDate
+}
+
 //AddStrategy is used to set the strategy that will be run
-func (ctx *Context) AddStrategy(strategy Strategy) {
+func (ctx *Context) SetStrategy(strategy Strategy) {
+	//Should be possible to use multiple strategies in the future
 	ctx.strategy = append(ctx.strategy, strategy)
+}
+
+//SetStrategy is used to set the strategy that will be run
+func (ctx *Context) GetStrategy() Strategy {
+	// In the futures should return an array of
+	// strategies when multiple strategies will be
+	// handled
+	return ctx.strategy[0]
 }
 
 //SetInitPeriod is used to set the unstable period, the longest period
@@ -129,4 +146,8 @@ func (ctx *Context) AddAsset(asset *Asset) {
 
 func (ctx *Context) SetDataPath(path string) {
 	ctx.dataPath = path
+}
+
+func (ctx *Context) GetDataPath() string {
+	return ctx.dataPath
 }
