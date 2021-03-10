@@ -2,6 +2,7 @@ package generationk
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"time"
 )
@@ -96,6 +97,8 @@ func (g *GenerationK) nextGen() error {
 		v, ok := interface{}(g.ctx.strategy[0]).(RebalanceStrategy)
 		if ok {
 			timer = determineInterval(v.GetInterval())
+		} else {
+			fmt.Println("Interface is of wrong type")
 		}
 	}
 
@@ -116,7 +119,7 @@ func (g *GenerationK) nextGen() error {
 	// Check if the interface implementents rebalance function
 	// Call the rebalance with the date as an additional parameter
 	if timer != nil {
-
+		fmt.Println("LALALALALAL")
 		if timer(g.ctx.asset.ohlc.Time[g.ctx.K-1], g.ctx.asset.ohlc.Time[g.ctx.K]) {
 
 			v, ok := interface{}(g.ctx.strategy[0]).(RebalanceStrategy)
@@ -129,8 +132,13 @@ func (g *GenerationK) nextGen() error {
 				}
 
 			}
+		} else {
+			fmt.Println("Interface is of wrong type")
 		}
+	} else {
+		fmt.Println("Time är nil")
 	}
+
 	return g.ctx.strategy[0].PerBar(g.ctx.K, g)
 }
 

@@ -1,5 +1,7 @@
 package indicators
 
+import "fmt"
+
 //ROC100 is the Rate Of Change, other alias are RateOfChange
 func ROC100(series []float64, period int) []float64 {
 	return RateOfChange100(series, period)
@@ -14,6 +16,6 @@ func RateOfChange100(series []float64, period int) []float64 {
 	for i := period; i < seriesLength; i++ {
 		returnSeries[period] = (series[i] - series[i-period]) / series[i-period] * 100
 	}
-
+	fmt.Println("Return the rate of change 100")
 	return returnSeries
 }

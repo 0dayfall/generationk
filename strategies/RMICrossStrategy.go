@@ -3,8 +3,9 @@ package strategies
 import (
 	"log"
 
-	K "github.com/0dayfall/generationk"
 	I "github.com/0dayfall/generationk/indicators"
+
+	K "github.com/0dayfall/generationk"
 )
 
 //Strategy strategy

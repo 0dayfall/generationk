@@ -1,6 +1,7 @@
 package strategies
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -11,6 +12,10 @@ import (
 //Strategy strategy
 type RebalanceStrat struct {
 	ROC100 []float64
+}
+
+func (rmi *RebalanceStrat) GetParams() []*K.Params {
+	return nil
 }
 
 //Setup is used to declare what indicators will be used
@@ -31,6 +36,8 @@ var buytime time.Time
 
 func (rmi *RebalanceStrat) Rebalance(k int, date time.Time, callback K.Callback) error {
 	_, _, day := date.Date()
+
+	fmt.Println("Rebalancing")
 
 	if day == 28 {
 		err := callback.SendOrder(K.BuyOrder, K.MarketOrder, 100)

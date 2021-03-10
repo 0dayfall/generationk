@@ -8,6 +8,8 @@
 *.dll 
 *.so 
 *.dylib  
+*.sum
+*.txt
 
 # Test binary, built with `go test -c` 
 *.test  
@@ -25,9 +27,9 @@
 
 # Data filer for testing
 *.csv
-'.pdf
+*.pdf
 
 # Visual studio
 .vscode
 
-# End of https://www.toptal.com/developers/gitignore/api/go
+# End of my file, thank you
