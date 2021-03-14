@@ -34,20 +34,20 @@ type OHLC struct {
 
 // Asset data type
 type Asset struct {
-	name   string
-	ohlc   *OHLC
-	length int
+	Name   string
+	Ohlc   *OHLC
+	Length int
 }
 
 //NewAsset is used to create a new asset-
 func NewAsset(name string, ohlc *OHLC, length int) *Asset {
 	return &Asset{
-		name:   name,
-		ohlc:   ohlc,
-		length: length,
+		Name:   name,
+		Ohlc:   ohlc,
+		Length: length,
 	}
 }
 
 func (a Asset) GetLength() int {
-	return a.length
+	return a.Length
 }

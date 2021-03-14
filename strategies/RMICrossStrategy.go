@@ -1,11 +1,11 @@
-package strategies
+package generationk
 
 import (
 	"log"
 
-	I "github.com/0dayfall/generationk/indicators"
-
 	K "github.com/0dayfall/generationk"
+	D "github.com/0dayfall/generationk/data"
+	I "github.com/0dayfall/generationk/indicators"
 )
 
 //Strategy strategy
@@ -37,7 +37,7 @@ func (rmi *RMICrossStrategy) GetParams() []*K.Params {
 }
 
 //Setup is used to declare what indicators will be used
-func (rmi *RMICrossStrategy) Once(ctx *K.Context, ohlc *K.OHLC) error {
+func (rmi *RMICrossStrategy) Once(ctx *K.Context, ohlc *D.OHLC) error {
 
 	//The Simple Moving Average length 50 periods, the ones from 0 to 50 will be registred in the array as well
 	rmi.fastRMI, rmi.slowRMI = I.RMI(ohlc.Close, 30, 2, 250, 20)

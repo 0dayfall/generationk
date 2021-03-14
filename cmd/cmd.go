@@ -8,6 +8,7 @@ import (
 	"time"
 
 	K "github.com/0dayfall/generationk"
+	D "github.com/0dayfall/generationk/data"
 	S "github.com/0dayfall/generationk/strategies"
 )
 
@@ -21,18 +22,32 @@ func main() {
 	backtestCmd := flag.NewFlagSet("backtest", flag.ExitOnError)
 	backtestFile := backtestCmd.String("test", "", "Name of the struct with backtest")
 	backtestMapping := backtestCmd.String("mapping", "", "Mapping function")
+	backtestHeaders := backtestCmd.Bool("headers", true, "CSV has headers")
+	backtestReverse := backtestCmd.Bool("reverse", true, "Read file reverse")
 	backtestDir := backtestCmd.String("dir", "", "Directory name")
 	backtestFromDate := backtestCmd.String("fromDate", "01/01/2015", "From date")
 	backtestToDate := backtestCmd.String("toDate", time.Now().Format("02/01/2006"), "To date")
 
+	help := "Add the subcommand 'hurst' or 'backtest'"
+
+	// Switch on subcommands, then apply the desired set of flags.
+	if len(os.Args) < 2 {
+		fmt.Fprintln(os.Stderr, help)
+		os.Exit(0)
+	}
+
 	switch os.Args[1] {
 	case hurstCmd.Name():
-		hurstCmd.Parse(os.Args[2:])
-
-		os.Exit(0)
+		err := hurstCmd.Parse(os.Args[2:])
+		if err != nil {
+			log.Fatal(err)
+		}
 
 	case backtestCmd.Name():
-		backtestCmd.Parse(os.Args[2:])
+		err := backtestCmd.Parse(os.Args[2:])
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		ctx := K.NewContext()
 
@@ -43,25 +58,26 @@ func main() {
 		ctx.SetStartDate(startDate)
 
 		//Its OK to not set the to date
-		endDate, err := time.Parse("1/2/2006", *backtestToDate)
+		endDate, err := time.Parse("02/01/2006", *backtestToDate)
 		if err != nil {
 			log.Fatal("Could not parse date format in ", *backtestToDate)
 		}
 		ctx.SetEndDate(endDate)
 
+		fmt.Println(*backtestDir)
 		ctx.SetDataPath(*backtestDir)
 
-		var dm *K.DataManager
+		var dm *D.DataManager
 
 		switch *backtestMapping {
 
 		case "investing":
 			fmt.Println("Using investing.com mapping")
-			dm = K.NewCSVDataManager(*backtestDir, true, K.MapRecordsInvesting)
+			dm = D.NewCSVDataManager(*backtestDir, *backtestHeaders, *backtestReverse, D.MapRecordsInvesting)
 
 		default:
 			fmt.Println("Using default mapping")
-			dm = K.NewCSVDataManager(*backtestDir, false, nil)
+			dm = D.NewCSVDataManager(*backtestDir, *backtestHeaders, *backtestReverse, nil)
 
 		}
 
@@ -69,20 +85,21 @@ func main() {
 
 		case "MACrossStrategy":
 			ctx.SetStrategy(new(S.MACrossStrategy))
-			K.Run(ctx, dm)
 
 		case "RMICrossStrategy":
 			ctx.SetStrategy(new(S.RMICrossStrategy))
-			K.Run(ctx, dm)
 
 		case "RebalanceStrategy":
+			fmt.Println("Rebalancing used")
 			ctx.SetStrategy(new(S.RebalanceStrat))
-			K.Run(ctx, dm)
 
 		default:
 			log.Fatal("Could not find a strategy with that name in /strategies")
 
 		}
+
+		fmt.Println("Running job")
+		K.RunPlain(ctx, dm)
 
 	default:
 		log.Fatal("Example usage: backtest -test RMIStrategy -dir ..\\test\\data\\CSV2 -fromDate 01/01/2015")

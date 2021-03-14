@@ -3,7 +3,8 @@ package generationk
 import (
 	"time"
 
-	indicators "github.com/0dayfall/generationk/indicators"
+	D "github.com/0dayfall/generationk/data"
+	I "github.com/0dayfall/generationk/indicators"
 )
 
 //Context holds holds the strategy, assets, indicators per asset, start date, end date, the portfolio
@@ -11,10 +12,10 @@ import (
 type Context struct {
 	strategy []Strategy
 	//	assetName         string
-	asset             *Asset
-	assets            []Asset
-	assetMap          map[string]*Asset
-	assetIndicatorMap map[string][]indicators.Indicator
+	asset             *D.Asset
+	assets            []D.Asset
+	assetMap          map[string]*D.Asset
+	assetIndicatorMap map[string][]I.Indicator
 	startDate         time.Time
 	endDate           time.Time
 	portfolio         *Portfolio
@@ -29,9 +30,9 @@ type Context struct {
 //NewContext creates a new context
 func NewContext() *Context {
 	ctx := &Context{
-		assets:            []Asset{},
-		assetMap:          make(map[string]*Asset),
-		assetIndicatorMap: make(map[string][]indicators.Indicator),
+		assets:            []D.Asset{},
+		assetMap:          make(map[string]*D.Asset),
+		assetIndicatorMap: make(map[string][]I.Indicator),
 		broker:            Broker{},
 		K:                 0,          //The first evolution
 		initPeriod:        -1,         //Dont update strategy until K > initPeriod
@@ -48,19 +49,19 @@ func (ctx *Context) Time() time.Time {
 }
 
 //AddIndicatorOnAsset will add an indicator on the asset
-func (ctx *Context) AddIndicatorOnAsset(asset *Asset, indicator indicators.Indicator) {
-	ctx.assetIndicatorMap[asset.name] = append(ctx.assetIndicatorMap[asset.name], indicator)
+func (ctx *Context) AddIndicatorOnAsset(asset *D.Asset, indicator I.Indicator) {
+	ctx.assetIndicatorMap[asset.Name] = append(ctx.assetIndicatorMap[asset.Name], indicator)
 }
 
 //AddIndicator will add it to all assets
-func (ctx *Context) AddIndicator(indicator indicators.Indicator) {
+func (ctx *Context) AddIndicator(indicator I.Indicator) {
 	for name := range ctx.assetMap {
 		ctx.assetIndicatorMap[name] = append(ctx.assetIndicatorMap[name], indicator)
 	}
 }
 
 //AddIndicator will add it to all assets
-func (ctx *Context) AddIndicatorWithParams(indicator indicators.Indicator, param indicators.Param) {
+func (ctx *Context) AddIndicatorWithParams(indicator I.Indicator, param I.Param) {
 	for name := range ctx.assetMap {
 		ctx.assetIndicatorMap[name] = append(ctx.assetIndicatorMap[name], indicator)
 	}
@@ -111,31 +112,31 @@ func (ctx *Context) GetInitPeriod() int {
 }
 
 //GetAssets returns the assets used in the strategy
-func (ctx *Context) GetAssets() []Asset {
+func (ctx *Context) GetAssets() []D.Asset {
 	return ctx.assets
 }
 
 //GetAssetByName return a specific strategy
-func (ctx *Context) GetAssetByName(name string) *Asset {
+func (ctx *Context) GetAssetByName(name string) *D.Asset {
 	return ctx.assetMap[name]
 }
 
 //GetAssetIndicatorByName is used to get the indicators associated with the asset
-func (ctx *Context) GetAssetIndicatorByName(name string) []indicators.Indicator {
+func (ctx *Context) GetAssetIndicatorByName(name string) []I.Indicator {
 	return ctx.assetIndicatorMap[name]
 }
 
 //AddAsset is used to add assets that the strategy will use
-func (ctx *Context) AddAsset(asset *Asset) {
-	//fmt.Printf("Adding asset: %s\n\n", asset.name)
+func (ctx *Context) AddAsset(asset *D.Asset) {
+	//fmt.Printf("Adding asset: %s\n\n", asset.Name)
 	ctx.asset = asset
 	ctx.assets = append(ctx.assets, *asset)
-	ctx.assetMap[asset.name] = asset
-	ctx.assetIndicatorMap[asset.name] = nil
+	ctx.assetMap[asset.Name] = asset
+	ctx.assetIndicatorMap[asset.Name] = nil
 
 	//Save the length of the longest asset
-	if ctx.length < ctx.asset.length {
-		ctx.length = ctx.asset.length
+	if ctx.length < ctx.asset.Length {
+		ctx.length = ctx.asset.Length
 		//fmt.Printf("Length of asset after adding in ctx %d\n\n", ctx.length)
 	}
 	/*length := len(asset.ohlc.Close)

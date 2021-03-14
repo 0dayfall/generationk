@@ -1,6 +1,4 @@
-package indicators
-
-import "fmt"
+package generationk
 
 //ROC100 is the Rate Of Change, other alias are RateOfChange
 func ROC100(series []float64, period int) []float64 {
@@ -13,9 +11,14 @@ func RateOfChange100(series []float64, period int) []float64 {
 	seriesLength := len(series)
 	returnSeries := make([]float64, seriesLength)
 
+	//Adjust to the array starting with index 0
+	period -= 1
+
 	for i := period; i < seriesLength; i++ {
-		returnSeries[period] = (series[i] - series[i-period]) / series[i-period] * 100
+
+		returnSeries[i] = (series[i] - series[i-period]) / series[i-period] * 100
+
 	}
-	fmt.Println("Return the rate of change 100")
+
 	return returnSeries
 }

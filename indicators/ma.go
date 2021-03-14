@@ -1,4 +1,4 @@
-package indicators
+package generationk
 
 //MA is the Moving Average, other alias are SMA or SimpleMovingAverage
 func MA(series []float64, period int) []float64 {

@@ -1,6 +1,10 @@
 package generationk
 
-import "time"
+import (
+	"time"
+
+	D "github.com/0dayfall/generationk/data"
+)
 
 //Strategy is the class where the logic is placed to buy and sell assets
 //the two methods that needs to be implemented are Setup and Tick.
@@ -10,7 +14,7 @@ import "time"
 //a possibility to make checks and send orders.
 type Strategy interface {
 	GetParams() []*Params
-	Once(ctx *Context, ohlc *OHLC) error
+	Once(ctx *Context, ohlc *D.OHLC) error
 	Update(k *int) error
 	PerBar(k int, callback Callback) error
 	//Run()
@@ -18,7 +22,7 @@ type Strategy interface {
 
 type MultiStrategy interface {
 	GetParams() []*Params
-	Once(ctx *Context, assets []*Asset) error
+	Once(ctx *Context, assets []*D.Asset) error
 	Update(k *int) error
 	PerBar(k int, callback Callback) error
 	//Run()

@@ -1,11 +1,11 @@
-package strategies
+package generationk
 
 import (
 	"log"
 
-	I "github.com/0dayfall/generationk/indicators"
-
 	K "github.com/0dayfall/generationk"
+	D "github.com/0dayfall/generationk/data"
+	I "github.com/0dayfall/generationk/indicators"
 )
 
 //Strategy strategy
@@ -19,7 +19,7 @@ func (ma *MACrossStrategy) GetParams() []*K.Params {
 }
 
 //Setup is used to declare what indicators will be used
-func (ma *MACrossStrategy) Once(ctx *K.Context, ohlc *K.OHLC) error {
+func (ma *MACrossStrategy) Once(ctx *K.Context, ohlc *D.OHLC) error {
 
 	//The closing prices
 	ma.close = ohlc.Close
@@ -72,63 +72,3 @@ func (ma *MACrossStrategy) Update(k *int) error { return nil }
 
 //OrderEvent gets called on order events
 func (ma *MACrossStrategy) OrderEvent(orderEvent K.Event) {}
-
-/*func readFolder(folderPath string) {
-	files, err := filepath.Glob(folderPath + "*.csv")
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	fmt.Printf("files %s", files)
-	//d.ReadCSVFilesAsync(files)
-	portfolio := K.NewPortfolio()
-	portfolio.SetBalance(100000)
-
-	var wg sync.WaitGroup
-
-	y := 0
-
-	for _, fileName := range files {
-		wg.Add(1)
-		go func(localFilename string, wg *sync.WaitGroup) {
-			genk := K.NewGenerationK()
-			genk.SetPortfolio(portfolio)
-			genk.AddStrategy(new(MACrossStrategy))
-
-			now := time.Now()
-			start := now.AddDate(-15, -9, -2)
-			genk.SetStartDate(start)
-			now = time.Now()
-			end := now.AddDate(0, -3, -2)
-			genk.SetEndDate(end)
-
-			//genk.RunEventBased()
-			//dataManager := K.NewCSVDataManager()
-			//dataManager.SetHandler(genk)
-			//genk.AddDataManager(dataManager)
-
-			//dataManager.ReadCSVFilesAsync([]string{"test/data/ABB.csv", "test/data/ASSAb.csv"})
-			asset := K.ReadCSVFile(localFilename, false, nil)
-
-			fmt.Printf("Local file name: %s\n\n", localFilename)
-			genk.AddAsset(asset)
-			runErr := genk.Run()
-			if runErr != nil {
-				fmt.Print(runErr.Error())
-				os.Exit(0)
-			}
-
-			wg.Done()
-		}(fileName, &wg)
-		y++
-	}
-	wg.Wait()
-
-	fmt.Printf("balance %f\n", portfolio.GetBalance())
-}*/
-
-/*func TestRun(t *testing.T) {
-	//defer profile.Start().Stop()
-	//t.Parallel()
-	readFolder("../data/CSV2/")
-}*/

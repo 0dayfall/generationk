@@ -3,12 +3,14 @@ package generationk
 import (
 	"fmt"
 	"time"
+
+	D "github.com/0dayfall/generationk/data"
 )
 
 //DataHandler is the interface used to recieve data
 //from any data producing function. It can be used to feed data to generationK
 type DataHandler interface {
-	AddAsset(asset *Asset)
+	AddAsset(asset *D.Asset)
 }
 
 //OrderStatus is a callback interface used to recieve
@@ -25,7 +27,7 @@ type Event interface {
 //DataEvent is a data structure used to carry OHLC data
 type DataEvent struct {
 	Name string
-	Ohlc OHLC
+	Ohlc D.OHLC
 }
 
 func (d DataEvent) String() string {

@@ -1,4 +1,4 @@
-package indicators
+package generationk
 
 import "math"
 
@@ -12,40 +12,6 @@ func Sum(data []float64) float64 {
 	}
 
 	return sum
-}
-
-//This is not used
-type mfloat []float64
-
-// Ema calculates exponential moving average of a slice for a certain
-// number of tiSmame periods.
-func (slice mfloat) EMA(period int) []float64 {
-
-	var emaSlice []float64
-
-	ak := period + 1
-	k := float64(2) / float64(ak)
-
-	emaSlice = append(emaSlice, slice[0])
-
-	for i := 1; i < len(slice); i++ {
-		emaSlice = append(emaSlice, (slice[i]*float64(k))+(emaSlice[i-1]*float64(1-k)))
-	}
-
-	return emaSlice
-}
-
-// Sma calculates simple moving average of a slice for a certain
-// number of time periods.
-func (slice mfloat) SMA(period int) []float64 {
-
-	var smaSlice []float64
-
-	for i := period; i <= len(slice); i++ {
-		smaSlice = append(smaSlice, Sum(slice[i-period:i])/float64(period))
-	}
-
-	return smaSlice
 }
 
 // Avg returns 'data' average.

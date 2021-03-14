@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"time"
+
+	D "github.com/0dayfall/generationk/data"
 )
 
 //var o sync.Once
@@ -83,12 +85,12 @@ var timer intervalFunc
 
 func (g *GenerationK) nextGen() error {
 	defer g.inc()
-	g.ctx.datePointer = g.ctx.asset.ohlc.Time[g.ctx.K]
+	g.ctx.datePointer = g.ctx.asset.Ohlc.Time[g.ctx.K]
 
 	//Have to run this first so that we dont increase k by FF
 	if g.ctx.K < 1 {
-		//fmt.Printf("Once executed for %s\n\n", g.ctx.asset.name)
-		err := g.ctx.strategy[0].Once(g.ctx, g.ctx.asset.ohlc)
+		fmt.Printf("Once executed for %s\n\n", g.ctx.asset.Name)
+		err := g.ctx.strategy[0].Once(g.ctx, g.ctx.asset.Ohlc)
 		if err != nil {
 			return err
 		}
@@ -102,11 +104,11 @@ func (g *GenerationK) nextGen() error {
 		}
 	}
 
-	if g.ctx.asset.ohlc.Time[g.ctx.K].Before(g.ctx.startDate) {
+	if g.ctx.asset.Ohlc.Time[g.ctx.K].Before(g.ctx.startDate) {
 		return FFToStartDate
 	}
 
-	if g.ctx.asset.ohlc.Time[g.ctx.K].After(g.ctx.endDate) {
+	if g.ctx.asset.Ohlc.Time[g.ctx.K].After(g.ctx.endDate) {
 		return EndOfBacktest
 	}
 
@@ -119,8 +121,7 @@ func (g *GenerationK) nextGen() error {
 	// Check if the interface implementents rebalance function
 	// Call the rebalance with the date as an additional parameter
 	if timer != nil {
-		fmt.Println("LALALALALAL")
-		if timer(g.ctx.asset.ohlc.Time[g.ctx.K-1], g.ctx.asset.ohlc.Time[g.ctx.K]) {
+		if timer(g.ctx.asset.Ohlc.Time[g.ctx.K-1], g.ctx.asset.Ohlc.Time[g.ctx.K]) {
 
 			v, ok := interface{}(g.ctx.strategy[0]).(RebalanceStrategy)
 
@@ -131,12 +132,10 @@ func (g *GenerationK) nextGen() error {
 					log.Fatal(0)
 				}
 
+			} else {
+				fmt.Println("Interface was supposedly NOT ok")
 			}
-		} else {
-			fmt.Println("Interface is of wrong type")
 		}
-	} else {
-		fmt.Println("Time är nil")
 	}
 
 	return g.ctx.strategy[0].PerBar(g.ctx.K, g)
@@ -162,7 +161,7 @@ func (k *GenerationK) Run() error {
 				continue
 
 			default:
-				log.Print(err.Error())
+				log.Print(err)
 
 				return err
 
@@ -178,17 +177,17 @@ func (k *GenerationK) Run() error {
 func (k *GenerationK) SetDataManager() {}
 
 //Returns an array of all assets
-func (k *GenerationK) GetAsset() Asset {
+func (k *GenerationK) GetAsset() D.Asset {
 	return k.ctx.GetAssets()[0]
 }
 
 //Returns an array of all assets
-func (k *GenerationK) GetAssets() []Asset {
+func (k *GenerationK) GetAssets() []D.Asset {
 	return k.ctx.GetAssets()
 }
 
 //GetAssetByName returns a pointer to the asset by that name
-func (k *GenerationK) GetAssetByName(name string) *Asset {
+func (k *GenerationK) GetAssetByName(name string) *D.Asset {
 	return k.ctx.GetAssetByName(name)
 }
 
@@ -198,7 +197,7 @@ func (k *GenerationK) SetComission(comission Comission) {
 }
 
 //AddAsset is used to add a pointer to an asset
-func (k *GenerationK) AddAsset(asset *Asset) {
+func (k *GenerationK) AddAsset(asset *D.Asset) {
 	k.ctx.AddAsset(asset)
 }
 
@@ -230,7 +229,7 @@ func (k *GenerationK) SetEndDate(endDate time.Time) {
 
 //OrderSend is used to send an order to the broker, return an error if the asset does not exist
 func (k *GenerationK) SendOrderFor(assetName string, direction Direction, orderType OrderType, qty int) error {
-	if asset, ok := k.ctx.assetMap[k.ctx.asset.name]; ok {
+	if asset, ok := k.ctx.assetMap[k.ctx.asset.Name]; ok {
 		return k.sendOrder(k.ctx, direction, orderType, asset, k.ctx.datePointer, qty)
 	}
 
@@ -239,7 +238,7 @@ func (k *GenerationK) SendOrderFor(assetName string, direction Direction, orderT
 
 //OrderSend is used to send an order to the broker, return an error if the asset does not exist
 func (k *GenerationK) SendOrder(direction Direction, orderType OrderType, qty int) error {
-	if asset, ok := k.ctx.assetMap[k.ctx.asset.name]; ok {
+	if asset, ok := k.ctx.assetMap[k.ctx.asset.Name]; ok {
 		return k.sendOrder(k.ctx, direction, orderType, asset, k.ctx.datePointer, qty)
 	}
 
@@ -247,15 +246,15 @@ func (k *GenerationK) SendOrder(direction Direction, orderType OrderType, qty in
 }
 
 //orderSend is used to send an order to the broker
-func (k *GenerationK) sendOrder(ctx *Context, direction Direction, orderType OrderType, asset *Asset, time time.Time, qty int) error {
+func (k *GenerationK) sendOrder(ctx *Context, direction Direction, orderType OrderType, asset *D.Asset, time time.Time, qty int) error {
 	orderStatus, _ := interface{}(ctx.strategy[0]).(OrderStatus)
 
 	err := ctx.broker.SendOrder(
 		Order{
 			direction: direction,
 			orderType: orderType,
-			Asset:     asset.name,
-			Price:     asset.ohlc.Close[ctx.K],
+			Asset:     asset.Name,
+			Price:     asset.Ohlc.Close[ctx.K],
 			Time:      time,
 			Qty:       qty,
 		},
@@ -268,7 +267,7 @@ func (k *GenerationK) sendOrder(ctx *Context, direction Direction, orderType Ord
 func (k *GenerationK) Assets() []string {
 	assets := make([]string, len(k.ctx.assets))
 	for i, asset := range k.ctx.assets {
-		assets[i] = asset.name
+		assets[i] = asset.Name
 	}
 
 	return assets
@@ -292,5 +291,5 @@ func (k *GenerationK) IsOwning(assetName string) (bool, error) {
 //Owning is used to find out if we have a holding and we are
 //only processing 1 asset
 func (k *GenerationK) Owning() bool {
-	return k.ctx.portfolio.IsOwning(k.ctx.asset.name)
+	return k.ctx.portfolio.IsOwning(k.ctx.asset.Name)
 }

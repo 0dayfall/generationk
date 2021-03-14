@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"sync"
+
+	D "github.com/0dayfall/generationk/data"
 )
 
 type Job interface {
@@ -40,7 +42,7 @@ func (j *JobStruct) SetParams(params ...Params) {
 	j.Params = params
 }
 
-func produce(ctx *Context, dm *DataManager, jobs chan<- *JobStruct) {
+func produce(ctx *Context, dm *D.DataManager, jobs chan<- *JobStruct) {
 	// Generate jobs:
 	files, err := filepath.Glob(ctx.dataPath + "*.csv")
 	if err != nil {
@@ -63,7 +65,7 @@ func produce(ctx *Context, dm *DataManager, jobs chan<- *JobStruct) {
 	close(jobs)
 }
 
-func consume(id int, ctx *Context, dm *DataManager, jobs <-chan *JobStruct, results chan<- *JobStruct, wg *sync.WaitGroup) {
+func consume(id int, ctx *Context, dm *D.DataManager, jobs <-chan *JobStruct, results chan<- *JobStruct, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	//fmt.Printf("Ranging jobs")
@@ -164,7 +166,7 @@ func analyze(results <-chan *JobStruct, wg2 *sync.WaitGroup) {
 
 }
 
-func Run(ctx *Context, dm *DataManager) {
+func RunAsJobs(ctx *Context, dm *D.DataManager) {
 	//defer profile.Start().Stop()
 	//t.Parallel()
 	jobs := make(chan *JobStruct, 100)    // Buffered channel
@@ -189,7 +191,35 @@ func Run(ctx *Context, dm *DataManager) {
 	wg2.Wait()
 }
 
-func RunStrategyOnAssets(ctx *Context, dm *DataManager) {
+func RunPlain(ctx *Context, dm *D.DataManager) {
+	files, err := filepath.Glob(filepath.Clean(ctx.dataPath) + string(os.PathSeparator) + "*.csv")
+
+	if err == filepath.ErrBadPattern {
+		log.Fatal(err)
+	}
+
+	portfolio := NewPortfolio()
+	portfolio.SetBalance(100000)
+
+	for _, fileName := range files {
+		genk := NewGenerationK()
+		genk.SetPortfolio(portfolio)
+		genk.AddStrategy(ctx.GetStrategy())
+
+		genk.SetStartDate(ctx.GetStartDate())
+		genk.SetEndDate(ctx.GetEndDate())
+
+		asset := dm.ReadCSVFile(fileName)
+		genk.AddAsset(asset)
+
+		runErr := genk.Run()
+		if runErr != nil {
+			log.Fatal(runErr)
+		}
+	}
+}
+
+func RunStrategyOnAssets(ctx *Context, dm *D.DataManager) {
 	files, err := filepath.Glob(ctx.dataPath + "*.csv")
 	if err != nil {
 		fmt.Println(err)
@@ -206,7 +236,7 @@ func RunStrategyOnAssets(ctx *Context, dm *DataManager) {
 
 	for _, fileName := range files {
 		wg.Add(1)
-		go func(localFilename string, ctx *Context, dm *DataManager) {
+		go func(localFilename string, ctx *Context, dm *D.DataManager) {
 			genk := NewGenerationK()
 			genk.SetPortfolio(portfolio)
 			genk.AddStrategy(ctx.GetStrategy())
@@ -214,17 +244,13 @@ func RunStrategyOnAssets(ctx *Context, dm *DataManager) {
 			genk.SetStartDate(ctx.GetStartDate())
 			genk.SetEndDate(ctx.GetEndDate())
 
-			//genk.RunEventBased()
-			//dataManager := NewCSVDataManager()
-			//dataManager.SetHandler(genk)
-			//genk.AddDataManager(dataManager)
-
-			//dataManager.ReadCSVFilesAsync([]string{"test/data/ABB.csv", "test/data/ASSAb.csv"})
 			asset := dm.ReadCSVFile(localFilename)
 			genk.AddAsset(asset)
 
 			runErr := genk.Run()
-			log.Fatal(runErr)
+			if runErr != nil {
+				log.Fatal(runErr)
+			}
 
 			wg.Done()
 		}(fileName, ctx, dm)

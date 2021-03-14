@@ -1,4 +1,4 @@
-package indicators
+package generationk
 
 //OHLC is the value which will be used for the indicator
 type OHLC int
