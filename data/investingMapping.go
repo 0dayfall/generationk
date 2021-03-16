@@ -1,24 +1,43 @@
 package generationk
 
 import (
-	"log"
+	"strconv"
 	"time"
 )
 
-func MapRecordsInvesting(records ...string) (time.Time, []float64) {
-	//time, err := time.Parse("1/2/2006 15:04:05", records[0]+" "+records[1])
+func MapRecordsInvesting(records ...string) (time.Time, []float64, error) {
+
 	time, err := time.Parse("2006-01-02 15:04:05", records[0])
 	if err != nil {
-		log.Fatal(err)
+		return time, nil, err
 	}
 
 	floats := make([]float64, 5)
 
-	floats[0] = ParseFloat(records[1])
-	floats[1] = ParseFloat(records[2])
-	floats[2] = ParseFloat(records[3])
-	floats[3] = ParseFloat(records[4])
-	floats[4] = ParseFloat(records[5])
+	floats[0], err = strconv.ParseFloat(records[1], 64)
+	if err != nil {
+		return time, nil, err
+	}
 
-	return time, floats
+	floats[1], err = strconv.ParseFloat(records[2], 64)
+	if err != nil {
+		return time, nil, err
+	}
+
+	floats[2], err = strconv.ParseFloat(records[3], 64)
+	if err != nil {
+		return time, nil, err
+	}
+
+	floats[3], err = strconv.ParseFloat(records[4], 64)
+	if err != nil {
+		return time, nil, err
+	}
+
+	floats[4], err = strconv.ParseFloat(records[5], 64)
+	if err != nil {
+		return time, nil, err
+	}
+
+	return time, floats, nil
 }

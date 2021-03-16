@@ -2,10 +2,7 @@ package generationk
 
 import (
 	"encoding/csv"
-	"errors"
 	"fmt"
-	"io"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -14,30 +11,33 @@ import (
 	"time"
 )
 
-type Maprecords func(...string) (time.Time, []float64)
+type Maprecords func(...string) (time.Time, []float64, error)
 
 type DataManager struct {
-	Folder      string
 	Headers     bool
 	Reverse     bool
 	MappingFunc Maprecords
 }
 
-func NewCSVDataManager(folder string, headers bool, reverse bool, mapping Maprecords) *DataManager {
+func NewCSVDataManager(headers bool, reverse bool, mapping Maprecords) *DataManager {
 	fmt.Println("Returning data manager")
 	return &DataManager{
-		Folder:      folder,
 		Headers:     headers,
 		Reverse:     reverse,
 		MappingFunc: mapping,
 	}
 }
 
-func (d *DataManager) ReadCSVFile(file string) *Asset {
-	fmt.Println("Reading file")
+func (d *DataManager) ReadCSVFiles(folder string) []*Asset {
+	return nil
+}
+
+//ReadCSVFile reads the file in file string and return as Asset based on the columns of
+//Open, High, Low, Close, Volume
+func (d *DataManager) ReadCSVFile(file string) (*Asset, error) {
 	csvfile, err := os.Open(file)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	defer csvfile.Close()
@@ -45,36 +45,24 @@ func (d *DataManager) ReadCSVFile(file string) *Asset {
 	// Parse the file
 	r := csv.NewReader(csvfile)
 	records, err := r.ReadAll()
-
-	if err != nil && errors.Is(err, io.EOF) {
-		log.Fatal(err)
-	}
-
-	asset := d.createAsset(file, records)
-
-	return asset
-}
-
-//pasetFloat is used to parse the floats from the CSV files and is a better way to
-//to handle errors
-func ParseFloat(value string) float64 {
-	floatValue, err := strconv.ParseFloat(value, 64)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	return floatValue
+	//Take the headers off before creating the asset
+	if d.Headers {
+		records = records[1:]
+	}
+	asset, err := d.createAsset(file, records)
+	if err != nil {
+		return nil, err
+	}
+
+	return asset, nil
 }
 
-func (d *DataManager) createAsset(file string, records [][]string) *Asset {
-	fmt.Println("Creating assset")
+func (d *DataManager) createAsset(file string, records [][]string) (*Asset, error) {
 	size := len(records)
-
-	//Remove the header line from the result
-	if d.Headers {
-		fmt.Println("Headers are used")
-		size -= 1
-	}
 
 	var ohlc OHLC
 	ohlc.Time = make([]time.Time, size)
@@ -88,63 +76,73 @@ func (d *DataManager) createAsset(file string, records [][]string) *Asset {
 		d.MappingFunc = mapRecords //Use the default mapping
 	}
 
-	h := 0
-	if d.Headers {
-		h = 1
-	}
+	//We read every line
+	for i := 0; i < size; i++ {
 
-	if d.Reverse {
-		fmt.Println("Reading file in reverse, starting from the back")
-
-		for i := size - 1; i >= 0; i-- {
-
-			//We dont read the "last" line the header
-			time, record := d.MappingFunc(records[i+h]...)
-			//fmt.Println(time)
-			ohlc.Time[i] = time
-			ohlc.Open[i] = record[0]
-			ohlc.High[i] = record[1]
-			ohlc.Low[i] = record[2]
-			ohlc.Close[i] = record[3]
-			ohlc.Volume[i] = record[4]
+		var time time.Time
+		var record []float64
+		var err error
+		if d.Reverse {
+			//size 12: from 0 to 11
+			//last row size - 0 - 1: 11
+			//first row size - 10 -1: 0
+			time, record, err = d.MappingFunc(records[size-i-1]...)
+		} else {
+			//Per usual
+			time, record, err = d.MappingFunc(records[i]...)
 		}
 
-	} else {
-		fmt.Println("Reading file top down")
-		//We read every line
-		for i := 0; i < size-1; i++ {
-
-			time, record := d.MappingFunc(records[i+h]...)
-			fmt.Println(time)
-			ohlc.Time[i] = time
-			ohlc.Open[i] = record[0]
-			ohlc.High[i] = record[1]
-			ohlc.Low[i] = record[2]
-			ohlc.Close[i] = record[3]
-			ohlc.Volume[i] = record[4]
+		if err != nil {
+			return nil, err
 		}
 
+		ohlc.Time[i] = time
+		ohlc.Open[i] = record[0]
+		ohlc.High[i] = record[1]
+		ohlc.Low[i] = record[2]
+		ohlc.Close[i] = record[3]
+		ohlc.Volume[i] = record[4]
 	}
 
 	assetName := strings.TrimSuffix(filepath.Base(file), path.Ext(file))
 
-	return NewAsset(assetName, &ohlc, size)
+	return NewAsset(assetName, &ohlc, size), nil
 }
 
-func mapRecords(records ...string) (time.Time, []float64) {
+func mapRecords(records ...string) (time.Time, []float64, error) {
+	//Parse the time first and then each columns of the file into OHLCV
 	time, err := time.Parse("1/2/2006 15:04:05", records[0]+" "+records[1])
-	//record1, err := time.Parse("2006-01-02 15:04:05", records[i][0])
 	if err != nil {
-		log.Fatal(err)
+		return time, nil, err
 	}
 
+	//Create an array of floats for O,H,L,C,V
 	floats := make([]float64, 5)
 
-	floats[0] = ParseFloat(records[2])
-	floats[1] = ParseFloat(records[3])
-	floats[2] = ParseFloat(records[4])
-	floats[3] = ParseFloat(records[5])
-	floats[4] = ParseFloat(records[6])
+	floats[0], err = strconv.ParseFloat(records[2], 64)
+	if err != nil {
+		return time, nil, err
+	}
 
-	return time, floats
+	floats[1], err = strconv.ParseFloat(records[3], 64)
+	if err != nil {
+		return time, nil, err
+	}
+
+	floats[2], err = strconv.ParseFloat(records[4], 64)
+	if err != nil {
+		return time, nil, err
+	}
+
+	floats[3], err = strconv.ParseFloat(records[5], 64)
+	if err != nil {
+		return time, nil, err
+	}
+
+	floats[4], err = strconv.ParseFloat(records[6], 64)
+	if err != nil {
+		return time, nil, err
+	}
+
+	return time, floats, nil
 }

@@ -1,0 +1,100 @@
+package generationk
+
+import (
+	"testing"
+)
+
+const numberOfRows = 12
+
+func TestHeaderNewestfirst(t *testing.T) {
+
+	//Create a data manager with the default mapping; but different format in file
+	dm := NewCSVDataManager(true, true, nil)
+	_, err := dm.ReadCSVFile("../test/data/test/csv_header_newestfirst.csv")
+	if err == nil {
+		t.Errorf(err.Error())
+	}
+
+	//Change to correct mapping function for this file format
+	dm.MappingFunc = MapRecordsInvesting
+	asset, err := dm.ReadCSVFile("../test/data/test/csv_header_newestfirst.csv")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+
+	//Check the legth, we should skip the header
+	if len(asset.Ohlc.Open) != numberOfRows {
+		t.Errorf("Wrong length")
+	}
+
+	//Make sure the first row is the last in the file
+	if asset.Ohlc.Open[0] != 202.80 {
+		t.Errorf("Read file in wrong order: open: %f is not the open of the 2nd row", asset.Ohlc.Open[0])
+	}
+
+	//Check that the last row is the 2nd row without header
+	if asset.Ohlc.Close[numberOfRows-1] != 201.30 {
+		t.Errorf("The last row is not the top row: close: %f was not the close of the 2nd row", asset.Ohlc.Close[numberOfRows-2])
+	}
+}
+
+func TestNewestfirst(t *testing.T) {
+
+	//Create a data manager with the default mapping; but different format in file
+	//Should create an error which is correct
+	dm := NewCSVDataManager(false, true, nil)
+	_, err := dm.ReadCSVFile("../test/data/test/csv_newestfirst.csv")
+	if err == nil {
+		t.Errorf(err.Error())
+	}
+
+	//Change the mapping functino from default to the one for this type of file
+	dm.MappingFunc = MapRecordsInvesting
+	asset, err := dm.ReadCSVFile("../test/data/test/csv_newestfirst.csv")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+
+	//Check the legth, we should skip the header
+	if len(asset.Ohlc.Open) != numberOfRows {
+		t.Errorf("Wrong length")
+	}
+
+	//Make sure the first row is the last in the file
+	if asset.Ohlc.Open[0] != 202.80 {
+		t.Errorf("Read file in wrong order: open: %f is not the open of the 2nd row", asset.Ohlc.Open[0])
+	}
+
+	//Check that the last row is the 2nd row without header
+	if asset.Ohlc.Close[numberOfRows-1] != 201.30 {
+		t.Errorf("The last row is not the top row: close: %f was not the close of the 2nd row", asset.Ohlc.Close[numberOfRows-2])
+	}
+}
+
+const numberOfRowsOldestFirst = 70
+
+func TestOldestfirst(t *testing.T) {
+
+	//Create a data manager with the default mapping; but different format in file
+	//Should create an error which is correct
+	dm := NewCSVDataManager(false, false, nil)
+	asset, err := dm.ReadCSVFile("../test/data/test/csv_noheader_oldestfirst.csv")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+
+	//Check the legth, we should skip the header
+	if len(asset.Ohlc.Open) != numberOfRowsOldestFirst {
+		t.Errorf("Wrong length")
+	}
+
+	//Make sure the first row is the last in the file
+	if asset.Ohlc.Open[0] != 23.12 {
+		t.Errorf("Read file in wrong order: open: %f is not the open of the 2nd row", asset.Ohlc.Open[0])
+	}
+
+	//Check that the last row is the 2nd row without header
+	if asset.Ohlc.Close[numberOfRows-1] != 21.25 {
+		t.Errorf("The last row is not the top row: close: %f was not the close of the 2nd row", asset.Ohlc.Close[numberOfRows-2])
+	}
+}
