@@ -1,6 +1,7 @@
 package generationk
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -88,13 +89,48 @@ func TestOldestfirst(t *testing.T) {
 		t.Errorf("Wrong length")
 	}
 
-	//Make sure the first row is the last in the file
+	//Make sure the first row is the first in the file
 	if asset.Ohlc.Open[0] != 23.12 {
-		t.Errorf("Read file in wrong order: open: %f is not the open of the 2nd row", asset.Ohlc.Open[0])
+		t.Errorf("Read file in wrong order: open: %f is not the open of the 1st row", asset.Ohlc.Open[0])
 	}
 
-	//Check that the last row is the 2nd row without header
-	if asset.Ohlc.Close[numberOfRows-1] != 21.25 {
-		t.Errorf("The last row is not the top row: close: %f was not the close of the 2nd row", asset.Ohlc.Close[numberOfRows-2])
+	//Check that the last row is the last
+	if asset.Ohlc.Close[numberOfRowsOldestFirst-1] != 21.5 {
+		t.Errorf("The last row is not the last row: close: %f was not the close of the last row", asset.Ohlc.Close[numberOfRows-2])
 	}
+}
+
+func TestPadding(t *testing.T) {
+
+	//Create a data manager with the default mapping; but different format in file
+	//Should create an error which is correct
+	dm := NewCSVDataManager(false, false, nil)
+	asset, err := dm.ReadCSVFile("../test/data/test/csv_noheader_oldestfirst.csv")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	if asset.Length != 70 {
+		t.Errorf("Length is not 70, length is: %d", asset.Length)
+	}
+
+	//Create a data manager with the default mapping; but different format in file
+	//Should create an error which is correct
+	dm2 := NewCSVDataManager(true, true, MapRecordsInvesting)
+	asset2, err2 := dm2.ReadCSVFile("../test/data/test/csv_newestfirst.csv")
+	if err2 != nil {
+		t.Errorf(err2.Error())
+	}
+	if asset2.Length != 11 {
+		t.Errorf("Length is not 11, length is: %d", asset2.Length)
+	}
+
+	assets := []*Asset{asset, asset2}
+	dm.CreatePadding(assets)
+	for i := 0; i < len(assets); i++ {
+		fmt.Printf("%v", assets[i].Ohlc.Time)
+		if assets[i].Length != 70 {
+			t.Errorf("assets[%d].Length = %d", i, assets[i].Length)
+		}
+	}
+
 }

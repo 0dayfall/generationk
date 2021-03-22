@@ -32,6 +32,42 @@ func (d *DataManager) ReadCSVFiles(folder string) []*Asset {
 	return nil
 }
 
+func (d *DataManager) CreatePadding(asset []*Asset) {
+	var length int
+
+	for i := 0; i < len(asset); i++ {
+		if length < asset[i].Length {
+			length = asset[i].Length
+		}
+	}
+
+	for i := 0; i < len(asset); i++ {
+		if asset[i].Length < length {
+			//The difference between the longest file and this one
+			diff := length - asset[i].Length
+			//Create empty slicse
+			padTime := make([]time.Time, diff)
+			padOpen := make([]float64, diff)
+			padHigh := make([]float64, diff)
+			padLow := make([]float64, diff)
+			padClose := make([]float64, diff)
+			padVolume := make([]float64, diff)
+			fmt.Printf("padVolume size: %d and content %v", len(padVolume), padVolume)
+
+			asset[i].Ohlc.Time = append(padTime, asset[i].Ohlc.Time...)
+			asset[i].Ohlc.Open = append(padOpen, asset[i].Ohlc.Open...)
+			asset[i].Ohlc.High = append(padHigh, asset[i].Ohlc.High...)
+			asset[i].Ohlc.Low = append(padLow, asset[i].Ohlc.Low...)
+			asset[i].Ohlc.Close = append(padClose, asset[i].Ohlc.Close...)
+			asset[i].Ohlc.Volume = append(padVolume, asset[i].Ohlc.Volume...)
+
+			//The all have the same length
+			asset[i].Length = len(asset[i].Ohlc.High)
+			fmt.Printf("asset[%d].Length = %d", i, asset[i].Length)
+		}
+	}
+}
+
 //ReadCSVFile reads the file in file string and return as Asset based on the columns of
 //Open, High, Low, Close, Volume
 func (d *DataManager) ReadCSVFile(file string) (*Asset, error) {
@@ -45,6 +81,7 @@ func (d *DataManager) ReadCSVFile(file string) (*Asset, error) {
 	// Parse the file
 	r := csv.NewReader(csvfile)
 	records, err := r.ReadAll()
+	fmt.Println("Read everything")
 	if err != nil {
 		return nil, err
 	}
@@ -119,30 +156,40 @@ func mapRecords(records ...string) (time.Time, []float64, error) {
 	//Create an array of floats for O,H,L,C,V
 	floats := make([]float64, 5)
 
+	records[2] = stripThousandSeparator(records[2])
 	floats[0], err = strconv.ParseFloat(records[2], 64)
 	if err != nil {
 		return time, nil, err
 	}
 
+	records[3] = stripThousandSeparator(records[3])
 	floats[1], err = strconv.ParseFloat(records[3], 64)
 	if err != nil {
 		return time, nil, err
 	}
 
+	records[4] = stripThousandSeparator(records[4])
 	floats[2], err = strconv.ParseFloat(records[4], 64)
 	if err != nil {
 		return time, nil, err
 	}
 
+	records[5] = stripThousandSeparator(records[6])
 	floats[3], err = strconv.ParseFloat(records[5], 64)
 	if err != nil {
 		return time, nil, err
 	}
 
+	records[6] = stripThousandSeparator(records[6])
 	floats[4], err = strconv.ParseFloat(records[6], 64)
 	if err != nil {
+		fmt.Println(records[6])
 		return time, nil, err
 	}
 
 	return time, floats, nil
+}
+
+func stripThousandSeparator(s string) string {
+	return strings.Replace(s, ",", "", -1)
 }

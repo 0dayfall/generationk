@@ -17,6 +17,7 @@ var EndOfBacktest = errors.New("End of backtest")
 var EndOfData = errors.New("End of data")
 var UnstablePeriod = errors.New("The stable period is not yet reached")
 var Initialization = errors.New("Initialization in Once() failed")
+var EndOfAsset = errors.New("End of asset")
 
 //Callback is used in the strategy to give actions back to the backtest in progress
 type Callback interface {
@@ -25,6 +26,7 @@ type Callback interface {
 	SendOrder(direction Direction, orderType OrderType, qty int) error
 	SendOrderFor(assetName string, direction Direction, orderType OrderType, qty int) error
 	Assets() []string
+	Date() time.Time
 }
 
 type GenerationK struct {
@@ -81,16 +83,49 @@ func determineInterval(interval string) intervalFunc {
 	return nil
 }
 
+func DateEqual(date1, date2 time.Time) bool {
+	y1, m1, d1 := date1.Date()
+	y2, m2, d2 := date2.Date()
+	return y1 == y2 && m1 == m2 && d1 == d2
+}
+
+func (g *GenerationK) nextDate() error {
+	//Increase the time with a day
+	g.ctx.datePointer = g.ctx.datePointer.AddDate(0, 0, 1)
+
+	for _, asset := range g.ctx.assets {
+		if DateEqual(g.ctx.datePointer, asset.Ohlc.Time[g.ctx.K+1]) {
+			return nil
+		}
+	}
+	return nil
+}
+
 var timer intervalFunc
 
 func (g *GenerationK) nextGen() error {
 	defer g.inc()
+
+	/*for _, asset := range g.ctx.assets {
+
+		if g.ctx.K >= len(asset.Ohlc.Close) {
+
+			//fmt.Println(g.ctx.K)
+			//		g.ctx.RemoveAsset(asset)
+
+			return EndOfAsset
+
+		} else {
+			//fmt.Printf("Asset name %s, %f", asset.Name, asset.Ohlc.Close[g.ctx.K])
+			g.ctx.datePointer = g.ctx.asset.Ohlc.Time[g.ctx.K]
+		}
+	}*/
 	g.ctx.datePointer = g.ctx.asset.Ohlc.Time[g.ctx.K]
 
 	//Have to run this first so that we dont increase k by FF
 	if g.ctx.K < 1 {
-		fmt.Printf("Once executed for %s\n\n", g.ctx.asset.Name)
-		err := g.ctx.strategy[0].Once(g.ctx, g.ctx.asset.Ohlc)
+		fmt.Println("Running once")
+		err := g.ctx.strategy[0].Once(g.ctx, g.ctx.assets)
 		if err != nil {
 			return err
 		}
@@ -126,8 +161,8 @@ func (g *GenerationK) nextGen() error {
 			v, ok := interface{}(g.ctx.strategy[0]).(RebalanceStrategy)
 
 			if ok {
-
-				err := v.Rebalance(g.ctx.K, g.ctx.datePointer, g)
+				//fmt.Println("Rebalancing")
+				err := v.Rebalance(g.ctx.K, g)
 				if err != nil {
 					log.Fatal(0)
 				}
@@ -138,12 +173,17 @@ func (g *GenerationK) nextGen() error {
 		}
 	}
 
+	//fmt.Println("Running per bar")
 	return g.ctx.strategy[0].PerBar(g.ctx.K, g)
 }
 
 func (k *GenerationK) Run() error {
 
 	for k.ctx.K < k.ctx.length-1 {
+		/*err := k.nextDate()
+		if err != nil {
+			log.Fatal("Could not increase the time")
+		}*/
 
 		err := k.nextGen()
 
@@ -152,12 +192,16 @@ func (k *GenerationK) Run() error {
 			switch err {
 
 			case EndOfBacktest:
+				
 				return err
 
 			case FFToStartDate:
 				continue
 
 			case UnstablePeriod:
+				continue
+
+			case EndOfAsset:
 				continue
 
 			default:
@@ -176,13 +220,13 @@ func (k *GenerationK) Run() error {
 //AddDataManager is currently not used
 func (k *GenerationK) SetDataManager() {}
 
-//Returns an array of all assets
-func (k *GenerationK) GetAsset() D.Asset {
+//Returns an assets
+func (k *GenerationK) GetAsset() *D.Asset {
 	return k.ctx.GetAssets()[0]
 }
 
 //Returns an array of all assets
-func (k *GenerationK) GetAssets() []D.Asset {
+func (k *GenerationK) GetAssets() []*D.Asset {
 	return k.ctx.GetAssets()
 }
 
@@ -229,7 +273,7 @@ func (k *GenerationK) SetEndDate(endDate time.Time) {
 
 //OrderSend is used to send an order to the broker, return an error if the asset does not exist
 func (k *GenerationK) SendOrderFor(assetName string, direction Direction, orderType OrderType, qty int) error {
-	if asset, ok := k.ctx.assetMap[k.ctx.asset.Name]; ok {
+	if asset, ok := k.ctx.assetMap[assetName]; ok {
 		return k.sendOrder(k.ctx, direction, orderType, asset, k.ctx.datePointer, qty)
 	}
 
@@ -254,7 +298,7 @@ func (k *GenerationK) sendOrder(ctx *Context, direction Direction, orderType Ord
 			direction: direction,
 			orderType: orderType,
 			Asset:     asset.Name,
-			Price:     asset.Ohlc.Close[ctx.K],
+			Price:     asset.Ohlc.Close[ctx.K-asset.AdjK],
 			Time:      time,
 			Qty:       qty,
 		},
@@ -271,6 +315,10 @@ func (k *GenerationK) Assets() []string {
 	}
 
 	return assets
+}
+
+func (k *GenerationK) Date() time.Time {
+	return k.ctx.datePointer
 }
 
 /*func (k *GenerationK) SetUniverse(assets []string) {

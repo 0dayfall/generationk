@@ -37,6 +37,7 @@ type Asset struct {
 	Name   string
 	Ohlc   *OHLC
 	Length int
+	AdjK   int
 }
 
 //NewAsset is used to create a new asset-

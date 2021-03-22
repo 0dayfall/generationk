@@ -22,8 +22,8 @@ func main() {
 	backtestCmd := flag.NewFlagSet("backtest", flag.ExitOnError)
 	backtestFile := backtestCmd.String("test", "", "Name of the struct with backtest")
 	backtestMapping := backtestCmd.String("mapping", "", "Mapping function")
-	backtestHeaders := backtestCmd.Bool("headers", true, "CSV has headers")
-	backtestReverse := backtestCmd.Bool("reverse", true, "Read file reverse")
+	backtestHeaders := backtestCmd.Bool("headers", false, "CSV has headers")
+	backtestReverse := backtestCmd.Bool("reverse", false, "Read file reverse")
 	backtestDir := backtestCmd.String("dir", "", "Directory name")
 	backtestFromDate := backtestCmd.String("fromDate", "01/01/2015", "From date")
 	backtestToDate := backtestCmd.String("toDate", time.Now().Format("02/01/2006"), "To date")
@@ -73,11 +73,11 @@ func main() {
 
 		case "investing":
 			fmt.Println("Using investing.com mapping")
-			dm = D.NewCSVDataManager(*backtestDir, *backtestHeaders, *backtestReverse, D.MapRecordsInvesting)
+			dm = D.NewCSVDataManager(*backtestHeaders, *backtestReverse, D.MapRecordsInvesting)
 
 		default:
 			fmt.Println("Using default mapping")
-			dm = D.NewCSVDataManager(*backtestDir, *backtestHeaders, *backtestReverse, nil)
+			dm = D.NewCSVDataManager(*backtestHeaders, *backtestReverse, nil)
 
 		}
 
@@ -85,13 +85,16 @@ func main() {
 
 		case "MACrossStrategy":
 			ctx.SetStrategy(new(S.MACrossStrategy))
+			K.RunPlain(ctx, dm)
 
 		case "RMICrossStrategy":
 			ctx.SetStrategy(new(S.RMICrossStrategy))
+			K.RunPlain(ctx, dm)
 
 		case "RebalanceStrategy":
-			fmt.Println("Rebalancing used")
+			fmt.Printf("Rebalancing running with parameters %s, %t, %t, %s\n", *backtestMapping, *backtestHeaders, *backtestReverse, *backtestDir)
 			ctx.SetStrategy(new(S.RebalanceStrat))
+			K.RunParallell(ctx, dm)
 
 		default:
 			log.Fatal("Could not find a strategy with that name in /strategies")
@@ -99,7 +102,6 @@ func main() {
 		}
 
 		fmt.Println("Running job")
-		K.RunPlain(ctx, dm)
 
 	default:
 		log.Fatal("Example usage: backtest -test RMIStrategy -dir ..\\test\\data\\CSV2 -fromDate 01/01/2015")

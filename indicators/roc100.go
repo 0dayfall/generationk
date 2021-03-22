@@ -14,10 +14,13 @@ func RateOfChange100(series []float64, period int) []float64 {
 	//Adjust to the array starting with index 0
 	period -= 1
 
-	for i := period; i < seriesLength; i++ {
-
-		returnSeries[i] = (series[i] - series[i-period]) / series[i-period] * 100
-
+	for i := 0; i < seriesLength; i++ {
+		//series[68] - series[68-66] / series[68-66]
+		if i-period < 0 {
+			returnSeries[i] = 0
+		} else {
+			returnSeries[i] = 100 * (series[i] - series[i-period]) / series[i-period]
+		}
 	}
 
 	return returnSeries

@@ -1,8 +1,6 @@
 package generationk
 
 import (
-	"time"
-
 	D "github.com/0dayfall/generationk/data"
 )
 
@@ -14,21 +12,12 @@ import (
 //a possibility to make checks and send orders.
 type Strategy interface {
 	GetParams() []*Params
-	Once(ctx *Context, ohlc *D.OHLC) error
+	Once(ctx *Context, ohlc []*D.Asset) error
 	Update(k *int) error
 	PerBar(k int, callback Callback) error
-	//Run()
-}
-
-type MultiStrategy interface {
-	GetParams() []*Params
-	Once(ctx *Context, assets []*D.Asset) error
-	Update(k *int) error
-	PerBar(k int, callback Callback) error
-	//Run()
 }
 
 type RebalanceStrategy interface {
 	GetInterval() string
-	Rebalance(k int, date time.Time, callback Callback) error
+	Rebalance(k int, callback Callback) error
 }

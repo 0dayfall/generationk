@@ -2,6 +2,7 @@ package generationk
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -79,12 +80,16 @@ func (p *Portfolio) RemoveHolding(position Holding) {
 			pos = k
 		}
 	}
-
+	fmt.Printf("GetBalance() %f price %f", p.GetBalance(), p.holdings[pos].price)
 	p.holdings = remove(pos, p.holdings)
 }
 
 func remove(ix int, holdings []Holding) []Holding {
 	return append(holdings[:ix], holdings[ix+1:]...)
+}
+
+func (p *Portfolio) RemoveAllHoldings() {
+	
 }
 
 //AddHolding, its been bought

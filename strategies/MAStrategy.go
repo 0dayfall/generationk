@@ -19,8 +19,9 @@ func (ma *MACrossStrategy) GetParams() []*K.Params {
 }
 
 //Setup is used to declare what indicators will be used
-func (ma *MACrossStrategy) Once(ctx *K.Context, ohlc *D.OHLC) error {
+func (ma *MACrossStrategy) Once(ctx *K.Context, asset []*D.Asset) error {
 
+	ohlc := asset[0].Ohlc
 	//The closing prices
 	ma.close = ohlc.Close
 

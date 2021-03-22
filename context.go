@@ -13,7 +13,7 @@ type Context struct {
 	strategy []Strategy
 	//	assetName         string
 	asset             *D.Asset
-	assets            []D.Asset
+	assets            []*D.Asset
 	assetMap          map[string]*D.Asset
 	assetIndicatorMap map[string][]I.Indicator
 	startDate         time.Time
@@ -30,7 +30,7 @@ type Context struct {
 //NewContext creates a new context
 func NewContext() *Context {
 	ctx := &Context{
-		assets:            []D.Asset{},
+		assets:            []*D.Asset{},
 		assetMap:          make(map[string]*D.Asset),
 		assetIndicatorMap: make(map[string][]I.Indicator),
 		broker:            Broker{},
@@ -112,7 +112,7 @@ func (ctx *Context) GetInitPeriod() int {
 }
 
 //GetAssets returns the assets used in the strategy
-func (ctx *Context) GetAssets() []D.Asset {
+func (ctx *Context) GetAssets() []*D.Asset {
 	return ctx.assets
 }
 
@@ -128,23 +128,33 @@ func (ctx *Context) GetAssetIndicatorByName(name string) []I.Indicator {
 
 //AddAsset is used to add assets that the strategy will use
 func (ctx *Context) AddAsset(asset *D.Asset) {
-	//fmt.Printf("Adding asset: %s\n\n", asset.Name)
-	ctx.asset = asset
-	ctx.assets = append(ctx.assets, *asset)
+	ctx.assets = append(ctx.assets, asset)
 	ctx.assetMap[asset.Name] = asset
 	ctx.assetIndicatorMap[asset.Name] = nil
 
 	//Save the length of the longest asset
-	if ctx.length < ctx.asset.Length {
-		ctx.length = ctx.asset.Length
-		//fmt.Printf("Length of asset after adding in ctx %d\n\n", ctx.length)
+	//Save the asset with the longest length
+	if ctx.length < asset.Length {
+		ctx.length = asset.Length
+		ctx.asset = asset
+		asset.AdjK = 0
+	} else if ctx.length > asset.Length {
+		//Longest asset is 134 length
+		//Our asset is 73
+		//The index when our asset 'start'
+		//is 134-73 = 61
+		asset.AdjK = ctx.length - asset.Length
+	} else {
+		asset.AdjK = 0
 	}
-	/*length := len(asset.ohlc.Close)
-	if length > ctx.K {
-		ctx.K = length
-	}*/
+
 }
 
+func (ctx *Context) RemoveAsset(asset *D.Asset) {
+	delete(ctx.assetMap, asset.Name)
+	delete(ctx.assetIndicatorMap, asset.Name)
+	delete(ctx.assetIndicatorMap, asset.Name)
+}
 func (ctx *Context) SetDataPath(path string) {
 	ctx.dataPath = path
 }

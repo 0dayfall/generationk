@@ -75,7 +75,10 @@ func consume(id int, ctx *Context, dm *D.DataManager, jobs <-chan *JobStruct, re
 		//fmt.Printf("READING JOBS %v", job)
 
 		//Perform work
-		asset := dm.ReadCSVFile(job.FileName)
+		asset, err := dm.ReadCSVFile(job.FileName)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		//Clunky way to check parameters
 		//cross := new(RebalanceStrategy)
@@ -209,7 +212,10 @@ func RunPlain(ctx *Context, dm *D.DataManager) {
 		genk.SetStartDate(ctx.GetStartDate())
 		genk.SetEndDate(ctx.GetEndDate())
 
-		asset := dm.ReadCSVFile(fileName)
+		asset, err := dm.ReadCSVFile(fileName)
+		if err != nil {
+			log.Fatal(err)
+		}
 		genk.AddAsset(asset)
 
 		runErr := genk.Run()
@@ -217,6 +223,39 @@ func RunPlain(ctx *Context, dm *D.DataManager) {
 			log.Fatal(runErr)
 		}
 	}
+}
+
+func RunParallell(ctx *Context, dm *D.DataManager) {
+	files, err := filepath.Glob(filepath.Clean(ctx.dataPath) + string(os.PathSeparator) + "*.csv")
+
+	if err == filepath.ErrBadPattern {
+		log.Fatal(err)
+	}
+
+	portfolio := NewPortfolio()
+	portfolio.SetBalance(100000)
+
+	genk := NewGenerationK()
+	genk.SetPortfolio(portfolio)
+	genk.AddStrategy(ctx.GetStrategy())
+
+	genk.SetStartDate(ctx.GetStartDate())
+	genk.SetEndDate(ctx.GetEndDate())
+
+	for _, fileName := range files {
+		asset, err := dm.ReadCSVFile(fileName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		genk.AddAsset(asset)
+	}
+
+	runErr := genk.Run()
+	if runErr != nil {
+		fmt.Printf("Error, portfolio value: %f", portfolio.GetBalance())
+		log.Fatal(runErr)
+	}
+	fmt.Printf("Portfolio value: %f", portfolio.GetBalance())
 }
 
 func RunStrategyOnAssets(ctx *Context, dm *D.DataManager) {
@@ -244,7 +283,10 @@ func RunStrategyOnAssets(ctx *Context, dm *D.DataManager) {
 			genk.SetStartDate(ctx.GetStartDate())
 			genk.SetEndDate(ctx.GetEndDate())
 
-			asset := dm.ReadCSVFile(localFilename)
+			asset, err := dm.ReadCSVFile(localFilename)
+			if err != nil {
+				log.Fatal(err)
+			}
 			genk.AddAsset(asset)
 
 			runErr := genk.Run()
