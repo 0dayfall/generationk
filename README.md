@@ -1,3 +1,9 @@
+[![Latest Release](https://img.shields.io/github/release/0dayfall/generationk.svg)](https://github.com/0dayfall/generationk/releases)
+[![Build Status](https://github.com/0dayfall/generationk/workflows/build/badge.svg)](https://github.com/0dayfall/generationk/actions)
+[![Coverage Status](https://coveralls.io/repos/github/0dayfall/generationk/badge.svg?branch=master)](https://coveralls.io/github/0dayfall/generationk?branch=master)
+[![Go ReportCard](http://goreportcard.com/badge/muesli/kmeans)](http://goreportcard.com/report/0dayfall/generationk)
+[![GoDoc](https://godoc.org/github.com/golang/gddo?status.svg)](https://pkg.go.dev/github.com/0dayfall/generationk)
+
 ⚠️ This is an early version. The package can be used for backtesting, but the API is not stable yet. This is a work in progress. Once stability is reached, version `1.0.0` will be tagged. Please check back then. ⚠️
 
 
