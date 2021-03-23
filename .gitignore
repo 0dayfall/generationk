@@ -27,6 +27,7 @@
 
 # Data filer for testing
 *.csv
+!test/data/test/*.csv
 *.pdf
 
 # Visual studio
