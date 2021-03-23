@@ -12,7 +12,7 @@ import (
 )
 
 const Holdings = 3
-const HoldingDays = 66
+const HoldingDays = 45
 
 //Strategy strategy
 type RebalanceStrat struct {
@@ -36,7 +36,7 @@ func (rmi *RebalanceStrat) Once(ctx *K.Context, assets []*D.Asset) error {
 
 		//The rate of change for the last 66 days
 		rmi.time[asset] = ohlc.Time
-		rmi.ROC100[asset] = I.ROC100(ohlc.Close, 66)
+		rmi.ROC100[asset] = I.ROC100(ohlc.Close, HoldingDays)
 	}
 	//If the init period is set PerBar will not be called until the InitPeriod is reached
 	ctx.SetInitPeriod(66)
@@ -68,24 +68,20 @@ func (rmi *RebalanceStrat) Rebalance(k int, callback K.Callback) error {
 			return keys[i].value > keys[j].value
 		})
 
-		var balance float64
-		var err error
 		fmt.Printf("ROC values of top 3 stocks> %v\n", callback.Date())
 		for i := 0; i < Holdings; i++ {
-			fmt.Printf("%s, %f, \n", keys[i].name, keys[i].value)
+			fmt.Printf("%s, %f, ", keys[i].name, keys[i].value)
 			if keys[i].value > 20 {
-				balance, err = callback.SendOrderFor(keys[i].name, K.BuyOrder, K.MarketOrder, 1000)
+				cost, err := callback.SendOrderFor(keys[i].name, K.BuyOrder, K.MarketOrder, 100)
 				if err != nil {
 					log.Fatal(err)
 
 					return err
 				}
-
+				fmt.Printf("Cost> %f \n", cost)
 				rmi.buyTime[keys[i].name] = callback.Date()
 			}
 		}
-		fmt.Println("\nBalance> ", balance)
-		fmt.Printf("\n")
 	}
 
 	return nil
@@ -106,13 +102,13 @@ func (rmi *RebalanceStrat) PerBar(k int, callback K.Callback) error {
 
 				if date.Sub(timeDiff).Hours()/24 > HoldingDays {
 					fmt.Printf("\nTodays date> %v", callback.Date())
-					fmt.Printf("\nHeld %s for 66 days\n", asset.Name)
+					fmt.Printf(", held %s for 66 days, ", asset.Name)
 
-					balance, err := callback.SendOrderFor(asset.Name, K.SellOrder, K.MarketOrder, 1000)
+					balance, err := callback.SendOrderFor(asset.Name, K.SellOrder, K.MarketOrder, 100)
 					if err != nil {
 						return err
 					}
-					fmt.Println("Balance> ", balance)
+					fmt.Println("Cash> ", balance)
 
 					delete(rmi.buyTime, asset.Name)
 				}

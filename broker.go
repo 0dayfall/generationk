@@ -76,18 +76,28 @@ func (b *Broker) SendOrder(order Order, orderstatus OrderStatus) (float64, error
 
 	switch order.direction {
 	case BuyOrder:
-		err := b.buy(order)
+
+		cost, err := b.buy(order)
+
 		if err != nil {
 			b.rejected(err)
+			return 0, err
 		}
+
+		return cost, nil
+
 	case SellOrder:
 		return b.sell(order), nil
+
 	case ShortOrder:
 		b.sellshort(order)
+
 	case CoverOrder:
 		b.cover(order)
+
 	default:
 		return b.portfolio.GetBalance(), UnknownDirection
+
 	}
 	return b.portfolio.GetBalance(), nil
 }
@@ -114,7 +124,7 @@ func (b Broker) rejected(err error) {
 
 //buy is used to buy a qty or a possible qty from an amount, if a comission is
 // set is will be used and deducted from the account
-func (b *Broker) buy(order Order) error {
+func (b *Broker) buy(order Order) (float64, error) {
 	amount := 0.0
 	if order.Qty > ZERO {
 		amount = getAmountForQty(order)
@@ -134,7 +144,7 @@ func (b *Broker) buy(order Order) error {
 	if err != nil {
 		b.rejected(err)
 
-		return err
+		return 0, err
 	}
 
 	b.accepted(order)
@@ -152,7 +162,7 @@ func (b *Broker) buy(order Order) error {
 		Time:      order.Time,
 	})
 
-	return nil
+	return amount, nil
 }
 
 //sell is used to sell a holding and book and the profits or losses
