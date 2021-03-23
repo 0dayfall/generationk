@@ -1,16 +1,18 @@
 package generationk
 
 import (
-	"errors"
-	"fmt"
 	"sync"
 	"time"
 )
 
 type Direction int
 
-//negativeBalanceErr is used to flag a negative carry
-var negativeBalanceErr = errors.New("Balance < 0")
+//NegativeBalanceErr is used to flag a negative carry
+type NegativeBalanceErr struct{}
+
+func (m *NegativeBalanceErr) Error() string {
+	return "Balance < 0"
+}
 
 //Direction of a trade: long or short
 const (
@@ -80,16 +82,11 @@ func (p *Portfolio) RemoveHolding(position Holding) {
 			pos = k
 		}
 	}
-	fmt.Printf("GetBalance() %f price %f", p.GetBalance(), p.holdings[pos].price)
 	p.holdings = remove(pos, p.holdings)
 }
 
 func remove(ix int, holdings []Holding) []Holding {
 	return append(holdings[:ix], holdings[ix+1:]...)
-}
-
-func (p *Portfolio) RemoveAllHoldings() {
-	
 }
 
 //AddHolding, its been bought
@@ -108,10 +105,10 @@ func (p *Portfolio) AddHolding(position Holding) {
 //checkBalance is used to check the balance before buying
 func (p *Portfolio) checkBalance(cost float64) error {
 	p.Lock()
-	balance := p.cash + cost
+	balance := p.cash - cost
 	p.Unlock()
 	if balance < 0 {
-		return negativeBalanceErr
+		return &NegativeBalanceErr{}
 	}
 	return nil
 }

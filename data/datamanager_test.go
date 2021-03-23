@@ -1,7 +1,6 @@
 package generationk
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -127,7 +126,7 @@ func TestPadding(t *testing.T) {
 	assets := []*Asset{asset, asset2}
 	dm.CreatePadding(assets)
 	for i := 0; i < len(assets); i++ {
-		fmt.Printf("%v", assets[i].Ohlc.Time)
+		//fmt.Printf("%v", assets[i].Ohlc.Time)
 		if assets[i].Length != 70 {
 			t.Errorf("assets[%d].Length = %d", i, assets[i].Length)
 		}

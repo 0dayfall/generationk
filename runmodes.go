@@ -233,7 +233,7 @@ func RunParallell(ctx *Context, dm *D.DataManager) {
 	}
 
 	portfolio := NewPortfolio()
-	portfolio.SetBalance(100000)
+	portfolio.SetBalance(500000)
 
 	genk := NewGenerationK()
 	genk.SetPortfolio(portfolio)

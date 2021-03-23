@@ -11,8 +11,8 @@ import (
 	I "github.com/0dayfall/generationk/indicators"
 )
 
-const Holdings = 5
-const HoldingDays = 45
+const Holdings = 3
+const HoldingDays = 66
 
 //Strategy strategy
 type RebalanceStrat struct {
@@ -44,7 +44,7 @@ func (rmi *RebalanceStrat) Once(ctx *K.Context, assets []*D.Asset) error {
 	return nil
 }
 
-func (rmi *RebalanceStrat) GetInterval() string { return "Q" }
+func (rmi *RebalanceStrat) GetInterval() string { return "M" }
 
 type roc struct {
 	name  string
@@ -53,8 +53,7 @@ type roc struct {
 
 func (rmi *RebalanceStrat) Rebalance(k int, callback K.Callback) error {
 	_, _, day := callback.Date().Date()
-	if day == 28 {
-		fmt.Print("\n", callback.Date())
+	if day == 1 {
 		keys := make([]roc, 0, len(rmi.ROC100))
 
 		for asset, close := range rmi.ROC100 {
@@ -69,19 +68,23 @@ func (rmi *RebalanceStrat) Rebalance(k int, callback K.Callback) error {
 			return keys[i].value > keys[j].value
 		})
 
+		var balance float64
+		var err error
+		fmt.Printf("ROC values of top 3 stocks> %v\n", callback.Date())
 		for i := 0; i < Holdings; i++ {
-			fmt.Printf("\n%s, %f, ", keys[i].name, keys[i].value)
+			fmt.Printf("%s, %f, \n", keys[i].name, keys[i].value)
 			if keys[i].value > 20 {
-				err := callback.SendOrderFor(keys[i].name, K.BuyOrder, K.MarketOrder, 100)
-
+				balance, err = callback.SendOrderFor(keys[i].name, K.BuyOrder, K.MarketOrder, 1000)
 				if err != nil {
 					log.Fatal(err)
 
 					return err
 				}
+
 				rmi.buyTime[keys[i].name] = callback.Date()
 			}
 		}
+		fmt.Println("\nBalance> ", balance)
 		fmt.Printf("\n")
 	}
 
@@ -100,18 +103,42 @@ func (rmi *RebalanceStrat) PerBar(k int, callback K.Callback) error {
 
 		if owning {
 			if timeDiff, ok := rmi.buyTime[asset.Name]; ok {
+
 				if date.Sub(timeDiff).Hours()/24 > HoldingDays {
-					fmt.Printf("Bought=> %s Now=> %s", timeDiff, date)
-					fmt.Printf("Held %s > 66 days\n", asset.Name)
-					err := callback.SendOrderFor(asset.Name, K.SellOrder, K.MarketOrder, 100)
+					fmt.Printf("\nTodays date> %v", callback.Date())
+					fmt.Printf("\nHeld %s for 66 days\n", asset.Name)
+
+					balance, err := callback.SendOrderFor(asset.Name, K.SellOrder, K.MarketOrder, 1000)
 					if err != nil {
 						return err
 					}
+					fmt.Println("Balance> ", balance)
+
 					delete(rmi.buyTime, asset.Name)
 				}
 			}
 		}
 	}
+	return nil
+}
+
+func (rmi *RebalanceStrat) End(k int, callback K.Callback) error {
+	for asset, _ := range rmi.ROC100 {
+		owning, err := callback.IsOwning(asset.Name)
+		if err != nil {
+			return err
+		}
+
+		if owning {
+			balance, err := callback.SendOrderFor(asset.Name, K.SellOrder, K.MarketOrder, 100)
+			if err != nil {
+				return err
+			}
+			fmt.Println("Balance> ", balance)
+
+		}
+	}
+
 	return nil
 }
 

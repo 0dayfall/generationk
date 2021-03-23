@@ -35,24 +35,29 @@ func (d *DataManager) ReadCSVFiles(folder string) []*Asset {
 func (d *DataManager) CreatePadding(asset []*Asset) {
 	var length int
 
+	//Find the length of the longest asset
 	for i := 0; i < len(asset); i++ {
 		if length < asset[i].Length {
 			length = asset[i].Length
 		}
 	}
 
+	//For each asset
 	for i := 0; i < len(asset); i++ {
+
+		//As long as this asset is shorter than the longest
 		if asset[i].Length < length {
-			//The difference between the longest file and this one
+
+			//Store the difference between the lengths
 			diff := length - asset[i].Length
-			//Create empty slicse
+
+			//Create empty slices with 0 values
 			padTime := make([]time.Time, diff)
 			padOpen := make([]float64, diff)
 			padHigh := make([]float64, diff)
 			padLow := make([]float64, diff)
 			padClose := make([]float64, diff)
 			padVolume := make([]float64, diff)
-			fmt.Printf("padVolume size: %d and content %v", len(padVolume), padVolume)
 
 			asset[i].Ohlc.Time = append(padTime, asset[i].Ohlc.Time...)
 			asset[i].Ohlc.Open = append(padOpen, asset[i].Ohlc.Open...)
@@ -61,9 +66,8 @@ func (d *DataManager) CreatePadding(asset []*Asset) {
 			asset[i].Ohlc.Close = append(padClose, asset[i].Ohlc.Close...)
 			asset[i].Ohlc.Volume = append(padVolume, asset[i].Ohlc.Volume...)
 
-			//The all have the same length
+			//Adjust the length of the asset to the new length
 			asset[i].Length = len(asset[i].Ohlc.High)
-			fmt.Printf("asset[%d].Length = %d", i, asset[i].Length)
 		}
 	}
 }
@@ -81,7 +85,6 @@ func (d *DataManager) ReadCSVFile(file string) (*Asset, error) {
 	// Parse the file
 	r := csv.NewReader(csvfile)
 	records, err := r.ReadAll()
-	fmt.Println("Read everything")
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +177,7 @@ func mapRecords(records ...string) (time.Time, []float64, error) {
 		return time, nil, err
 	}
 
-	records[5] = stripThousandSeparator(records[6])
+	records[5] = stripThousandSeparator(records[5])
 	floats[3], err = strconv.ParseFloat(records[5], 64)
 	if err != nil {
 		return time, nil, err
@@ -183,7 +186,7 @@ func mapRecords(records ...string) (time.Time, []float64, error) {
 	records[6] = stripThousandSeparator(records[6])
 	floats[4], err = strconv.ParseFloat(records[6], 64)
 	if err != nil {
-		fmt.Println(records[6])
+		//fmt.Println(records[6])
 		return time, nil, err
 	}
 

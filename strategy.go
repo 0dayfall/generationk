@@ -15,9 +15,11 @@ type Strategy interface {
 	Once(ctx *Context, ohlc []*D.Asset) error
 	Update(k *int) error
 	PerBar(k int, callback Callback) error
+	End(k int, callback Callback) error
 }
 
 type RebalanceStrategy interface {
 	GetInterval() string
 	Rebalance(k int, callback Callback) error
+	End(k int, callback Callback) error
 }

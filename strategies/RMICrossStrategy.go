@@ -61,7 +61,7 @@ func (rmi *RMICrossStrategy) PerBar(k int, callback K.Callback) error {
 
 	if rmi.fastRMI[k] < rmi.buyParam.GetValue() {
 		if !callback.Owning() {
-			err := callback.SendOrder(K.BuyOrder, K.MarketOrder, 100)
+			_, err := callback.SendOrder(K.BuyOrder, K.MarketOrder, 100)
 
 			if err != nil {
 				log.Fatal(err)
@@ -73,7 +73,7 @@ func (rmi *RMICrossStrategy) PerBar(k int, callback K.Callback) error {
 
 	if rmi.fastRMI[k] > rmi.sellParam.GetValue() {
 		if callback.Owning() {
-			err := callback.SendOrder(K.SellOrder, K.MarketOrder, 100)
+			_, err := callback.SendOrder(K.SellOrder, K.MarketOrder, 100)
 
 			if err != nil {
 				log.Fatal(err)
@@ -85,6 +85,8 @@ func (rmi *RMICrossStrategy) PerBar(k int, callback K.Callback) error {
 
 	return nil
 }
+
+func (rmi *RMICrossStrategy) End(k int, callback K.Callback) error { return nil }
 
 //Update is called before perBar
 func (rmi *RMICrossStrategy) Update(k *int) error { return nil }

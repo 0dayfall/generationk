@@ -43,7 +43,7 @@ func (ma *MACrossStrategy) PerBar(k int, callback K.Callback) error {
 
 	if ma.close[k] > ma.ma50[k] {
 		if !callback.Owning() {
-			err := callback.SendOrder(K.BuyOrder, K.MarketOrder, 100)
+			_, err := callback.SendOrder(K.BuyOrder, K.MarketOrder, 100)
 
 			if err != nil {
 				log.Fatal(err)
@@ -55,7 +55,7 @@ func (ma *MACrossStrategy) PerBar(k int, callback K.Callback) error {
 
 	if ma.close[k] < ma.ma50[k] {
 		if callback.Owning() {
-			err := callback.SendOrder(K.SellOrder, K.MarketOrder, 100)
+			_, err := callback.SendOrder(K.SellOrder, K.MarketOrder, 100)
 
 			if err != nil {
 				log.Fatal(err)
@@ -67,6 +67,8 @@ func (ma *MACrossStrategy) PerBar(k int, callback K.Callback) error {
 
 	return nil
 }
+
+func (ma *MACrossStrategy) End(k int, callback K.Callback) error { return nil }
 
 //Update is called before perBar
 func (ma *MACrossStrategy) Update(k *int) error { return nil }

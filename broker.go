@@ -71,7 +71,7 @@ func (b *Broker) SetComission(comission Comission) {
 }
 
 //SendOrder is used to place an order with the broker
-func (b *Broker) SendOrder(order Order, orderstatus OrderStatus) error {
+func (b *Broker) SendOrder(order Order, orderstatus OrderStatus) (float64, error) {
 	b.callback = orderstatus
 
 	switch order.direction {
@@ -81,15 +81,15 @@ func (b *Broker) SendOrder(order Order, orderstatus OrderStatus) error {
 			b.rejected(err)
 		}
 	case SellOrder:
-		b.sell(order)
+		return b.sell(order), nil
 	case ShortOrder:
 		b.sellshort(order)
 	case CoverOrder:
 		b.cover(order)
 	default:
-		return UnknownDirection
+		return b.portfolio.GetBalance(), UnknownDirection
 	}
-	return nil
+	return b.portfolio.GetBalance(), nil
 }
 
 //getAmountForQty is used to get the amount needed to buy a certain quantity
@@ -156,7 +156,10 @@ func (b *Broker) buy(order Order) error {
 }
 
 //sell is used to sell a holding and book and the profits or losses
-func (b *Broker) sell(order Order) {
+func (b *Broker) sell(order Order) float64 {
+
+	amount := getAmountForQty(order)
+
 	if order.Qty > ZERO {
 		b.portfolio.addToBalance(getAmountForQty(order))
 	}
@@ -175,6 +178,8 @@ func (b *Broker) sell(order Order) {
 		Price: order.Price,
 		Time:  order.Time,
 	})
+
+	return amount
 }
 
 //sellshort is not implemented

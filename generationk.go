@@ -23,8 +23,8 @@ var EndOfAsset = errors.New("End of asset")
 type Callback interface {
 	Owning() bool
 	IsOwning(assetName string) (bool, error)
-	SendOrder(direction Direction, orderType OrderType, qty int) error
-	SendOrderFor(assetName string, direction Direction, orderType OrderType, qty int) error
+	SendOrder(direction Direction, orderType OrderType, qty int) (float64, error)
+	SendOrderFor(assetName string, direction Direction, orderType OrderType, qty int) (float64, error)
 	Assets() []string
 	Date() time.Time
 }
@@ -74,8 +74,8 @@ func determineInterval(interval string) intervalFunc {
 		return func(timeOld time.Time, timeNew time.Time) bool {
 			_, monthNew, _ := timeNew.Date()
 
-			return monthNew == 1 || monthNew == 4 ||
-				monthNew == 7 || monthNew == 10
+			return monthNew == 3 || monthNew == 6 ||
+				monthNew == 9 || monthNew == 12
 		}
 
 	}
@@ -192,7 +192,7 @@ func (k *GenerationK) Run() error {
 			switch err {
 
 			case EndOfBacktest:
-				
+				k.end()
 				return err
 
 			case FFToStartDate:
@@ -215,6 +215,14 @@ func (k *GenerationK) Run() error {
 	}
 
 	return nil
+}
+
+func (k *GenerationK) end() {
+	fmt.Println("Running end")
+	err := k.ctx.strategy[0].End(k.ctx.K, k)
+	if err != nil {
+		log.Fatal("Fatal end")
+	}
 }
 
 //AddDataManager is currently not used
@@ -272,28 +280,28 @@ func (k *GenerationK) SetEndDate(endDate time.Time) {
 }
 
 //OrderSend is used to send an order to the broker, return an error if the asset does not exist
-func (k *GenerationK) SendOrderFor(assetName string, direction Direction, orderType OrderType, qty int) error {
+func (k *GenerationK) SendOrderFor(assetName string, direction Direction, orderType OrderType, qty int) (float64, error) {
 	if asset, ok := k.ctx.assetMap[assetName]; ok {
 		return k.sendOrder(k.ctx, direction, orderType, asset, k.ctx.datePointer, qty)
 	}
 
-	return AssetDoesNotExist
+	return 0, AssetDoesNotExist
 }
 
 //OrderSend is used to send an order to the broker, return an error if the asset does not exist
-func (k *GenerationK) SendOrder(direction Direction, orderType OrderType, qty int) error {
+func (k *GenerationK) SendOrder(direction Direction, orderType OrderType, qty int) (float64, error) {
 	if asset, ok := k.ctx.assetMap[k.ctx.asset.Name]; ok {
 		return k.sendOrder(k.ctx, direction, orderType, asset, k.ctx.datePointer, qty)
 	}
 
-	return AssetDoesNotExist
+	return 0, AssetDoesNotExist
 }
 
 //orderSend is used to send an order to the broker
-func (k *GenerationK) sendOrder(ctx *Context, direction Direction, orderType OrderType, asset *D.Asset, time time.Time, qty int) error {
+func (k *GenerationK) sendOrder(ctx *Context, direction Direction, orderType OrderType, asset *D.Asset, time time.Time, qty int) (float64, error) {
 	orderStatus, _ := interface{}(ctx.strategy[0]).(OrderStatus)
 
-	err := ctx.broker.SendOrder(
+	return ctx.broker.SendOrder(
 		Order{
 			direction: direction,
 			orderType: orderType,
@@ -304,7 +312,6 @@ func (k *GenerationK) sendOrder(ctx *Context, direction Direction, orderType Ord
 		},
 		orderStatus,
 	)
-	return err
 }
 
 //Assets returns an array of assets
