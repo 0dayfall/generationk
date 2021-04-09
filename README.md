@@ -7,6 +7,8 @@
 # GenerationK
 This is a backtesting framework in Golang. Is is possible to perform backtests of data in CSV files.
 
+### Version
+
 ⚠️ This is an early version. The package can be used for backtesting, but the API is not stable yet. This is a work in progress. Once stability is reached, version `1.0.0` will be tagged. Please check back then. ⚠️
 
 
