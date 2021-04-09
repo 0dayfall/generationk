@@ -4,6 +4,9 @@
 [![Go ReportCard](http://goreportcard.com/badge/muesli/kmeans)](http://goreportcard.com/report/0dayfall/generationk)
 [![GoDoc](https://godoc.org/github.com/golang/gddo?status.svg)](https://pkg.go.dev/github.com/0dayfall/generationk)
 
+# GenerationK
+This is a backtesting framework in Golang. Is is possible to perform backtests of data in CSV files.
+
 ⚠️ This is an early version. The package can be used for backtesting, but the API is not stable yet. This is a work in progress. Once stability is reached, version `1.0.0` will be tagged. Please check back then. ⚠️
 
 
