@@ -18,7 +18,7 @@ func SimpleMovingAverage(series []float64, period int) []float64 {
 	for i := 0; i < seriesLength; i++ {
 		var sum float64
 
-		for k := i - period; k < i && k > 0; k++ {
+		for k := i - period; k < i && k >= 0; k++ {
 			sum += series[k]
 		}
 		/*

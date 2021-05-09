@@ -132,21 +132,25 @@ func (ctx *Context) AddAsset(asset *D.Asset) {
 	ctx.assetMap[asset.Name] = asset
 	ctx.assetIndicatorMap[asset.Name] = nil
 
+	//Remove is below is commented back
+	ctx.length = asset.Length
+	ctx.asset = asset
 	//Save the length of the longest asset
 	//Save the asset with the longest length
-	if ctx.length < asset.Length {
-		ctx.length = asset.Length
-		ctx.asset = asset
-		asset.AdjK = 0
-	} else if ctx.length > asset.Length {
-		//Longest asset is 134 length
-		//Our asset is 73
-		//The index when our asset 'start'
-		//is 134-73 = 61
-		asset.AdjK = ctx.length - asset.Length
-	} else {
-		asset.AdjK = 0
-	}
+	// if ctx.length < asset.Length {
+	// 	ctx.length = asset.Length
+	// 	ctx.asset = asset
+	// 	asset.AdjK = 0
+	// } else if ctx.length > asset.Length {
+	// 	//Longest asset is 134 length
+	// 	//Our asset is 73
+	// 	//The index when our asset 'start'
+	// 	//is 134-73 = 61
+	// 	asset.AdjK = ctx.length - asset.Length
+	// 	fmt.Printf("Adjusted length is used: %d\n", asset.AdjK)
+	// } else {
+	// 	asset.AdjK = 0
+	// }
 
 }
 

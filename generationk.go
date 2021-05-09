@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
+	"text/tabwriter"
 	"time"
 
 	D "github.com/0dayfall/generationk/data"
@@ -25,19 +27,24 @@ type Callback interface {
 	IsOwning(assetName string) (bool, error)
 	SendOrder(direction Direction, orderType OrderType, qty int) (float64, error)
 	SendOrderFor(assetName string, direction Direction, orderType OrderType, qty int) (float64, error)
+	Sell(assetName string) (float64, error)
 	Assets() []string
 	Date() time.Time
+	Record(name string, record RecordStruct)
+	PositionSize(percentageOfCapital float64, price float64) int
 }
 
 type GenerationK struct {
-	ctx *Context
+	ctx     *Context
+	records map[string][]RecordStruct
 }
 
 //NewGenerationK is used to create a new backtest
 func NewGenerationK() *GenerationK {
 
 	generationK := &GenerationK{
-		ctx: NewContext(),
+		ctx:     NewContext(),
+		records: make(map[string][]RecordStruct),
 	}
 
 	return generationK
@@ -106,20 +113,6 @@ var timer intervalFunc
 func (g *GenerationK) nextGen() error {
 	defer g.inc()
 
-	/*for _, asset := range g.ctx.assets {
-
-		if g.ctx.K >= len(asset.Ohlc.Close) {
-
-			//fmt.Println(g.ctx.K)
-			//		g.ctx.RemoveAsset(asset)
-
-			return EndOfAsset
-
-		} else {
-			//fmt.Printf("Asset name %s, %f", asset.Name, asset.Ohlc.Close[g.ctx.K])
-			g.ctx.datePointer = g.ctx.asset.Ohlc.Time[g.ctx.K]
-		}
-	}*/
 	g.ctx.datePointer = g.ctx.asset.Ohlc.Time[g.ctx.K]
 
 	//Have to run this first so that we dont increase k by FF
@@ -135,6 +128,7 @@ func (g *GenerationK) nextGen() error {
 		if ok {
 			timer = determineInterval(v.GetInterval())
 		} else {
+			timer = nil
 			fmt.Println("Interface is of wrong type")
 		}
 	}
@@ -192,7 +186,6 @@ func (k *GenerationK) Run() error {
 			switch err {
 
 			case EndOfBacktest:
-				k.end()
 				return err
 
 			case FFToStartDate:
@@ -214,6 +207,8 @@ func (k *GenerationK) Run() error {
 
 	}
 
+	k.end()
+
 	return nil
 }
 
@@ -223,6 +218,7 @@ func (k *GenerationK) end() {
 	if err != nil {
 		log.Fatal("Fatal end")
 	}
+	k.PrintRecords()
 }
 
 //AddDataManager is currently not used
@@ -277,6 +273,13 @@ func (k *GenerationK) SetStartDate(startDate time.Time) {
 //AddEndDate is used to set the end date for the backtest
 func (k *GenerationK) SetEndDate(endDate time.Time) {
 	k.ctx.SetEndDate(endDate)
+}
+
+func (k *GenerationK) Sell(assetName string) (float64, error) {
+	if asset, ok := k.ctx.assetMap[assetName]; ok {
+		return k.sendOrder(k.ctx, SellOrder, MarketOrder, asset, k.ctx.datePointer, -1)
+	}
+	return 0, AssetDoesNotExist
 }
 
 //OrderSend is used to send an order to the broker, return an error if the asset does not exist
@@ -347,4 +350,68 @@ func (k *GenerationK) IsOwning(assetName string) (bool, error) {
 //only processing 1 asset
 func (k *GenerationK) Owning() bool {
 	return k.ctx.portfolio.IsOwning(k.ctx.asset.Name)
+}
+
+type RecordStruct struct {
+	Time     time.Time
+	Variable map[string]string
+}
+
+func (k *GenerationK) Record(name string, record RecordStruct) {
+	k.records[name] = append(k.records[name], record)
+}
+
+func (k *GenerationK) PositionSize(percentageOfCapital float64, price float64) int {
+	return int(k.ctx.portfolio.cash * percentageOfCapital / price)
+}
+
+/*func (k *GenerationK) WriteRecords(fileName string) {
+	file, err := os.Create(fileName + ".csv")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	for assetName, recordsArray := range k.records {
+
+		for _, record := range recordsArray {
+
+			err := writer.Write(value)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Fprintf(w, "\nAsset name %s\ttime %v\t\n", assetName, record.Time)
+
+			for k, v := range record.Variable {
+				fmt.Fprintf(w, "%s\t%s\taligned\t\n", k, v)
+			}
+		}
+
+	}
+}*/
+
+func (k *GenerationK) PrintMatrix() {
+	//records[time.Time]
+}
+
+func (k *GenerationK) PrintRecords() {
+	const padding = 3
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
+
+	for assetName, recordsArray := range k.records {
+
+		for _, record := range recordsArray {
+			fmt.Fprintf(w, "\nAsset name %s\ttime %v\t\n", assetName, record.Time)
+
+			for k, v := range record.Variable {
+				fmt.Fprintf(w, "%s\t%s\taligned\t\n", k, v)
+			}
+		}
+
+		w.Flush()
+	}
 }

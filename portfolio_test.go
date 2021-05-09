@@ -7,17 +7,28 @@ import (
 
 func TestNewPortfolio(t *testing.T) {
 
-	portfolio := NewPortfolio()
+	portfolio := NewPortfolio(100)
 
-	if portfolio.GetBalance() != 0 {
-		t.Errorf("Error creating portfolio with zero balance")
+	if portfolio.GetBalance() != 100 {
+		t.Errorf("Error creating portfolio with 100 balance")
+	}
+
+}
+
+func TestSetBalance(t *testing.T) {
+
+	portfolio := NewPortfolio(100)
+	portfolio.SetBalance(200)
+
+	if portfolio.GetBalance() != 200 {
+		t.Errorf("Error creating portfolio with 200")
 	}
 
 }
 
 func TestIsOwning(t *testing.T) {
 
-	portfolio := NewPortfolio()
+	portfolio := NewPortfolio(100)
 
 	portfolio.AddHolding(Holding{assetName: "holding"})
 
@@ -29,7 +40,10 @@ func TestIsOwning(t *testing.T) {
 		t.Errorf("holding2 is not owned")
 	}
 
-	portfolio.RemoveHolding(Holding{assetName: "holding"})
+	err := portfolio.RemoveHolding(Holding{assetName: "holding"})
+	if err != nil {
+		t.Error(err)
+	}
 
 	if portfolio.IsOwning("holding") == true {
 		t.Errorf("Holding was removed")
@@ -39,7 +53,7 @@ func TestIsOwning(t *testing.T) {
 
 func TestAddRemoveHolding(t *testing.T) {
 
-	portfolio := NewPortfolio()
+	portfolio := NewPortfolio(100)
 
 	portfolio.AddHolding(Holding{assetName: "holding"})
 
@@ -53,7 +67,10 @@ func TestAddRemoveHolding(t *testing.T) {
 		t.Errorf("Holding has wrong length")
 	}
 
-	portfolio.RemoveHolding(Holding{assetName: "holding"})
+	err := portfolio.RemoveHolding(Holding{assetName: "holding"})
+	if err != nil {
+		t.Error(err)
+	}
 
 	if portfolio.IsOwning("holding") == true {
 		t.Errorf("Holding was removed")
@@ -63,8 +80,8 @@ func TestAddRemoveHolding(t *testing.T) {
 
 func TestBalance(t *testing.T) {
 
-	portfolio := NewPortfolio()
-	portfolio.SetBalance(10000)
+	portfolio := NewPortfolio(10000)
+	//portfolio.SetBalance(10000)
 
 	err := portfolio.subtractFromBalance(300)
 	if err != nil {
@@ -72,7 +89,7 @@ func TestBalance(t *testing.T) {
 	}
 
 	if portfolio.GetBalance() != 9700 {
-		t.Errorf("Wrong balance")
+		t.Errorf("Wrong balance %f", portfolio.GetBalance())
 	}
 
 	err = portfolio.subtractFromBalance(9800)

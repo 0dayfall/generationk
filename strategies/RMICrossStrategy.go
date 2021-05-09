@@ -9,35 +9,17 @@ import (
 )
 
 //Strategy strategy
-type RMICrossStrategy struct {
+type RMICross struct {
 	fastRMI   []float64
 	slowRMI   []float64
 	buyParam  K.Params
 	sellParam K.Params
 }
 
-/*func (rmi *RMICrossStrategy) GetParams() []*K.Params {
-	return []*K.Params{&rmi.buyParam}
-}*/
-
-func (rmi *RMICrossStrategy) GetParams() []*K.Params {
-	//Test which of the buy params are the best ones
-	rmi.buyParam = K.Params{
-		Low:  -30,
-		High: -20,
-	}
-
-	//Test in combination with the selling params
-	rmi.sellParam = K.Params{
-		Low:  20,
-		High: 30,
-	}
-
-	return []*K.Params{&rmi.buyParam, &rmi.sellParam}
-}
+func (donch *RMICross) GetParams() []*K.Params { return nil }
 
 //Setup is used to declare what indicators will be used
-func (rmi *RMICrossStrategy) Once(ctx *K.Context, asset []*D.Asset) error {
+func (rmi *RMICross) Once(ctx *K.Context, asset []*D.Asset) error {
 	ohlc := asset[0].Ohlc
 
 	//The Simple Moving Average length 50 periods, the ones from 0 to 50 will be registred in the array as well
@@ -50,7 +32,7 @@ func (rmi *RMICrossStrategy) Once(ctx *K.Context, asset []*D.Asset) error {
 }
 
 //Tick get called when there is new data coming in
-func (rmi *RMICrossStrategy) PerBar(k int, callback K.Callback) error {
+func (rmi *RMICross) PerBar(k int, callback K.Callback) error {
 
 	//fmt.Printf("k: %d ", k)
 	//fmt.Printf("len(close): %d ", len(rmi.close))
@@ -86,13 +68,13 @@ func (rmi *RMICrossStrategy) PerBar(k int, callback K.Callback) error {
 	return nil
 }
 
-func (rmi *RMICrossStrategy) End(k int, callback K.Callback) error { return nil }
+func (rmi *RMICross) End(k int, callback K.Callback) error { return nil }
 
 //Update is called before perBar
-func (rmi *RMICrossStrategy) Update(k *int) error { return nil }
+func (rmi *RMICross) Update(k *int) error { return nil }
 
 //OrderEvent gets called on order events
-func (rmi *RMICrossStrategy) OrderEvent(orderEvent K.Event) {}
+func (rmi *RMICross) OrderEvent(orderEvent K.Event) {}
 
 /*func readOneFolder(folderPath string) {
 	files, err := filepath.Glob(folderPath + "*.csv")

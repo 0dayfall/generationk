@@ -102,8 +102,8 @@ func consume(id int, ctx *Context, dm *D.DataManager, jobs <-chan *JobStruct, re
 					params[1].Value = k
 					//fmt.Printf("PARAMS VÄRDE I LOOPEN: %v", params[0].GetValue())
 					//fmt.Printf("PARAMS VÄRDE I LOOPEN: %v", params[1].GetValue())
-					portfolio := NewPortfolio()
-					portfolio.SetBalance(100000)
+					portfolio := NewPortfolio(1000000)
+					//portfolio.SetBalance(100000)
 					genk := NewGenerationK()
 					genk.SetPortfolio(portfolio)
 					//fmt.Print(portfolio)
@@ -201,8 +201,8 @@ func RunPlain(ctx *Context, dm *D.DataManager) {
 		log.Fatal(err)
 	}
 
-	portfolio := NewPortfolio()
-	portfolio.SetBalance(100000)
+	portfolio := NewPortfolio(100000)
+	//portfolio.SetBalance(100000)
 
 	for _, fileName := range files {
 		genk := NewGenerationK()
@@ -225,15 +225,15 @@ func RunPlain(ctx *Context, dm *D.DataManager) {
 	}
 }
 
-func RunParallell(ctx *Context, dm *D.DataManager) {
+func RunParallell(ctx *Context, dm *D.DataManager, cash float64) {
 	files, err := filepath.Glob(filepath.Clean(ctx.dataPath) + string(os.PathSeparator) + "*.csv")
 
 	if err == filepath.ErrBadPattern {
 		log.Fatal(err)
 	}
 
-	portfolio := NewPortfolio()
-	portfolio.SetBalance(500000)
+	portfolio := NewPortfolio(cash)
+	//portfolio.SetBalance(500000)
 
 	genk := NewGenerationK()
 	genk.SetPortfolio(portfolio)
@@ -243,18 +243,25 @@ func RunParallell(ctx *Context, dm *D.DataManager) {
 	genk.SetEndDate(ctx.GetEndDate())
 
 	for _, fileName := range files {
+
 		asset, err := dm.ReadCSVFile(fileName)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Printf("Filename> %s %s", fileName, err.Error())
+			os.Exit(1)
 		}
+
 		genk.AddAsset(asset)
+
 	}
+
+	dm.CreatePadding(genk.GetAssets())
 
 	runErr := genk.Run()
 	if runErr != nil {
 		fmt.Printf("Error, portfolio value: %f", portfolio.GetBalance())
 		log.Fatal(runErr)
 	}
+
 	fmt.Printf("Portfolio value: %f", portfolio.GetBalance())
 }
 
@@ -266,8 +273,8 @@ func RunStrategyOnAssets(ctx *Context, dm *D.DataManager) {
 
 	fmt.Printf("files %s\n\n\n", files)
 	//d.ReadCSVFilesAsync(files)
-	portfolio := NewPortfolio()
-	portfolio.SetBalance(100000)
+	portfolio := NewPortfolio(100000)
+	//portfolio.SetBalance(100000)
 
 	var wg sync.WaitGroup
 

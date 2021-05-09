@@ -2,7 +2,6 @@ package generationk
 
 import (
 	"encoding/csv"
-	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -20,7 +19,6 @@ type DataManager struct {
 }
 
 func NewCSVDataManager(headers bool, reverse bool, mapping Maprecords) *DataManager {
-	fmt.Println("Returning data manager")
 	return &DataManager{
 		Headers:     headers,
 		Reverse:     reverse,
@@ -35,10 +33,13 @@ func (d *DataManager) ReadCSVFiles(folder string) []*Asset {
 func (d *DataManager) CreatePadding(asset []*Asset) {
 	var length int
 
+	var longestAsset Asset
+
 	//Find the length of the longest asset
 	for i := 0; i < len(asset); i++ {
 		if length < asset[i].Length {
 			length = asset[i].Length
+			longestAsset = *asset[i]
 		}
 	}
 
@@ -65,6 +66,12 @@ func (d *DataManager) CreatePadding(asset []*Asset) {
 			asset[i].Ohlc.Low = append(padLow, asset[i].Ohlc.Low...)
 			asset[i].Ohlc.Close = append(padClose, asset[i].Ohlc.Close...)
 			asset[i].Ohlc.Volume = append(padVolume, asset[i].Ohlc.Volume...)
+
+			//Put real value in the time columns
+			for n := 0; n < diff; n++ {
+				asset[i].Ohlc.Time[n] = longestAsset.Ohlc.Time[n]
+				//fmt.Printf("%v\n", asset[i].Ohlc.Time[n])
+			}
 
 			//Adjust the length of the asset to the new length
 			asset[i].Length = len(asset[i].Ohlc.High)
@@ -142,6 +149,8 @@ func (d *DataManager) createAsset(file string, records [][]string) (*Asset, erro
 		ohlc.Low[i] = record[2]
 		ohlc.Close[i] = record[3]
 		ohlc.Volume[i] = record[4]
+
+		//fmt.Println(record)
 	}
 
 	assetName := strings.TrimSuffix(filepath.Base(file), path.Ext(file))

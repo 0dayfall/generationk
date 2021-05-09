@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	K "github.com/0dayfall/generationk"
@@ -27,6 +28,7 @@ func main() {
 	backtestDir := backtestCmd.String("dir", "", "Directory name")
 	backtestFromDate := backtestCmd.String("fromDate", "01/01/2015", "From date")
 	backtestToDate := backtestCmd.String("toDate", time.Now().Format("02/01/2006"), "To date")
+	backtestCash := backtestCmd.String("cash", "0", "How much money is there")
 
 	help := "Add the subcommand 'hurst' or 'backtest'"
 
@@ -75,6 +77,10 @@ func main() {
 			fmt.Println("Using investing.com mapping")
 			dm = D.NewCSVDataManager(*backtestHeaders, *backtestReverse, D.MapRecordsInvesting)
 
+		case "spotlight":
+			fmt.Println("Using spotlight..se mapping")
+			dm = D.NewCSVDataManager(*backtestHeaders, *backtestReverse, D.MapRecordsSpotlight)
+
 		default:
 			fmt.Println("Using default mapping")
 			dm = D.NewCSVDataManager(*backtestHeaders, *backtestReverse, nil)
@@ -87,14 +93,44 @@ func main() {
 			ctx.SetStrategy(new(S.MACrossStrategy))
 			K.RunPlain(ctx, dm)
 
+		case "DonchStrategy":
+			ctx.SetStrategy(new(S.DonchStrategy))
+
+			cash, err := strconv.ParseFloat(*backtestCash, 32)
+			if err != nil {
+				log.Fatal("Cash doesnt seem to be a number")
+			}
+
+			K.RunParallell(ctx, dm, cash)
+
 		case "RMICrossStrategy":
-			ctx.SetStrategy(new(S.RMICrossStrategy))
+			ctx.SetStrategy(new(S.RMICross))
 			K.RunPlain(ctx, dm)
+
+		case "RMIHigh":
+			ctx.SetStrategy(new(S.RMIHigh))
+			K.RunPlain(ctx, dm)
+
+		case "MonthlyStrat":
+			ctx.SetStrategy(new(S.MonthlyStrat))
+
+			cash, err := strconv.ParseFloat(*backtestCash, 32)
+			if err != nil {
+				log.Fatal("Cash doesnt seem to be a number")
+			}
+
+			K.RunParallell(ctx, dm, cash)
 
 		case "RebalanceStrategy":
 			fmt.Printf("Rebalancing running with parameters %s, %t, %t, %s\n", *backtestMapping, *backtestHeaders, *backtestReverse, *backtestDir)
 			ctx.SetStrategy(new(S.RebalanceStrat))
-			K.RunParallell(ctx, dm)
+
+			cash, err := strconv.ParseFloat(*backtestCash, 32)
+			if err != nil {
+				log.Fatal("Cash doesnt seem to be a number")
+			}
+
+			K.RunParallell(ctx, dm, cash)
 
 		default:
 			log.Fatal("Could not find a strategy with that name in /strategies")

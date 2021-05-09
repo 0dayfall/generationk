@@ -23,6 +23,7 @@ const (
 )
 
 var UnknownDirection = errors.New("Unknown type of direction for order - should be Buy, Sell, Short or Cover")
+var ZeroQuantity = errors.New("Quantity <0")
 
 type OrderType int
 
@@ -75,7 +76,12 @@ func (b *Broker) SendOrder(order Order, orderstatus OrderStatus) (float64, error
 	b.callback = orderstatus
 
 	switch order.direction {
+
 	case BuyOrder:
+
+		if order.Qty <= ZERO {
+			return 0, ZeroQuantity
+		}
 
 		cost, err := b.buy(order)
 
@@ -87,7 +93,29 @@ func (b *Broker) SendOrder(order Order, orderstatus OrderStatus) (float64, error
 		return cost, nil
 
 	case SellOrder:
-		return b.sell(order), nil
+
+		if order.Qty == 0 {
+			return 0, ZeroQuantity
+		}
+
+		if order.Qty == -1 {
+			qty, err := b.portfolio.GetQuantity(Holding{assetName: order.Asset})
+			if err != nil {
+				return 0.0, err
+			}
+
+			order.Qty = qty
+
+		}
+
+		cash, err := b.sell(order)
+
+		if err != nil {
+			b.rejected(err)
+			return 0, err
+		}
+
+		return cash, nil
 
 	case ShortOrder:
 		b.sellshort(order)
@@ -96,14 +124,16 @@ func (b *Broker) SendOrder(order Order, orderstatus OrderStatus) (float64, error
 		b.cover(order)
 
 	default:
-		return b.portfolio.GetBalance(), UnknownDirection
+		return 0, UnknownDirection
 
 	}
+
 	return b.portfolio.GetBalance(), nil
 }
 
 //getAmountForQty is used to get the amount needed to buy a certain quantity
 func getAmountForQty(order Order) float64 {
+
 	return order.Price * float64(order.Qty)
 }
 
@@ -114,21 +144,32 @@ func getAmountForQty(order Order) float64 {
 
 //accpeted is used to send an order event with an accepted event
 func (b Broker) accepted(order Order) {
-	b.callback.OrderEvent(Accepted{})
+	if b.callback != nil {
+		b.callback.OrderEvent(Accepted{})
+	}
 }
 
 //rejected is used to send a rejected order event
 func (b Broker) rejected(err error) {
-	b.callback.OrderEvent(Rejected{err: err})
+	if b.callback != nil {
+		b.callback.OrderEvent(Rejected{err: err})
+	}
+
+}
+
+//fill is used to send a rejected order event
+func (b Broker) fill(fill Fill) {
+	if b.callback != nil {
+		b.callback.OrderEvent(fill)
+	}
+
 }
 
 //buy is used to buy a qty or a possible qty from an amount, if a comission is
 // set is will be used and deducted from the account
 func (b *Broker) buy(order Order) (float64, error) {
-	amount := 0.0
-	if order.Qty > ZERO {
-		amount = getAmountForQty(order)
-	}
+
+	amount := getAmountForQty(order)
 
 	/*if order.Amount > EMPTY {
 		amount = order.Amount
@@ -155,41 +196,39 @@ func (b *Broker) buy(order Order) (float64, error) {
 		time:      order.Time,
 	})
 
-	b.callback.OrderEvent(Fill{
+	b.fill(Fill{
 		Qty:       order.Qty,
 		AssetName: order.Asset,
 		Price:     order.Price,
 		Time:      order.Time,
 	})
 
-	return amount, nil
+	return -amount, nil
 }
 
 //sell is used to sell a holding and book and the profits or losses
-func (b *Broker) sell(order Order) float64 {
+func (b *Broker) sell(order Order) (float64, error) {
 
 	amount := getAmountForQty(order)
-
-	if order.Qty > ZERO {
-		b.portfolio.addToBalance(getAmountForQty(order))
-	}
+	b.portfolio.addToBalance(amount)
 
 	b.accepted(order)
 
-	b.portfolio.RemoveHolding(Holding{
+	err := b.portfolio.RemoveHolding(Holding{
 		qty:       order.Qty,
 		assetName: order.Asset,
 		price:     order.Price,
 		time:      order.Time,
 	})
 
-	b.callback.OrderEvent(Fill{
-		Qty: -order.Qty, AssetName: order.Asset,
-		Price: order.Price,
-		Time:  order.Time,
+	b.fill(Fill{
+		Qty:       -order.Qty,
+		AssetName: order.Asset,
+		Price:     order.Price,
+		Time:      order.Time,
 	})
 
-	return amount
+	return amount, err
 }
 
 //sellshort is not implemented
